@@ -19,9 +19,10 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         'midtrans_is_production' => isset($_POST['midtrans_is_production']) ? '1' : '0'
     ];
 
+    $stmt = $conn->prepare("INSERT INTO settings (setting_key, setting_value) VALUES (?, ?) ON DUPLICATE KEY UPDATE setting_value = ?");
     foreach ($settings_to_update as $key => $val) {
-        $val_escaped = $conn->real_escape_string($val);
-        $conn->query("INSERT INTO settings (setting_key, setting_value) VALUES ('$key', '$val_escaped') ON DUPLICATE KEY UPDATE setting_value = '$val_escaped'");
+        $stmt->bind_param("sss", $key, $val, $val);
+        $stmt->execute();
     }
 
     logActivity($conn, $_SESSION['user_id'], 'Update API Config', 'Admin mengubah konfigurasi API Google/Midtrans.');

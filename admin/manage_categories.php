@@ -15,8 +15,10 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['action'])) {
         $nama = trim($conn->real_escape_string($_POST['nama']));
         $ikon = trim($conn->real_escape_string($_POST['ikon'] ?? 'star'));
         if (!empty($nama)) {
-            $r = $conn->query("INSERT IGNORE INTO event_categories (nama, ikon) VALUES ('$nama', '$ikon')");
-            if ($r && $conn->affected_rows > 0) {
+            $stmt = $conn->prepare("INSERT IGNORE INTO event_categories (nama, ikon) VALUES (?, ?)");
+            $stmt->bind_param("ss", $nama, $ikon);
+            $stmt->execute();
+            if ($stmt && $conn->affected_rows > 0) {
                 logActivity($conn, $_SESSION['user_id'], 'Add Category', "Menambahkan kategori baru: $nama");
                 $success = "Kategori \"$nama\" berhasil ditambahkan.";
             } else {
@@ -25,14 +27,18 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['action'])) {
         }
     } elseif ($_POST['action'] == 'delete') {
         $id = (int)$_POST['id'];
-        $conn->query("DELETE FROM event_categories WHERE id = $id");
+        $stmt = $conn->prepare("DELETE FROM event_categories WHERE id = ?");
+        $stmt->bind_param("i", $id);
+        $stmt->execute();
         logActivity($conn, $_SESSION['user_id'], 'Delete Category', "Menghapus kategori dengan ID: $id");
         $success = "Kategori berhasil dihapus.";
     } elseif ($_POST['action'] == 'edit') {
         $id   = (int)$_POST['id'];
         $nama = trim($conn->real_escape_string($_POST['nama']));
         $ikon = trim($conn->real_escape_string($_POST['ikon'] ?? 'star'));
-        $conn->query("UPDATE event_categories SET nama='$nama', ikon='$ikon' WHERE id=$id");
+        $stmt = $conn->prepare("UPDATE event_categories SET nama=?, ikon=? WHERE id=?");
+        $stmt->bind_param("ssi", $nama, $ikon, $id);
+        $stmt->execute();
         logActivity($conn, $_SESSION['user_id'], 'Edit Category', "Mengubah kategori dengan ID: $id menjadi: $nama");
         $success = "Kategori berhasil diperbarui.";
     }

@@ -10,7 +10,10 @@ $id_panitia = $_SESSION['user_id'];
 
 if (isset($_GET['del'])) {
     $id = (int)$_GET['del'];
-    $evt = $conn->query("SELECT banner_image, banner_image2, banner_image3, banner_image4 FROM events WHERE id = $id AND id_panitia = $id_panitia")->fetch_assoc();
+    $stmt = $conn->prepare("SELECT banner_image, banner_image2, banner_image3, banner_image4 FROM events WHERE id = ? AND id_panitia = ?");
+    $stmt->bind_param("ii", $id, $id_panitia);
+    $stmt->execute();
+    $evt = $stmt->get_result()->fetch_assoc();
     if ($evt) {
         $imgs = [$evt['banner_image'], $evt['banner_image2'], $evt['banner_image3'], $evt['banner_image4']];
         foreach($imgs as $img) {
@@ -18,7 +21,9 @@ if (isset($_GET['del'])) {
                 unlink("../assets/images/events/".$img);
             }
         }
-        $conn->query("DELETE FROM events WHERE id = $id AND id_panitia = $id_panitia");
+        $stmt = $conn->prepare("DELETE FROM events WHERE id = ? AND id_panitia = ?");
+        $stmt->bind_param("ii", $id, $id_panitia);
+        $stmt->execute();
         logActivity($conn, $_SESSION['user_id'], 'Delete Event', "Panitia menghapus event dengan ID: $id");
     }
     header("Location: manage_events.php");

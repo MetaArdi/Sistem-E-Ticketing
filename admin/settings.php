@@ -14,7 +14,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         $filename = time() . '_' . basename($_FILES['logo']['name']);
         $target = "../assets/images/logo/" . $filename;
         if (move_uploaded_file($_FILES['logo']['tmp_name'], $target)) {
-            $conn->query("UPDATE settings SET setting_value = '$filename' WHERE setting_key = 'site_logo'");
+            $stmt = $conn->prepare("UPDATE settings SET setting_value = ? WHERE setting_key = 'site_logo'");
+            $stmt->bind_param("s", $filename);
+            $stmt->execute();
         }
     }
 
@@ -23,16 +25,20 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         $filename = time() . '_' . basename($_FILES['favicon']['name']);
         $target = "../assets/images/favicon/" . $filename;
         if (move_uploaded_file($_FILES['favicon']['tmp_name'], $target)) {
-            $conn->query("UPDATE settings SET setting_value = '$filename' WHERE setting_key = 'site_favicon'");
+            $stmt = $conn->prepare("UPDATE settings SET setting_value = ? WHERE setting_key = 'site_favicon'");
+            $stmt->bind_param("s", $filename);
+            $stmt->execute();
         }
     }
 
     // Proses Text Settings
     $text_settings = ['contact_address', 'contact_cs', 'link_ig', 'link_tiktok'];
+    $stmt = $conn->prepare("INSERT INTO settings (setting_key, setting_value) VALUES (?, ?) ON DUPLICATE KEY UPDATE setting_value = ?");
     foreach ($text_settings as $key) {
         if (isset($_POST[$key])) {
-            $val = $conn->real_escape_string($_POST[$key]);
-            $conn->query("INSERT INTO settings (setting_key, setting_value) VALUES ('$key', '$val') ON DUPLICATE KEY UPDATE setting_value = '$val'");
+            $val = $_POST[$key];
+            $stmt->bind_param("sss", $key, $val, $val);
+            $stmt->execute();
         }
     }
 

@@ -11,7 +11,9 @@ $error = '';
 
 if (isset($_GET['approve'])) {
     $id = (int)$_GET['approve'];
-    $conn->query("UPDATE events SET status_approval = 'approved' WHERE id = $id");
+    $stmt = $conn->prepare("UPDATE events SET status_approval = 'approved' WHERE id = ?");
+    $stmt->bind_param("i", $id);
+    $stmt->execute();
     logActivity($conn, $_SESSION['user_id'], 'Approve Event', "Menyetujui event dengan ID: $id");
     header("Location: manage_events.php?msg=approved");
     exit;
@@ -19,7 +21,9 @@ if (isset($_GET['approve'])) {
 
 if (isset($_GET['reject'])) {
     $id = (int)$_GET['reject'];
-    $conn->query("UPDATE events SET status_approval = 'rejected' WHERE id = $id");
+    $stmt = $conn->prepare("UPDATE events SET status_approval = 'rejected' WHERE id = ?");
+    $stmt->bind_param("i", $id);
+    $stmt->execute();
     logActivity($conn, $_SESSION['user_id'], 'Reject Event', "Menolak event dengan ID: $id");
     header("Location: manage_events.php?msg=rejected");
     exit;
@@ -27,7 +31,10 @@ if (isset($_GET['reject'])) {
 
 if (isset($_GET['del'])) {
     $id = (int)$_GET['del'];
-    $evt = $conn->query("SELECT banner_image, banner_image2, banner_image3, banner_image4 FROM events WHERE id = $id")->fetch_assoc();
+    $stmt = $conn->prepare("SELECT banner_image, banner_image2, banner_image3, banner_image4 FROM events WHERE id = ?");
+    $stmt->bind_param("i", $id);
+    $stmt->execute();
+    $evt = $stmt->get_result()->fetch_assoc();
     if ($evt) {
         $imgs = [$evt['banner_image'], $evt['banner_image2'], $evt['banner_image3'], $evt['banner_image4']];
         foreach($imgs as $img) {
@@ -36,7 +43,9 @@ if (isset($_GET['del'])) {
             }
         }
     }
-    $conn->query("DELETE FROM events WHERE id = $id");
+    $stmt = $conn->prepare("DELETE FROM events WHERE id = ?");
+    $stmt->bind_param("i", $id);
+    $stmt->execute();
     logActivity($conn, $_SESSION['user_id'], 'Delete Event', "Menghapus event dengan ID: $id");
     header("Location: manage_events.php?msg=deleted");
     exit;

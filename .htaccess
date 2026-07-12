@@ -1,0 +1,30 @@
+<IfModule mod_headers.c>
+    # Clickjacking protection
+    Header set X-Frame-Options "DENY"
+    
+    # Cross-Site Scripting (XSS) protection
+    Header set X-XSS-Protection "1; mode=block"
+    
+    # MIME-sniffing protection
+    Header set X-Content-Type-Options "nosniff"
+    
+    # Strict-Transport-Security (HSTS) - Only uncomment if HTTPS is configured!
+    # Header set Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+</IfModule>
+
+<IfModule mod_php.c>
+    # Secure Session Cookies
+    php_flag session.cookie_httponly on
+    php_value session.cookie_samesite Strict
+    # php_flag session.cookie_secure on # Uncomment if using HTTPS
+</IfModule>
+
+<IfModule mod_php7.c>
+    php_flag session.cookie_httponly on
+    php_value session.cookie_samesite Strict
+</IfModule>
+
+<IfModule mod_php8.c>
+    php_flag session.cookie_httponly on
+    php_value session.cookie_samesite Strict
+</IfModule>
