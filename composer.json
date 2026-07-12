@@ -1,0 +1,7 @@
+{
+    "require": {
+        "midtrans/midtrans-php": "^2.6",
+        "setasign/fpdf": "^1.9",
+        "chillerlan/php-qrcode": "^6.0"
+    }
+}
