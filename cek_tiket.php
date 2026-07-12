@@ -113,7 +113,13 @@ require_once 'config/koneksi.php';
             <h1 class="text-3xl font-extrabold text-slate-900 tracking-tight mb-3">Cari E-Ticket Anda</h1>
             <p class="text-slate-500 font-medium mb-8">Masukkan alamat email yang Anda gunakan saat membeli tiket. Kami akan menampilkan seluruh riwayat pesanan Anda.</p>
             
-            <form action="riwayat_pembelian.php" method="GET" class="space-y-4">
+            <form action="riwayat_pembelian.php" method="POST" class="space-y-4">
+                
+                <!-- Honeypot for Bot Protection -->
+                <div class="hidden" aria-hidden="true">
+                    <label for="website_url">Leave this field empty if you are human</label>
+                    <input type="text" name="website_url" id="website_url" autocomplete="off" tabindex="-1">
+                </div>
                 <div class="relative">
                     <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>

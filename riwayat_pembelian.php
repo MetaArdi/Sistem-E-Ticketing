@@ -2,12 +2,38 @@
 session_start();
 require_once 'config/koneksi.php';
 
-if (!isset($_GET['email'])) {
+// 1. Cek Metode POST
+if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !isset($_POST['email'])) {
     header("Location: cek_tiket.php");
     exit;
 }
 
-$email = $_GET['email'];
+// 2. Cek Honeypot (Bot Trap)
+if (!empty($_POST['website_url'])) {
+    // Bot terdeteksi mengisi field tersembunyi
+    header("Location: cek_tiket.php");
+    exit;
+}
+
+// 3. Rate Limiting (Mencegah brute force scraping via session)
+if (!isset($_SESSION['search_history_count'])) {
+    $_SESSION['search_history_count'] = 1;
+    $_SESSION['search_history_time'] = time();
+} else {
+    // Jika lebih dari 10 kali dalam 1 menit
+    if (time() - $_SESSION['search_history_time'] < 60) {
+        if ($_SESSION['search_history_count'] > 10) {
+            die("Terlalu banyak permintaan. Silakan coba lagi nanti.");
+        }
+        $_SESSION['search_history_count']++;
+    } else {
+        // Reset limit setelah 1 menit
+        $_SESSION['search_history_count'] = 1;
+        $_SESSION['search_history_time'] = time();
+    }
+}
+
+$email = $_POST['email'];
 $stmt = $conn->prepare("SELECT t.*, e.judul, e.tanggal, e.waktu, e.lokasi, e.banner_image FROM tickets t JOIN events e ON t.id_event = e.id WHERE t.email_pembeli = ? ORDER BY t.created_at DESC");
 $stmt->bind_param("s", $email);
 $stmt->execute();
