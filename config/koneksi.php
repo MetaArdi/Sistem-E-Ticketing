@@ -10,11 +10,7 @@ if ($conn->connect_error) {
     die("Koneksi Database Gagal: " . $conn->connect_error);
 }
 
-// Konfigurasi API Defaults (Akan dioverride oleh database jika ada)
-$midtrans_server_key = 'SB-Mid-server-YOUR_SERVER_KEY';
-$midtrans_client_key = 'SB-Mid-client-YOUR_CLIENT_KEY';
-$midtrans_is_production = false;
-define('MIDTRANS_CLIENT_KEY', 'SB-Mid-client-YOUR_CLIENT_KEY');
+// Midtrans API keys will be populated dynamically from database
 
 
 // Global Settings Configuration
@@ -44,6 +40,11 @@ if ($settings_query) {
     $global_contact_cs = $global_settings['contact_cs'] ?? "6281234567890";
     $global_link_ig = $global_settings['link_ig'] ?? "https://instagram.com";
     $global_link_tiktok = $global_settings['link_tiktok'] ?? "https://tiktok.com";
+
+    // Midtrans Configuration
+    define('MIDTRANS_SERVER_KEY', $global_settings['midtrans_server_key'] ?? '');
+    define('MIDTRANS_CLIENT_KEY', $global_settings['midtrans_client_key'] ?? '');
+    define('MIDTRANS_IS_PRODUCTION', (isset($global_settings['midtrans_is_production']) && $global_settings['midtrans_is_production'] == '1') ? true : false);
 }
 
 // Helper Function untuk System Logging

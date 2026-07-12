@@ -19,11 +19,15 @@ try {
                 // TODO set payment status in merchant's database to 'Challenge by FDS'
                 // $transaction status = 'challenge';
             } else {
-                $conn->query("UPDATE tickets SET status = 'lunas' WHERE order_id = '$order_id'");
+                $stmt = $conn->prepare("UPDATE tickets SET status = 'lunas' WHERE order_id = ?");
+                $stmt->bind_param("s", $order_id);
+                $stmt->execute();
             }
         }
     } else if ($transaction == 'settlement'){
-        $conn->query("UPDATE tickets SET status = 'lunas' WHERE order_id = '$order_id'");
+        $stmt = $conn->prepare("UPDATE tickets SET status = 'lunas' WHERE order_id = ?");
+        $stmt->bind_param("s", $order_id);
+        $stmt->execute();
     } else if($transaction == 'pending'){
         // $conn->query("UPDATE tickets SET status = 'pending' WHERE order_id = '$order_id'");
     } else if ($transaction == 'deny') {
