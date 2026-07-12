@@ -58,4 +58,20 @@ if (!function_exists('logActivity')) {
         }
     }
 }
+
+// Fitur Auto Logout 10 Menit Inaktivitas
+if (isset($_SESSION['user_id'])) {
+    $timeout_duration = 600; // 10 menit dalam detik
+
+    if (isset($_SESSION['last_activity']) && (time() - $_SESSION['last_activity']) > $timeout_duration) {
+        logActivity($conn, $_SESSION['user_id'], 'Auto Logout', 'Sistem melakukan logout otomatis karena pengguna tidak aktif selama 10 menit.');
+        session_unset();
+        session_destroy();
+        header("Location: " . BASE_URL . "auth/login.php?msg=timeout");
+        exit;
+    }
+
+    // Update timestamp aktivitas terakhir
+    $_SESSION['last_activity'] = time();
+}
 ?>
