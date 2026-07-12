@@ -102,7 +102,7 @@ if (!$event || $event['stok'] < 1 || strtotime($event['tanggal']) < strtotime(da
 
             <!-- Form Section -->
             <div class="p-8 sm:p-12">
-                <form action="proses_checkout.php" method="POST" class="space-y-6">
+                <form id="checkoutForm" action="proses_checkout.php" method="POST" class="space-y-6" onsubmit="return handleFormSubmit(event)">
                     <input type="hidden" name="id_event" value="<?= $event['id'] ?>">
                     
                     <div class="space-y-1">
@@ -139,5 +139,74 @@ if (!$event || $event['stok'] < 1 || strtotime($event['tanggal']) < strtotime(da
             Pembayaran Aman dan Terenkripsi
         </div>
     </main>
+
+    <!-- Confirmation Modal -->
+    <div id="confirmModal" class="fixed inset-0 z-[100] hidden items-center justify-center p-4 sm:p-0">
+        <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity" onclick="closeConfirmModal()"></div>
+        
+        <div id="confirmModalContent" class="bg-white rounded-[2rem] shadow-2xl max-w-sm w-full mx-auto relative z-10 transform scale-95 opacity-0 transition-all duration-300 p-8 text-center">
+            <div class="w-20 h-20 bg-indigo-50 rounded-full flex items-center justify-center mx-auto mb-6">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+            </div>
+            <h3 class="text-2xl font-extrabold text-slate-900 mb-2">Konfirmasi Data</h3>
+            <p class="text-slate-500 font-medium mb-8">Apakah Anda yakin data seperti Nama, Email, dan Nomor WhatsApp sudah benar? E-Ticket akan dikirimkan ke email tersebut.</p>
+            
+            <div class="flex flex-col sm:flex-row gap-3">
+                <button type="button" onclick="closeConfirmModal()" class="w-full sm:w-1/2 px-6 py-3.5 rounded-xl font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 transition-colors">
+                    Periksa Lagi
+                </button>
+                <button type="button" id="btnProceed" onclick="proceedPayment()" class="w-full sm:w-1/2 px-6 py-3.5 rounded-xl font-bold text-white bg-primary hover:bg-blue-700 shadow-lg shadow-primary/30 transition-colors flex items-center justify-center">
+                    Ya, Lanjut Bayar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function handleFormSubmit(e) {
+            e.preventDefault(); // Mencegah form langsung tersubmit
+            
+            const modal = document.getElementById('confirmModal');
+            const content = document.getElementById('confirmModalContent');
+            
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            
+            // Trigger animasi masuk
+            setTimeout(() => {
+                content.classList.remove('scale-95', 'opacity-0');
+                content.classList.add('scale-100', 'opacity-100');
+            }, 10);
+            
+            return false;
+        }
+
+        function closeConfirmModal() {
+            const modal = document.getElementById('confirmModal');
+            const content = document.getElementById('confirmModalContent');
+            
+            content.classList.remove('scale-100', 'opacity-100');
+            content.classList.add('scale-95', 'opacity-0');
+            
+            // Tunggu animasi selesai sebelum menyembunyikan modal
+            setTimeout(() => {
+                modal.classList.remove('flex');
+                modal.classList.add('hidden');
+            }, 300);
+        }
+
+        function proceedPayment() {
+            const btn = document.getElementById('btnProceed');
+            // Ubah tombol jadi loading
+            btn.innerHTML = '<svg class="animate-spin -ml-1 mr-2 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Memproses...';
+            btn.disabled = true;
+            btn.classList.add('opacity-75', 'cursor-not-allowed');
+            
+            // Submit form secara programatik
+            document.getElementById('checkoutForm').submit();
+        }
+    </script>
 </body>
 </html>
