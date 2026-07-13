@@ -45,63 +45,43 @@ $tot_lunas = $conn->query("SELECT COUNT(*) as c FROM tickets t JOIN events e ON 
     <!-- Custom Stylesheet -->
     <link rel="stylesheet" href="<?= BASE_URL ?>assets/css/style.css">
 </head>
-<body class="bg-slate-50 font-sans antialiased text-slate-800 selection:bg-primary selection:text-white">
-    <div class="flex h-screen overflow-hidden">
+<body class="bg-slate-50 font-sans antialiased text-slate-800 selection:bg-primary selection:text-white overflow-hidden">
+    <div class="flex h-screen w-full">
         
-        <!-- Premium Sidebar -->
-        <aside class="w-72 bg-dark flex flex-col hidden md:flex relative z-20">
-            <div class="h-20 flex items-center px-8 border-b border-slate-800">
-                <a href="../index.php" class="flex items-center gap-3 group">
-                    <?php if (isset($global_site_logo) && $global_site_logo): ?>
-                    <img src="<?= $global_site_logo ?>" alt="Logo" class="w-40 md:w-48 h-auto object-contain">
-                <?php else: ?>
-                    <div class="w-8 h-10 bg-white px-3 py-1.5 rounded-xl shadow-sm rounded-lg bg-gradient-to-br from-primary to-secondary flex items-center justify-center text-white font-bold text-sm shadow-md">H</div>
-                <span class="text-xl font-extrabold text-white tracking-tight">Panitia Panel</span>
-                <?php endif; ?>
-                    
-                </a>
-            </div>
-            
-            <nav class="flex-1 overflow-y-auto py-6 px-4">
-                <p class="px-4 text-xs font-bold text-slate-500 uppercase tracking-widest mb-3">Main Menu</p>
-                <ul class="space-y-2">
-                    <li>
-                        <a href="index.php" class="flex items-center px-4 py-3 text-white bg-white/10 rounded-xl font-medium transition-colors border border-white/5">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-3 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" /></svg>
-                            Dashboard
-                        </a>
-                    </li>
-                    <li>
-                        <a href="manage_events.php" class="flex items-center px-4 py-3 text-slate-400 hover:text-white hover:bg-white/5 rounded-xl font-medium transition-colors">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
-                            Event Saya
-                        </a>
-                    </li>
-                    <li>
-                        <a href="laporan_sales.php" class="flex items-center px-4 py-3 text-slate-400 hover:text-white hover:bg-white/5 rounded-xl font-medium transition-colors">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
-                            Laporan Penjualan
-                        </a>
-                    </li>
-                </ul>
-            </nav>
-            <div class="p-6 border-t border-slate-800">
-                <a href="../auth/logout.php" class="flex items-center justify-center w-full px-4 py-3 text-sm font-bold text-slate-300 bg-slate-800 hover:bg-slate-700 hover:text-white rounded-xl transition-colors border border-slate-700">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
-                    Logout
-                </a>
-            </div>
-        </aside>
+        <!-- Mobile Overlay -->
+        <div id="sidebarOverlay" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-40 hidden md:hidden transition-opacity"></div>
 
-        <!-- Main Content -->
-        <div class="flex-1 flex flex-col h-screen overflow-hidden bg-slate-50 relative">
-            <!-- Top Header (Mobile) -->
-            <header class="h-16 bg-dark border-b border-slate-800 flex items-center justify-between px-4 md:hidden text-white">
-                <span class="text-xl font-bold">Panitia</span>
-                <a href="../auth/logout.php" class="text-sm font-medium text-slate-300">Logout</a>
+        <?php $active_menu = 'overview'; include 'components/sidebar.php'; ?>
+
+        <!-- Main Content Area -->
+        <div class="flex-1 flex flex-col h-screen overflow-hidden bg-slate-50 relative z-10 w-full transition-all duration-300">
+            
+            <!-- Unified Top Header -->
+            <header class="h-20 bg-white border-b border-slate-200 flex items-center justify-between px-4 lg:px-8 shrink-0 shadow-sm z-20">
+                <div class="flex items-center gap-4">
+                    <button id="hamburgerBtn" class="text-slate-500 hover:text-slate-700 focus:outline-none p-2 rounded-xl hover:bg-slate-100 transition-colors bg-slate-50 border border-slate-200">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+                        </svg>
+                    </button>
+                    <span class="text-xl font-extrabold text-slate-800 md:hidden">Dashboard</span>
+                </div>
+                
+                <div class="flex items-center gap-4">
+                    <a href="profile.php" class="hidden md:flex items-center gap-3 mr-2 px-3 py-1.5 rounded-full border border-slate-100 bg-slate-50 hover:bg-slate-100 hover:border-slate-200 transition-colors group cursor-pointer">
+                        <?php if (isset($_SESSION['foto_profil']) && !empty($_SESSION['foto_profil']) && file_exists('../assets/images/profil/'.$_SESSION['foto_profil'])): ?>
+                            <img src="../assets/images/profil/<?= htmlspecialchars($_SESSION['foto_profil']) ?>" class="w-8 h-8 rounded-full object-cover shadow-sm">
+                        <?php else: ?>
+                            <div class="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-secondary text-white flex items-center justify-center font-bold text-sm shadow-sm group-hover:shadow transition-all">
+                                <?= strtoupper(substr($_SESSION['nama_lengkap'], 0, 1)) ?>
+                            </div>
+                        <?php endif; ?>
+                        <span class="text-sm font-bold text-slate-700 pr-2 group-hover:text-primary transition-colors"><?= htmlspecialchars($_SESSION['nama_lengkap']) ?></span>
+                    </a>
+                </div>
             </header>
 
-            <main class="flex-1 overflow-y-auto p-6 lg:p-10 relative z-10">
+            <main class="flex-1 overflow-y-auto p-4 md:p-6 lg:p-10">
                 <div class="mb-10">
                     <h1 class="text-3xl font-extrabold text-slate-900 tracking-tight">Kinerja Event Anda</h1>
                     <p class="text-slate-500 mt-2 font-medium">Ringkasan singkat dari performa semua event yang Anda kelola.</p>
@@ -149,5 +129,54 @@ $tot_lunas = $conn->query("SELECT COUNT(*) as c FROM tickets t JOIN events e ON 
             </main>
         </div>
     </div>
+
+        <!-- Script for Sidebar Toggle -->
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const sidebar = document.getElementById('sidebar');
+            const hamburgerBtn = document.getElementById('hamburgerBtn');
+            const closeSidebar = document.getElementById('closeSidebar');
+            const sidebarOverlay = document.getElementById('sidebarOverlay');
+
+            function toggleSidebar() {
+                if (window.innerWidth < 768) {
+                    // Mobile Toggle
+                    sidebar.classList.toggle('-translate-x-full');
+                    if(sidebarOverlay) sidebarOverlay.classList.toggle('hidden');
+                } else {
+                    // Desktop Toggle
+                    sidebar.classList.toggle('md:hidden');
+                }
+            }
+
+            if(hamburgerBtn) hamburgerBtn.addEventListener('click', toggleSidebar);
+            
+            if(closeSidebar) {
+                closeSidebar.addEventListener('click', () => {
+                    sidebar.classList.add('-translate-x-full');
+                    if(sidebarOverlay) sidebarOverlay.classList.add('hidden');
+                });
+            }
+
+            if(sidebarOverlay) {
+                sidebarOverlay.addEventListener('click', () => {
+                    sidebar.classList.add('-translate-x-full');
+                    sidebarOverlay.classList.add('hidden');
+                });
+            }
+
+            // Handle window resize to reset states if needed
+            window.addEventListener('resize', () => {
+                if (window.innerWidth >= 768) {
+                    sidebar.classList.remove('-translate-x-full');
+                    if(sidebarOverlay) sidebarOverlay.classList.add('hidden');
+                } else {
+                    // On mobile, if desktop was hidden, remove the hidden class 
+                    // so it can be animated via translate
+                    sidebar.classList.remove('md:hidden');
+                }
+            });
+        });
+    </script>
 </body>
 </html>

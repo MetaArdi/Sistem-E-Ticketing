@@ -19,6 +19,16 @@ if ($result->num_rows == 0) {
 }
 $event = $result->fetch_assoc();
 
+// Cek varian tiket yang aktif
+$stmt_var = $conn->prepare("SELECT * FROM event_ticket_variants WHERE id_event = ? AND tgl_mulai <= NOW() AND tgl_selesai >= NOW() AND sisa_stok > 0 ORDER BY harga ASC");
+$stmt_var->bind_param("i", $id);
+$stmt_var->execute();
+$variants = $stmt_var->get_result();
+$variants_data = [];
+while($v = $variants->fetch_assoc()){
+    $variants_data[] = $v;
+}
+
 // Cek apakah ada flash message
 $error = isset($_SESSION['error']) ? $_SESSION['error'] : null;
 unset($_SESSION['error']);
@@ -138,7 +148,7 @@ unset($_SESSION['error']);
                     <div class="mt-auto">
                         <div class="flex items-end justify-between mb-6">
                             <div>
-                                <p class="text-sm font-medium text-slate-500 mb-1">Harga Tiket</p>
+                                <p class="text-sm font-medium text-slate-500 mb-1">Mulai Dari</p>
                                 <div class="text-4xl font-extrabold text-slate-900 tracking-tight">Rp <?= number_format($event['harga'], 0, ',', '.') ?></div>
                             </div>
                             <div class="text-right">
@@ -147,19 +157,64 @@ unset($_SESSION['error']);
                             </div>
                         </div>
 
-                        <?php if($event['stok'] > 0 && strtotime($event['tanggal']) >= strtotime(date('Y-m-d'))): ?>
-                            <a href="checkout.php?id=<?= $event['id'] ?>" class="block w-full bg-slate-900 hover:bg-primary text-white text-center font-bold py-4 px-6 rounded-2xl transition-all duration-300 shadow-xl shadow-slate-900/20 hover:shadow-indigo-500/30 hover:-translate-y-1 text-lg">
-                                Pesan Tiket Sekarang
-                            </a>
-                        <?php else: ?>
-                            <button disabled class="block w-full bg-slate-100 text-slate-400 text-center font-bold py-4 px-6 rounded-2xl cursor-not-allowed border border-slate-200 text-lg">
-                                Tiket Tidak Tersedia
-                            </button>
-                        <?php endif; ?>
+                        <form action="checkout.php" method="POST" id="ticketForm">
+                            <input type="hidden" name="id" value="<?= $event['id'] ?>">
+                            <div class="mb-6">
+                                <p class="text-sm font-bold text-slate-700 mb-3">Pilih Jenis Tiket (Aktif)</p>
+                                <?php if(count($variants_data) > 0): ?>
+                                    <div class="space-y-3">
+                                        <?php foreach($variants_data as $index => $v): ?>
+                                        <label class="relative flex cursor-pointer rounded-xl border p-4 shadow-sm transition-all hover:bg-slate-50 ticket-variant-label <?= $index === 0 ? 'bg-indigo-50/50 border-primary ring-1 ring-primary' : 'bg-white border-slate-200' ?>" onclick="selectVariant(this)">
+                                            <input type="radio" name="id_ticket_variant" value="<?= $v['id'] ?>" class="hidden" <?= $index === 0 ? 'checked' : '' ?> required>
+                                            <div class="flex w-full items-center justify-between">
+                                                <div>
+                                                    <p class="text-sm font-bold text-slate-900"><?= htmlspecialchars($v['nama_varian']) ?></p>
+                                                    <div class="flex items-center gap-2 mt-1">
+                                                        <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-100 text-indigo-700">Kapasitas: <?= htmlspecialchars($v['tipe_paket']) ?></span>
+                                                        <span class="text-xs text-slate-500">Sisa: <?= $v['sisa_stok'] ?> tiket</span>
+                                                    </div>
+                                                </div>
+                                                <div class="text-right pl-3">
+                                                    <p class="text-sm font-bold text-primary">Rp <?= number_format($v['harga'], 0, ',', '.') ?></p>
+                                                </div>
+                                            </div>
+                                        </label>
+                                        <?php endforeach; ?>
+                                    </div>
+                                <?php else: ?>
+                                    <div class="bg-slate-100 border border-slate-200 text-slate-500 p-4 rounded-xl text-sm font-medium flex items-center gap-2">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                                        Saat ini tidak ada tiket yang dibuka atau tiket telah habis.
+                                    </div>
+                                <?php endif; ?>
+                            </div>
+
+                            <?php if(count($variants_data) > 0 && strtotime($event['tanggal']) >= strtotime(date('Y-m-d'))): ?>
+                                <button type="submit" class="block w-full bg-slate-900 hover:bg-primary text-white text-center font-bold py-4 px-6 rounded-2xl transition-all duration-300 shadow-xl shadow-slate-900/20 hover:shadow-indigo-500/30 hover:-translate-y-1 text-lg">
+                                    Pesan Tiket Sekarang
+                                </button>
+                            <?php else: ?>
+                                <button disabled type="button" class="block w-full bg-slate-100 text-slate-400 text-center font-bold py-4 px-6 rounded-2xl cursor-not-allowed border border-slate-200 text-lg">
+                                    Tiket Tidak Tersedia
+                                </button>
+                            <?php endif; ?>
+                        </form>
                     </div>
                 </div>
             </div>
         </div>
     </main>
+    <script>
+        function selectVariant(element) {
+            const labels = document.querySelectorAll('.ticket-variant-label');
+            labels.forEach(l => {
+                l.classList.remove('bg-indigo-50/50', 'border-primary', 'ring-1', 'ring-primary');
+                l.classList.add('bg-white', 'border-slate-200');
+            });
+            element.classList.remove('bg-white', 'border-slate-200');
+            element.classList.add('bg-indigo-50/50', 'border-primary', 'ring-1', 'ring-primary');
+            element.querySelector('input[type="radio"]').checked = true;
+        }
+    </script>
 </body>
 </html>

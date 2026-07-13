@@ -34,8 +34,8 @@
 |---|---|
 | Beranda Event | Menampilkan event terbaru & akan datang dengan filter kategori dan pencarian |
 | Detail Event | Info lengkap event: deskripsi, jadwal, lokasi, vendor, link Google Maps |
-| Pembelian Tiket | Form checkout dengan integrasi pembayaran Midtrans |
-| Cek Tiket | Pencarian E-Ticket berdasarkan email pembeli |
+| Pembelian Tiket | Form checkout dengan integrasi pembayaran Midtrans (Maks. 1 tiket per akun) |
+| Cek Tiket | Pencarian E-Ticket berdasarkan email pembeli (dilengkapi proteksi anti-scraping) |
 | Unduh E-Ticket | Download tiket dalam format PDF lengkap dengan QR Code |
 | Riwayat Pembelian | Lihat seluruh history transaksi berdasarkan email |
 
@@ -47,6 +47,7 @@
 | Kelola Pengguna | Tambah, edit, nonaktifkan akun Panitia & Validator |
 | Kelola Kategori | Buat kategori event kustom |
 | Pengaturan Sistem | Upload logo, favicon, konfigurasi kontak & sosial media |
+| Biaya Platform | Atur markup harga (Admin Fee) dinamis dalam Persentase (%) atau Nominal (Rp) |
 | Log Aktivitas | Pantau semua aktivitas pengguna di sistem |
 | Estimasi Pendapatan | Lihat ringkasan penjualan tiket per event |
 
@@ -260,10 +261,12 @@ Panitia Login → Buat Event (isi form + upload foto)
 | Role | Email | Password |
 |---|---|---|
 | **Admin** | `admin@halotiket.com` | `password` |
+| **Panitia** | `panitia@gmail.com` | `panitia123` |
+| **Validator** | `validator@gmail.com` | `validator123` |
 
-> ⚠️ **Penting:** Segera ganti password akun admin setelah instalasi pertama!
+> ⚠️ **Penting:** Segera ganti password default akun-akun ini setelah instalasi pertama!
 
-Untuk membuat akun Panitia atau Validator, Admin dapat melakukannya melalui menu **Kelola Pengguna** di dashboard Admin.
+Untuk membuat akun Panitia atau Validator lainnya, Admin dapat melakukannya melalui menu **Kelola Pengguna** di dashboard Admin.
 
 ---
 
@@ -284,9 +287,11 @@ Untuk membuat akun Panitia atau Validator, Admin dapat melakukannya melalui menu
 ## 📝 Catatan Penting
 
 - **Mode Sandbox Midtrans:** Secara default, aplikasi berjalan dalam mode **Sandbox** (testing). Ganti ke mode Production di pengaturan Admin setelah aplikasi siap diluncurkan.
+- **Biaya Layanan (Markup):** Platform membebankan biaya layanan kepada pembeli. Nilai markup ini ditambahkan ke harga tiket dasar dan dapat diatur oleh Admin (Pilih antara % atau flat rate).
+- **Pembatasan Pembelian:** Sistem membatasi pembelian maksimal **1 tiket per event untuk 1 alamat email** guna mencegah *overselling* atau *scalping*.
 - **Upload Gambar:** Ukuran file gambar yang disarankan untuk banner event adalah maksimal **2MB** dengan format **JPG, JPEG, atau PNG**.
 - **QR Code:** Token QR Code setiap tiket bersifat unik dan hanya dapat di-scan satu kali.
-- **Keamanan:** Password pengguna disimpan menggunakan enkripsi **bcrypt** (`password_hash`).
+- **Keamanan:** Password pengguna disimpan menggunakan enkripsi **bcrypt** (`password_hash`), dan seluruh *query* menggunakan **Prepared Statements** anti-SQL Injection.
 
 ---
 

@@ -18,7 +18,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         }
     }
 
-    $stmt = $conn->prepare("SELECT id, email, password, role, nama_lengkap FROM users WHERE email = ?");
+    $stmt = $conn->prepare("SELECT id, email, password, role, nama_lengkap, foto_profil FROM users WHERE email = ?");
     $stmt->bind_param("s", $email);
     $stmt->execute();
     $result = $stmt->get_result();
@@ -32,6 +32,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             $_SESSION['email'] = $user['email'];
             $_SESSION['role'] = $user['role'];
             $_SESSION['nama_lengkap'] = $user['nama_lengkap'];
+            $_SESSION['foto_profil'] = $user['foto_profil'];
 
             logActivity($conn, $user['id'], 'Login', "User " . $user['email'] . " berhasil login.");
 

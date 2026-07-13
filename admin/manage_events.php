@@ -60,8 +60,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && ($_POST['action'] ?? '') == 'create'
     $waktu_selesai = !empty($_POST['waktu_selesai']) ? "'" . $conn->real_escape_string($_POST['waktu_selesai']) . "'" : "NULL";
     $lokasi    = $conn->real_escape_string(trim($_POST['lokasi']));
     $link_gmaps = !empty($_POST['link_gmaps']) ? "'" . $conn->real_escape_string(trim($_POST['link_gmaps'])) . "'" : "NULL";
-    $harga     = (int)$_POST['harga'];
-    $stok      = (int)$_POST['stok'];
+    $harga     = min($_POST['harga_varian']);
+    $stok      = array_sum($_POST['stok_varian']);
     $nama_vendor = !empty($_POST['nama_vendor']) ? "'" . $conn->real_escape_string(trim($_POST['nama_vendor'])) . "'" : "NULL";
     $id_panitia = (int)$_SESSION['user_id'];
     $images = ["NULL", "NULL", "NULL", "NULL"];
@@ -94,6 +94,34 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && ($_POST['action'] ?? '') == 'create'
                 VALUES ($id_panitia,'$judul','$kategori','$deskripsi','$tanggal','$waktu',$waktu_selesai,'$lokasi',$link_gmaps,$harga,$stok,{$images[0]},{$images[1]},{$images[2]},{$images[3]},'$status_approval',$nama_vendor)";
         if ($conn->query($sql)) {
             $new_event_id = $conn->insert_id;
+            
+            // Insert variants
+            $nama_periode = $_POST['nama_periode'];
+            $tgl_mulai_varian = $_POST['tgl_mulai_varian'];
+            $tgl_selesai_varian = $_POST['tgl_selesai_varian'];
+            $kategori_tempat = $_POST['kategori_tempat'];
+            $tipe_paket = $_POST['tipe_paket'];
+            $harga_variants = $_POST['harga_varian'];
+            $stok_variants = $_POST['stok_varian'];
+            
+            $stmt_var = $conn->prepare("INSERT INTO event_ticket_variants (id_event, nama_varian, harga, stok, sisa_stok, tgl_mulai, tgl_selesai, kategori_tempat, tipe_paket) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
+            for ($i = 0; $i < count($nama_periode); $i++) {
+                $periode = trim($nama_periode[$i]);
+                $tgl_mulai = $tgl_mulai_varian[$i];
+                $tgl_selesai = $tgl_selesai_varian[$i];
+                $kat = trim($kategori_tempat[$i]);
+                $tipe = trim($tipe_paket[$i]);
+                $h_var = (float)$harga_variants[$i];
+                $s_var = (int)$stok_variants[$i];
+                
+                $n_var = $periode . ' - ' . $kat . ' (' . $tipe . ')';
+                
+                if (!empty($periode) && $s_var > 0) {
+                    $stmt_var->bind_param("isdiissss", $new_event_id, $n_var, $h_var, $s_var, $s_var, $tgl_mulai, $tgl_selesai, $kat, $tipe);
+                    $stmt_var->execute();
+                }
+            }
+            
             logActivity($conn, $_SESSION['user_id'], 'Create Event', "Membuat event baru: $judul (ID: $new_event_id)");
             $success = "Event \"$judul\" berhasil dibuat!";
         } else {
@@ -173,9 +201,13 @@ while ($c = $cat_q->fetch_assoc()) { $cat_list[] = $c['nama']; }
                 
                 <div class="flex items-center gap-4">
                     <a href="profile.php" class="hidden md:flex items-center gap-3 mr-2 px-3 py-1.5 rounded-full border border-slate-100 bg-slate-50 hover:bg-slate-100 hover:border-slate-200 transition-colors group cursor-pointer">
-                        <div class="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-secondary text-white flex items-center justify-center font-bold text-sm shadow-sm group-hover:shadow transition-all">
-                            <?= strtoupper(substr($_SESSION['nama_lengkap'], 0, 1)) ?>
-                        </div>
+                        <?php if (isset($_SESSION['foto_profil']) && !empty($_SESSION['foto_profil']) && file_exists('../assets/images/profil/'.$_SESSION['foto_profil'])): ?>
+                            <img src="../assets/images/profil/<?= htmlspecialchars($_SESSION['foto_profil']) ?>" class="w-8 h-8 rounded-full object-cover shadow-sm">
+                        <?php else: ?>
+                            <div class="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-secondary text-white flex items-center justify-center font-bold text-sm shadow-sm group-hover:shadow transition-all">
+                                <?= strtoupper(substr($_SESSION['nama_lengkap'], 0, 1)) ?>
+                            </div>
+                        <?php endif; ?>
                         <span class="text-sm font-bold text-slate-700 pr-2 group-hover:text-primary transition-colors"><?= htmlspecialchars($_SESSION['nama_lengkap']) ?></span>
                     </a>
                 </div>
@@ -246,13 +278,57 @@ while ($c = $cat_q->fetch_assoc()) { $cat_list[] = $c['nama']; }
                                     <input type="time" name="waktu_selesai" class="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-sm font-medium outline-none">
                                 </div>
                             </div>
-                            <div>
-                                <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Harga Tiket (Rp)</label>
-                                <input type="number" name="harga" required min="0" placeholder="0" class="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-sm font-medium outline-none">
-                            </div>
-                            <div>
-                                <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Stok Tiket</label>
-                                <input type="number" name="stok" required min="1" placeholder="100" class="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-sm font-medium outline-none">
+                            <div class="md:col-span-2">
+                                                                <div class="flex justify-between items-center mb-3">
+                                    <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider">Paket Tiket Lengkap</label>
+                                    <button type="button" onclick="addVariant()" class="text-xs font-bold text-primary hover:text-secondary bg-primary/10 px-3 py-1.5 rounded-full transition-colors flex items-center gap-1">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" /></svg>
+                                        Tambah Paket
+                                    </button>
+                                </div>
+                                <div id="variants_container" class="space-y-4">
+                                    <div class="variant-row bg-slate-50 border border-slate-200 p-5 rounded-2xl relative shadow-sm">
+                                        <button type="button" onclick="removeVariant(this)" class="absolute top-4 right-4 p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg hidden btn-remove-variant transition-colors" title="Hapus Paket">
+                                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                                        </button>
+                                        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+                                            <div class="md:col-span-2">
+                                                <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Periode Penjualan</label>
+                                                <input type="text" name="nama_periode[]" required placeholder="Misal: Presale 1, Flash Sale" class="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-sm font-medium outline-none">
+                                            </div>
+                                            <div>
+                                                <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Dibuka Tanggal</label>
+                                                <input type="datetime-local" name="tgl_mulai_varian[]" required class="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-sm font-medium outline-none">
+                                            </div>
+                                            <div>
+                                                <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Ditutup Tanggal</label>
+                                                <input type="datetime-local" name="tgl_selesai_varian[]" required class="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-sm font-medium outline-none">
+                                            </div>
+                                        </div>
+                                        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+                                            <div>
+                                                <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Kategori / Ploting</label>
+                                                <input type="text" name="kategori_tempat[]" required placeholder="Misal: VIP, Festival" class="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-sm font-medium outline-none">
+                                            </div>
+                                            <div>
+                                                <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Tipe Paket</label>
+                                                <select name="tipe_paket[]" required class="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-sm font-medium outline-none appearance-none">
+                                                    <option value="Sendiri">Sendiri (1 Orang)</option>
+                                                    <option value="Couple">Couple (2 Orang)</option>
+                                                    <option value="Grup">Grup (Rombongan)</option>
+                                                </select>
+                                            </div>
+                                            <div>
+                                                <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Harga (Rp)</label>
+                                                <input type="number" name="harga_varian[]" required min="0" placeholder="0" class="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-sm font-medium outline-none">
+                                            </div>
+                                            <div>
+                                                <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Stok Tersedia</label>
+                                                <input type="number" name="stok_varian[]" required min="1" placeholder="10" class="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-sm font-medium outline-none">
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                             <div class="md:col-span-2">
                                 <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Deskripsi</label>
@@ -354,6 +430,9 @@ while ($c = $cat_q->fetch_assoc()) { $cat_list[] = $c['nama']; }
                                                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
                                                 </a>
                                             <?php endif; ?>
+                                            <a href="edit_event.php?id=<?= $row['id'] ?>" class="text-blue-500 hover:text-blue-700 bg-blue-50 hover:bg-blue-100 p-2 rounded-lg transition-colors inline-flex border border-transparent hover:border-blue-200" title="Edit Event">
+                                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+                                            </a>
                                             <a href="manage_events.php?del=<?= $row['id'] ?>" class="text-red-500 hover:text-red-700 bg-red-50 hover:bg-red-100 p-2 rounded-lg transition-colors inline-flex border border-transparent hover:border-red-200" onclick="return confirm('Yakin hapus event ini secara paksa? Semua tiket terkait akan hilang!');" title="Hapus Event">
                                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
                                             </a>
@@ -381,48 +460,54 @@ while ($c = $cat_q->fetch_assoc()) { $cat_list[] = $c['nama']; }
             const sidebarOverlay = document.getElementById('sidebarOverlay');
 
             function toggleSidebar() {
-                if(sidebar) {
-                    if (window.innerWidth < 768) {
-                        sidebar.classList.toggle('-translate-x-full');
-                        if(sidebarOverlay) sidebarOverlay.classList.toggle('hidden');
-                    } else {
-                        sidebar.classList.toggle('md:hidden');
-                        if(sidebar.classList.contains('md:hidden') && sidebarOverlay) {
-                            sidebarOverlay.classList.remove('hidden');
-                        } else if (sidebarOverlay) {
-                            sidebarOverlay.classList.add('hidden');
-                        }
-                    }
+                if (window.innerWidth < 768) {
+                    sidebar.classList.toggle('-translate-x-full');
+                    if(sidebarOverlay) sidebarOverlay.classList.toggle('hidden');
+                } else {
+                    sidebar.classList.toggle('md:hidden');
                 }
             }
 
             if(hamburgerBtn) hamburgerBtn.addEventListener('click', toggleSidebar);
-            
-            if(closeSidebar && sidebar) {
-                closeSidebar.addEventListener('click', () => {
-                    sidebar.classList.add('-translate-x-full');
-                    if(sidebarOverlay) sidebarOverlay.classList.add('hidden');
-                });
-            }
-
-            if(sidebarOverlay && sidebar) {
-                sidebarOverlay.addEventListener('click', () => {
-                    sidebar.classList.add('-translate-x-full');
-                    sidebarOverlay.classList.add('hidden');
-                });
-            }
-
+            if(closeSidebar) closeSidebar.addEventListener('click', toggleSidebar);
+            if(sidebarOverlay) sidebarOverlay.addEventListener('click', toggleSidebar);
             window.addEventListener('resize', () => {
-                if(sidebar) {
-                    if (window.innerWidth >= 768) {
-                        sidebar.classList.remove('-translate-x-full');
-                        if(sidebarOverlay) sidebarOverlay.classList.add('hidden');
-                    } else {
-                        sidebar.classList.remove('md:hidden');
-                    }
+                if (window.innerWidth >= 768) {
+                    if(sidebar) sidebar.classList.remove('-translate-x-full');
+                    if(sidebarOverlay) sidebarOverlay.classList.add('hidden');
+                } else {
+                    if(sidebar) sidebar.classList.remove('md:hidden');
                 }
             });
         });
+
+        // Script for Ticket Variants
+        function addVariant() {
+            const container = document.getElementById('variants_container');
+            const rows = container.getElementsByClassName('variant-row');
+            const newRow = rows[0].cloneNode(true);
+            const inputs = newRow.querySelectorAll('input');
+            inputs.forEach(input => input.value = '');
+            newRow.querySelector('.btn-remove-variant').classList.remove('hidden');
+            container.appendChild(newRow);
+            updateRemoveButtons();
+        }
+        
+        function removeVariant(btn) {
+            const row = btn.closest('.variant-row');
+            row.remove();
+            updateRemoveButtons();
+        }
+        
+        function updateRemoveButtons() {
+            const container = document.getElementById('variants_container');
+            const rows = container.getElementsByClassName('variant-row');
+            if (rows.length > 1) {
+                Array.from(rows).forEach(row => row.querySelector('.btn-remove-variant').classList.remove('hidden'));
+            } else {
+                rows[0].querySelector('.btn-remove-variant').classList.add('hidden');
+            }
+        }
     </script>
 
     <!-- Lightbox Modal -->

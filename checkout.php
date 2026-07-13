@@ -2,18 +2,26 @@
 session_start();
 require_once 'config/koneksi.php';
 
-if (!isset($_GET['id'])) {
+if (!isset($_GET['id']) && !isset($_POST['id'])) {
     header("Location: index.php");
     exit;
 }
 
-$id_event = (int)$_GET['id'];
+$id_event = isset($_GET['id']) ? (int)$_GET['id'] : (int)$_POST['id'];
 $stmt = $conn->prepare("SELECT * FROM events WHERE id = ? AND status_approval = 'approved'");
 $stmt->bind_param("i", $id_event);
 $stmt->execute();
 $event = $stmt->get_result()->fetch_assoc();
 
-if (!$event || $event['stok'] < 1 || strtotime($event['tanggal']) < strtotime(date('Y-m-d'))) {
+// Get the chosen variant
+$id_ticket_variant = isset($_POST['id_ticket_variant']) ? (int)$_POST['id_ticket_variant'] : (isset($_GET['variant']) ? (int)$_GET['variant'] : 0);
+
+$stmt_var = $conn->prepare("SELECT * FROM event_ticket_variants WHERE id = ? AND id_event = ? AND sisa_stok > 0");
+$stmt_var->bind_param("ii", $id_ticket_variant, $id_event);
+$stmt_var->execute();
+$variant = $stmt_var->get_result()->fetch_assoc();
+
+if (!$event || !$variant || strtotime($event['tanggal']) < strtotime(date('Y-m-d'))) {
     $_SESSION['error'] = "Tiket tidak tersedia atau event sudah berlalu.";
     header("Location: detail_event.php?id=" . $id_event);
     exit;
@@ -77,6 +85,16 @@ if (!$event || $event['stok'] < 1 || strtotime($event['tanggal']) < strtotime(da
             <p class="text-slate-500 font-medium">Pastikan data yang Anda masukkan benar untuk pengiriman E-Ticket.</p>
         </div>
 
+        <?php if (isset($_SESSION['error'])): ?>
+        <div class="bg-red-50 border-l-4 border-red-500 text-red-700 p-5 rounded-r-xl shadow-sm mb-8 flex items-start gap-4">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mt-0.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+            <div>
+                <h3 class="font-bold">Transaksi Gagal</h3>
+                <p class="text-sm mt-1"><?= htmlspecialchars($_SESSION['error']) ?></p>
+            </div>
+        </div>
+        <?php unset($_SESSION['error']); endif; ?>
+
         <div class="bg-white rounded-[2rem] shadow-xl shadow-slate-200/40 border border-slate-100 overflow-hidden">
             <!-- Event Summary Banner -->
             <div class="bg-slate-900 p-8 text-white relative overflow-hidden">
@@ -84,8 +102,9 @@ if (!$event || $event['stok'] < 1 || strtotime($event['tanggal']) < strtotime(da
                 <div class="absolute top-0 right-0 w-64 h-64 bg-primary rounded-full mix-blend-screen filter blur-[80px] opacity-40 translate-x-1/2 -translate-y-1/2"></div>
                 
                 <div class="relative z-10">
-                    <p class="text-indigo-300 text-xs font-bold uppercase tracking-wider mb-2">Event yang dipilih</p>
-                    <h2 class="text-2xl font-bold mb-4"><?= htmlspecialchars($event['judul']) ?></h2>
+                    <p class="text-indigo-300 text-xs font-bold uppercase tracking-wider mb-2">Tiket yang dipilih</p>
+                    <h2 class="text-2xl font-bold mb-1"><?= htmlspecialchars($event['judul']) ?></h2>
+                    <p class="text-lg font-medium text-indigo-100 mb-4"><?= htmlspecialchars($variant['nama_varian']) ?></p>
                     
                     <div class="flex flex-wrap gap-4 text-sm font-medium text-slate-300">
                         <div class="flex items-center gap-1.5">
@@ -104,6 +123,7 @@ if (!$event || $event['stok'] < 1 || strtotime($event['tanggal']) < strtotime(da
             <div class="p-8 sm:p-12">
                 <form id="checkoutForm" action="proses_checkout.php" method="POST" class="space-y-6" onsubmit="return handleFormSubmit(event)">
                     <input type="hidden" name="id_event" value="<?= $event['id'] ?>">
+                    <input type="hidden" name="id_ticket_variant" value="<?= $variant['id'] ?>">
                     
                     <div class="space-y-1">
                         <label class="text-sm font-bold text-slate-700">Nama Lengkap</label>
@@ -120,12 +140,50 @@ if (!$event || $event['stok'] < 1 || strtotime($event['tanggal']) < strtotime(da
                         <input type="text" name="no_hp" required placeholder="081234567890" class="w-full px-5 py-3.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary focus:bg-white transition-all text-sm">
                     </div>
                     
-                    <div class="pt-6 mt-8 border-t border-slate-100 flex items-center justify-between">
-                        <div>
-                            <p class="text-sm font-medium text-slate-500 mb-1">Total Pembayaran</p>
-                            <p class="text-3xl font-extrabold text-slate-900">Rp <?= number_format($event['harga'], 0, ',', '.') ?></p>
+                    <div class="space-y-3 pt-4">
+                        <label class="text-sm font-bold text-slate-700">Metode Pembayaran</label>
+                        <div class="grid grid-cols-1 gap-3">
+                            <!-- QRIS -->
+                            <label class="relative flex cursor-pointer rounded-xl border bg-blue-50/50 p-4 shadow-sm border-primary ring-1 ring-primary">
+                                <input type="hidden" name="payment_method" value="qris">
+                                <div class="flex w-full items-center justify-between">
+                                    <div class="flex items-center gap-3">
+                                        <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-100 text-blue-600">
+                                            <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm14 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" /></svg>
+                                        </div>
+                                        <div>
+                                            <p class="text-sm font-bold text-slate-900">QRIS</p>
+                                            <p class="text-xs text-slate-500 mt-0.5">Mendukung Semua Bank & E-Wallet</p>
+                                        </div>
+                                    </div>
+                                    <svg class="h-5 w-5 text-primary" viewBox="0 0 20 20" fill="currentColor">
+                                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                                    </svg>
+                                </div>
+                            </label>
                         </div>
-                        <button type="submit" class="bg-slate-900 hover:bg-primary text-white font-bold py-4 px-8 rounded-2xl transition-all duration-300 shadow-xl shadow-slate-900/20 hover:shadow-indigo-500/30 hover:-translate-y-1 text-lg flex items-center gap-2">
+                    </div>
+                    
+                    <div class="pt-6 mt-8 border-t border-slate-100 flex items-center justify-between">
+                        <div class="w-1/2 pr-4">
+                            <div class="space-y-1 mb-2">
+                                <div class="flex justify-between text-sm text-slate-500">
+                                    <span>Harga Tiket</span>
+                                    <span class="font-bold text-slate-700" id="display_harga_tiket">Rp <?= number_format($variant['harga'], 0, ',', '.') ?></span>
+                                </div>
+                                <?php
+                                $markup_type = $global_settings['admin_markup_type'] ?? 'nominal';
+                                $markup_value = (float)($global_settings['admin_markup_value'] ?? 5000);
+                                ?>
+                                <div class="flex justify-between text-sm text-slate-500">
+                                    <span>Biaya Layanan</span>
+                                    <span class="font-bold text-slate-700" id="display_biaya_layanan">Hitung otomatis...</span>
+                                </div>
+                            </div>
+                            <p class="text-xs font-medium text-slate-400 mb-1">Total Pembayaran</p>
+                            <p class="text-2xl sm:text-3xl font-extrabold text-slate-900 leading-none" id="display_total">Rp 0</p>
+                        </div>
+                        <button type="submit" class="bg-slate-900 hover:bg-primary text-white font-bold py-4 px-6 sm:px-8 rounded-2xl transition-all duration-300 shadow-xl shadow-slate-900/20 hover:shadow-indigo-500/30 hover:-translate-y-1 text-base sm:text-lg flex items-center justify-center gap-2 w-1/2">
                             Bayar 
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
                         </button>
@@ -165,6 +223,28 @@ if (!$event || $event['stok'] < 1 || strtotime($event['tanggal']) < strtotime(da
     </div>
 
     <script>
+        const markupType = '<?= $markup_type ?>';
+        const markupValue = <?= $markup_value ?>;
+        let currentHarga = <?= $variant['harga'] ?>;
+
+        function updatePriceDisplay() {
+            let biayaAdmin = 0;
+            if (markupType === 'percent') {
+                biayaAdmin = currentHarga * (markupValue / 100);
+            } else {
+                biayaAdmin = markupValue;
+            }
+            let total = currentHarga + biayaAdmin;
+
+            document.getElementById('display_harga_tiket').innerText = 'Rp ' + new Intl.NumberFormat('id-ID').format(currentHarga);
+            document.getElementById('display_biaya_layanan').innerText = 'Rp ' + new Intl.NumberFormat('id-ID').format(biayaAdmin);
+            document.getElementById('display_total').innerText = 'Rp ' + new Intl.NumberFormat('id-ID').format(total);
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            updatePriceDisplay();
+        });
+
         function handleFormSubmit(e) {
             e.preventDefault(); // Mencegah form langsung tersubmit
             

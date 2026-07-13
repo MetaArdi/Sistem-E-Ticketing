@@ -32,7 +32,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     }
 
     // Proses Text Settings
-    $text_settings = ['contact_address', 'contact_cs', 'link_ig', 'link_tiktok'];
+    $text_settings = ['contact_address', 'contact_cs', 'link_ig', 'link_tiktok', 'admin_markup_type', 'admin_markup_value'];
     $stmt = $conn->prepare("INSERT INTO settings (setting_key, setting_value) VALUES (?, ?) ON DUPLICATE KEY UPDATE setting_value = ?");
     foreach ($text_settings as $key) {
         if (isset($_POST[$key])) {
@@ -54,7 +54,7 @@ $current_logo = $logo_query->num_rows > 0 ? $logo_query->fetch_assoc()['setting_
 $favicon_query = $conn->query("SELECT setting_value FROM settings WHERE setting_key = 'site_favicon'");
 $current_favicon = $favicon_query->num_rows > 0 ? $favicon_query->fetch_assoc()['setting_value'] : '';
 
-$text_settings_keys = ['contact_address', 'contact_cs', 'link_ig', 'link_tiktok'];
+$text_settings_keys = ['contact_address', 'contact_cs', 'link_ig', 'link_tiktok', 'admin_markup_type', 'admin_markup_value'];
 $current_text_settings = [];
 foreach($text_settings_keys as $k) {
     $q = $conn->query("SELECT setting_value FROM settings WHERE setting_key = '$k'");
@@ -65,6 +65,8 @@ $addr_val = $current_text_settings['contact_address'] ?: "HaloTiket Tower Lt. 5\
 $cs_val = $current_text_settings['contact_cs'] ?: "6281234567890";
 $ig_val = $current_text_settings['link_ig'] ?: "https://instagram.com";
 $tiktok_val = $current_text_settings['link_tiktok'] ?: "https://tiktok.com";
+$markup_type_val = $current_text_settings['admin_markup_type'] ?: "nominal";
+$markup_value_val = $current_text_settings['admin_markup_value'] ?: "5000";
 ?>
 <!DOCTYPE html>
 <html lang="id">
@@ -120,9 +122,13 @@ $tiktok_val = $current_text_settings['link_tiktok'] ?: "https://tiktok.com";
                 
                 <div class="flex items-center gap-4">
                     <a href="profile.php" class="hidden md:flex items-center gap-3 mr-2 px-3 py-1.5 rounded-full border border-slate-100 bg-slate-50 hover:bg-slate-100 hover:border-slate-200 transition-colors group cursor-pointer">
-                        <div class="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-secondary text-white flex items-center justify-center font-bold text-sm shadow-sm group-hover:shadow transition-all">
-                            <?= strtoupper(substr($_SESSION['nama_lengkap'], 0, 1)) ?>
-                        </div>
+                        <?php if (isset($_SESSION['foto_profil']) && !empty($_SESSION['foto_profil']) && file_exists('../assets/images/profil/'.$_SESSION['foto_profil'])): ?>
+                            <img src="../assets/images/profil/<?= htmlspecialchars($_SESSION['foto_profil']) ?>" class="w-8 h-8 rounded-full object-cover shadow-sm">
+                        <?php else: ?>
+                            <div class="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-secondary text-white flex items-center justify-center font-bold text-sm shadow-sm group-hover:shadow transition-all">
+                                <?= strtoupper(substr($_SESSION['nama_lengkap'], 0, 1)) ?>
+                            </div>
+                        <?php endif; ?>
                         <span class="text-sm font-bold text-slate-700 pr-2 group-hover:text-primary transition-colors"><?= htmlspecialchars($_SESSION['nama_lengkap']) ?></span>
                     </a>
                 </div>
@@ -215,6 +221,31 @@ $tiktok_val = $current_text_settings['link_tiktok'] ?: "https://tiktok.com";
                                         <div>
                                             <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Link TikTok</label>
                                             <input type="url" name="link_tiktok" value="<?= htmlspecialchars($tiktok_val) ?>" placeholder="https://tiktok.com/@..." class="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary focus:bg-white transition-all text-sm font-medium outline-none">
+                                        </div>
+                                    </div>
+                                    </div>
+                                </div>
+
+                                <hr class="border-slate-100">
+
+                                <div>
+                                    <h4 class="text-sm font-bold text-slate-800 mb-4 flex items-center gap-2">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                                        Pengaturan Biaya Layanan Platform
+                                    </h4>
+                                    
+                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 bg-emerald-50/50 p-4 rounded-2xl border border-emerald-100">
+                                        <div>
+                                            <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Jenis Markup</label>
+                                            <select name="admin_markup_type" class="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-sm font-medium outline-none">
+                                                <option value="nominal" <?= $markup_type_val == 'nominal' ? 'selected' : '' ?>>Nominal (Rp)</option>
+                                                <option value="percent" <?= $markup_type_val == 'percent' ? 'selected' : '' ?>>Persentase (%)</option>
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Besaran Biaya Layanan</label>
+                                            <input type="number" name="admin_markup_value" value="<?= htmlspecialchars($markup_value_val) ?>" min="0" class="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-sm font-medium outline-none">
+                                            <p class="text-[10px] text-slate-400 mt-1">Jika memilih persentase, isi dengan angka persen (misal: 10 untuk 10%). Jika nominal, isi dengan harga flat (misal: 5000).</p>
                                         </div>
                                     </div>
                                 </div>

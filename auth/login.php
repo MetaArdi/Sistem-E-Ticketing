@@ -188,7 +188,7 @@ $site_favicon = (isset($settings['site_favicon']) && $settings['site_favicon'] !
         </div>
 
         <div class="mt-6">
-            <a href="#"
+            <a href="google_login.php"
                 class="w-full flex items-center justify-center gap-3 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 font-bold py-3 px-6 rounded-xl transition-all duration-300 shadow-sm hover:shadow text-sm tracking-wide">
                 <svg class="h-5 w-5" viewBox="0 0 24 24">
                     <path fill="#4285F4"

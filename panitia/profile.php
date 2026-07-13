@@ -1,6 +1,6 @@
 <?php
 session_start();
-if (!isset($_SESSION['user_id']) || $_SESSION['role'] != 'admin') {
+if (!isset($_SESSION['user_id']) || $_SESSION['role'] != 'panitia') {
     header("Location: ../auth/login.php");
     exit;
 }
@@ -83,7 +83,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                     $user_data['email'] = $email;
                     $user_data['foto_profil'] = $foto_profil;
                     
-                    logActivity($conn, $user_id, 'Update Profile', 'Admin memperbarui data profil akunnya.');
+                    logActivity($conn, $user_id, 'Update Profile', 'Panitia memperbarui data profil akunnya.');
                 } else {
                     $error_msg = "Terjadi kesalahan saat menyimpan data.";
                 }
@@ -98,7 +98,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Profil Saya - HaloTiket Admin</title>
+    <title>Profil Saya - HaloTiket Panitia</title>
     <?php if (isset($global_site_favicon) && $global_site_favicon): ?>
         <link rel="icon" href="<?= $global_site_favicon ?>">
     <?php endif; ?>
@@ -176,7 +176,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                             <?php endif; ?>
                             <div>
                                 <h3 class="font-extrabold text-slate-900 text-lg"><?= htmlspecialchars($user_data['nama_lengkap']) ?></h3>
-                                <p class="text-sm font-bold text-primary uppercase tracking-wider">Administrator</p>
+                                <p class="text-sm font-bold text-primary uppercase tracking-wider">Panitia Event</p>
                             </div>
                         </div>
                     </div>
