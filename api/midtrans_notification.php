@@ -1,6 +1,6 @@
 <?php
-require_once 'config/koneksi.php';
-require_once 'vendor/autoload.php';
+require_once '../config/koneksi.php';
+require_once '../vendor/autoload.php';
 
 \Midtrans\Config::$serverKey = MIDTRANS_SERVER_KEY;
 \Midtrans\Config::$isProduction = MIDTRANS_IS_PRODUCTION;

@@ -1,6 +1,6 @@
 <?php
 session_start();
-require_once 'config/koneksi.php';
+require_once '../config/koneksi.php';
 
 // 1. Cek Metode POST
 if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !isset($_POST['email'])) {
@@ -88,7 +88,7 @@ $result = $stmt->get_result();
 
                 <!-- Centered Logo -->
                 <div class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
-                    <a href="index.php" class="flex items-center gap-2 group">
+                    <a href="../index.php" class="flex items-center gap-2 group">
                         <?php if (isset($global_site_logo) && $global_site_logo): ?>
                             <img src="<?= $global_site_logo ?>" alt="Logo" class="w-40 md:w-48 lg:w-56 h-auto object-contain group-hover:scale-105 transition-transform duration-300">
                         <?php else: ?>
@@ -149,7 +149,7 @@ $result = $stmt->get_result();
                     <!-- Left: QR Code / Banner Placeholder -->
                     <div class="w-full sm:w-48 shrink-0 flex flex-col justify-center items-center bg-slate-50 rounded-2xl border border-slate-100 p-4 relative overflow-hidden group">
                         <?php if($row['banner_image']): ?>
-                            <img src="assets/images/events/<?= $row['banner_image'] ?>" alt="Event Banner" class="absolute inset-0 w-full h-full object-cover opacity-20 group-hover:opacity-30 transition-opacity">
+                            <img src="../assets/images/events/<?= $row['banner_image'] ?>" alt="Event Banner" class="absolute inset-0 w-full h-full object-cover opacity-20 group-hover:opacity-30 transition-opacity">
                         <?php endif; ?>
                         
                         <div class="relative z-10 flex flex-col items-center text-center">
@@ -302,7 +302,7 @@ $result = $stmt->get_result();
         
         <div class="flex flex-col p-4 gap-2 overflow-y-auto">
             <div class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 mt-2 px-2">Menu Utama</div>
-            <a href="index.php" class="flex items-center gap-3 px-4 py-3.5 rounded-xl text-slate-600 hover:bg-slate-50 font-semibold transition-colors">
+            <a href="../index.php" class="flex items-center gap-3 px-4 py-3.5 rounded-xl text-slate-600 hover:bg-slate-50 font-semibold transition-colors">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                     <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z" />
                 </svg>

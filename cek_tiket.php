@@ -113,7 +113,7 @@ require_once 'config/koneksi.php';
             <h1 class="text-3xl font-extrabold text-slate-900 tracking-tight mb-3">Cari E-Ticket Anda</h1>
             <p class="text-slate-500 font-medium mb-8">Masukkan alamat email yang Anda gunakan saat membeli tiket. Kami akan menampilkan seluruh riwayat pesanan Anda.</p>
             
-            <form action="riwayat_pembelian.php" method="POST" class="space-y-4">
+            <form action="user/riwayat_pembelian.php" method="POST" class="space-y-4">
                 
                 <!-- Honeypot for Bot Protection -->
                 <div class="hidden" aria-hidden="true">

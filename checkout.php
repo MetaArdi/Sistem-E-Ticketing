@@ -121,7 +121,7 @@ if (!$event || !$variant || strtotime($event['tanggal']) < strtotime(date('Y-m-d
 
             <!-- Form Section -->
             <div class="p-8 sm:p-12">
-                <form id="checkoutForm" action="proses_checkout.php" method="POST" class="space-y-6" onsubmit="return handleFormSubmit(event)">
+                <form id="checkoutForm" action="actions/proses_checkout.php" method="POST" class="space-y-6" onsubmit="return handleFormSubmit(event)">
                     <input type="hidden" name="id_event" value="<?= $event['id'] ?>">
                     <input type="hidden" name="id_ticket_variant" value="<?= $variant['id'] ?>">
                     

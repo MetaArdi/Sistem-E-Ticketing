@@ -1,7 +1,7 @@
 <?php
 session_start();
-require_once 'config/koneksi.php';
-require_once 'vendor/autoload.php';
+require_once '../config/koneksi.php';
+require_once '../vendor/autoload.php';
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     header("Location: index.php");
