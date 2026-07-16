@@ -36,17 +36,20 @@
 | Detail Event | Info lengkap event: deskripsi, jadwal, lokasi, vendor, link Google Maps |
 | Pembelian Tiket | Form checkout dengan integrasi pembayaran Midtrans (Maks. 1 tiket per akun) |
 | Cek Tiket | Pencarian E-Ticket berdasarkan email pembeli (dilengkapi proteksi anti-scraping) |
-| Unduh E-Ticket | Download tiket dalam format PDF lengkap dengan QR Code |
+| Unduh E-Ticket | Download tiket dalam format PDF lengkap dengan QR Code & Custom Header |
 | Riwayat Pembelian | Lihat seluruh history transaksi berdasarkan email |
+| Autentikasi | Mendukung pendaftaran dan login via **Google Account** |
+| Halaman Sukses | Halaman interaktif (Lunas/Pending/Batal) usai pembayaran & fitur kirim ulang E-Ticket ke email |
 
 ### 🛡️ Dashboard Admin
 | Fitur | Keterangan |
 |---|---|
-| Kelola Event | Buat, edit, hapus event dengan upload hingga 4 foto |
+| Kelola Event | Buat, edit, hapus event dengan upload hingga 4 foto & **Upload Desain Header Tiket** |
 | Approval Event | Setujui atau tolak event yang diajukan oleh Panitia |
 | Kelola Pengguna | Tambah, edit, nonaktifkan akun Panitia & Validator |
+| **Sistem Validator** | Mengatur kuota jumlah validator per panitia dan persetujuan (Approve/Reject) akun validator yang dibuat panitia |
 | Kelola Kategori | Buat kategori event kustom |
-| Pengaturan Sistem | Upload logo, favicon, konfigurasi kontak & sosial media |
+| Pengaturan Sistem | Upload logo, favicon, konfigurasi kontak, sosial media, & **Maintenance Mode** |
 | Biaya Platform | Atur markup harga (Admin Fee) dinamis dalam Persentase (%) atau Nominal (Rp) |
 | Log Aktivitas | Pantau semua aktivitas pengguna di sistem |
 | Estimasi Pendapatan | Lihat ringkasan penjualan tiket per event |
@@ -54,8 +57,9 @@
 ### 🎪 Dashboard Panitia
 | Fitur | Keterangan |
 |---|---|
-| Buat Event | Submit event baru (memerlukan persetujuan Admin) |
+| Buat Event | Submit event baru dengan **Desain Header Tiket** (memerlukan persetujuan Admin) |
 | Status Event | Pantau status event: Pending, Disetujui, Ditolak |
+| **Kelola Validator** | Mendaftarkan akun validator (tergantung sisa kuota yang diset Admin) |
 | Laporan Penjualan | Lihat data tiket terjual & estimasi pendapatan event |
 
 ### ✅ Dashboard Validator
@@ -182,9 +186,9 @@ Halo_Tiket/
 ├── 📁 admin/                  # Halaman dashboard Admin
 │   ├── index.php              # Ringkasan & statistik
 │   ├── manage_events.php      # Kelola & approval event
-│   ├── manage_users.php       # Kelola pengguna
+│   ├── manage_users.php       # Kelola pengguna & approval validator
 │   ├── manage_categories.php  # Kelola kategori event
-│   ├── settings.php           # Pengaturan sistem
+│   ├── settings.php           # Pengaturan sistem & Maintenance
 │   ├── system_logs.php        # Log aktivitas
 │   ├── profile.php            # Profil admin
 │   └── api_settings.php       # API untuk pengaturan
@@ -192,6 +196,7 @@ Halo_Tiket/
 ├── 📁 panitia/                # Halaman dashboard Panitia
 │   ├── index.php              # Ringkasan event & penjualan
 │   ├── manage_events.php      # Buat & kelola event
+│   ├── manage_validators.php  # Pendaftaran validator oleh panitia
 │   └── laporan_sales.php      # Laporan penjualan
 │
 ├── 📁 validator/              # Halaman dashboard Validator
@@ -200,6 +205,7 @@ Halo_Tiket/
 │
 ├── 📁 auth/                   # Autentikasi pengguna
 │   ├── login.php              # Halaman login
+│   ├── google_callback.php    # Callback autentikasi Google
 │   ├── register.php           # Halaman registrasi
 │   ├── proses_login.php       # Logic proses login
 │   ├── proses_register.php    # Logic proses registrasi
@@ -222,9 +228,11 @@ Halo_Tiket/
 ├── checkout.php               # Halaman pembelian tiket
 ├── proses_checkout.php        # Logic proses pembelian
 ├── midtrans_notification.php  # Webhook notifikasi Midtrans
+├── ticket_success.php         # Halaman pasca pembayaran Midtrans
 ├── cek_tiket.php              # Halaman cek tiket via email
 ├── riwayat_pembelian.php      # Riwayat pembelian tiket
-├── download_tiket.php         # Download E-Ticket PDF
+├── download_tiket.php         # Download E-Ticket PDF dengan Header
+├── maintenance.php            # Halaman statis Maintenance Mode
 ├── database.sql               # Skema database lengkap
 ├── composer.json              # Konfigurasi dependensi
 └── README.md                  # Dokumentasi ini
@@ -254,6 +262,16 @@ Panitia Login → Buat Event (isi form + upload foto)
 
 > **Catatan:** Event yang dibuat langsung oleh **Admin** akan otomatis berstatus **Disetujui** tanpa perlu melalui proses approval.
 
+### Alur Manajemen Validator
+
+```
+Admin → Tetapkan Kuota Validator (per Panitia)
+    → Panitia Login → Tambah Validator (mengisi nama & keterangan pos jaga)
+    → Status: PENDING (Validator tidak bisa login)
+    → Admin Review → Approve / Reject (dengan alasan)
+    → Jika Approved: Validator dapat login & menggunakan Scanner QR Code
+```
+
 ---
 
 ## 🔑 Akun Default
@@ -278,8 +296,10 @@ Untuk membuat akun Panitia atau Validator lainnya, Admin dapat melakukannya mela
 | **Database** | MySQL 5.7+ / MariaDB |
 | **Frontend** | HTML5, Vanilla CSS, Tailwind CSS (via CDN) |
 | **Payment Gateway** | Midtrans (mendukung QRIS, Transfer Bank, dll.) |
+| **SSO Login** | Google Sign-In API |
 | **QR Code** | PHP QR Code Library (via Composer) |
-| **PDF Generation** | HTML to PDF (native PHP) |
+| **PDF Generation** | FPDF (native PHP) |
+| **Email Notifikasi** | PHP Mail() |
 | **Web Server** | Apache (Laragon / XAMPP) |
 
 ---

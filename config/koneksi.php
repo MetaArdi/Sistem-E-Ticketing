@@ -45,6 +45,21 @@ if ($settings_query) {
     define('MIDTRANS_SERVER_KEY', $global_settings['midtrans_server_key'] ?? '');
     define('MIDTRANS_CLIENT_KEY', $global_settings['midtrans_client_key'] ?? '');
     define('MIDTRANS_IS_PRODUCTION', (isset($global_settings['midtrans_is_production']) && $global_settings['midtrans_is_production'] == '1') ? true : false);
+    
+    // Maintenance Mode Check
+    $is_maintenance = (isset($global_settings['maintenance_mode']) && $global_settings['maintenance_mode'] == '1');
+    if ($is_maintenance) {
+        $uri = $_SERVER['REQUEST_URI'];
+        // Jika sedang maintenance, HANYA admin, auth, dan assets yang boleh diakses. 
+        // Panitia & Validator akan diblokir.
+        if (strpos($uri, '/admin/') === false && 
+            strpos($uri, '/auth/') === false && 
+            strpos($uri, '/assets/') === false && 
+            strpos($uri, 'maintenance.php') === false) {
+            header("Location: " . BASE_URL . "maintenance.php");
+            exit;
+        }
+    }
 }
 
 // Helper Function untuk System Logging
@@ -63,13 +78,19 @@ if (!function_exists('logActivity')) {
 // Fitur Auto Logout 10 Menit Inaktivitas
 if (isset($_SESSION['user_id'])) {
     $timeout_duration = 600; // 10 menit dalam detik
+    
+    // Cek apakah mode maintenance aktif dan user adalah admin
+    $is_admin = (isset($_SESSION['role']) && $_SESSION['role'] == 'admin');
+    $bypass_timeout = (isset($is_maintenance) && $is_maintenance && $is_admin);
 
-    if (isset($_SESSION['last_activity']) && (time() - $_SESSION['last_activity']) > $timeout_duration) {
-        logActivity($conn, $_SESSION['user_id'], 'Auto Logout', 'Sistem melakukan logout otomatis karena pengguna tidak aktif selama 10 menit.');
-        session_unset();
-        session_destroy();
-        header("Location: " . BASE_URL . "auth/login.php?msg=timeout");
-        exit;
+    if (!$bypass_timeout) {
+        if (isset($_SESSION['last_activity']) && (time() - $_SESSION['last_activity']) > $timeout_duration) {
+            logActivity($conn, $_SESSION['user_id'], 'Auto Logout', 'Sistem melakukan logout otomatis karena pengguna tidak aktif selama 10 menit.');
+            session_unset();
+            session_destroy();
+            header("Location: " . BASE_URL . "auth/login.php?msg=timeout");
+            exit;
+        }
     }
 
     // Update timestamp aktivitas terakhir

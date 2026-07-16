@@ -143,17 +143,17 @@ if (!$event || !$variant || strtotime($event['tanggal']) < strtotime(date('Y-m-d
                     <div class="space-y-3 pt-4">
                         <label class="text-sm font-bold text-slate-700">Metode Pembayaran</label>
                         <div class="grid grid-cols-1 gap-3">
-                            <!-- QRIS -->
+                            <!-- Midtrans Gateway -->
                             <label class="relative flex cursor-pointer rounded-xl border bg-blue-50/50 p-4 shadow-sm border-primary ring-1 ring-primary">
-                                <input type="hidden" name="payment_method" value="qris">
+                                <input type="hidden" name="payment_method" value="midtrans">
                                 <div class="flex w-full items-center justify-between">
                                     <div class="flex items-center gap-3">
                                         <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-100 text-blue-600">
-                                            <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm14 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" /></svg>
+                                            <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" /></svg>
                                         </div>
                                         <div>
-                                            <p class="text-sm font-bold text-slate-900">QRIS</p>
-                                            <p class="text-xs text-slate-500 mt-0.5">Mendukung Semua Bank & E-Wallet</p>
+                                            <p class="text-sm font-bold text-slate-900">Pembayaran Online (Otomatis)</p>
+                                            <p class="text-xs text-slate-500 mt-0.5">Mendukung Transfer Bank, E-Wallet, QRIS, & Kartu Kredit</p>
                                         </div>
                                     </div>
                                     <svg class="h-5 w-5 text-primary" viewBox="0 0 20 20" fill="currentColor">

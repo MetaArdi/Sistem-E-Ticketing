@@ -111,7 +111,7 @@ $params = [
         'email' => $email,
         'phone' => $no_hp,
     ],
-    'enabled_payments' => ['qris'], // Hanya memunculkan QRIS
+    // Dihapus 'enabled_payments' agar Midtrans otomatis memunculkan semua metode yang aktif di dashboard
 ];
 
 try {

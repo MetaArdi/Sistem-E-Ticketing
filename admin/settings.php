@@ -32,7 +32,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     }
 
     // Proses Text Settings
-    $text_settings = ['contact_address', 'contact_cs', 'link_ig', 'link_tiktok', 'admin_markup_type', 'admin_markup_value'];
+    $text_settings = ['contact_address', 'contact_cs', 'link_ig', 'link_tiktok', 'admin_markup_type', 'admin_markup_value', 'maintenance_mode'];
     $stmt = $conn->prepare("INSERT INTO settings (setting_key, setting_value) VALUES (?, ?) ON DUPLICATE KEY UPDATE setting_value = ?");
     foreach ($text_settings as $key) {
         if (isset($_POST[$key])) {
@@ -54,7 +54,7 @@ $current_logo = $logo_query->num_rows > 0 ? $logo_query->fetch_assoc()['setting_
 $favicon_query = $conn->query("SELECT setting_value FROM settings WHERE setting_key = 'site_favicon'");
 $current_favicon = $favicon_query->num_rows > 0 ? $favicon_query->fetch_assoc()['setting_value'] : '';
 
-$text_settings_keys = ['contact_address', 'contact_cs', 'link_ig', 'link_tiktok', 'admin_markup_type', 'admin_markup_value'];
+$text_settings_keys = ['contact_address', 'contact_cs', 'link_ig', 'link_tiktok', 'admin_markup_type', 'admin_markup_value', 'maintenance_mode'];
 $current_text_settings = [];
 foreach($text_settings_keys as $k) {
     $q = $conn->query("SELECT setting_value FROM settings WHERE setting_key = '$k'");
@@ -67,6 +67,7 @@ $ig_val = $current_text_settings['link_ig'] ?: "https://instagram.com";
 $tiktok_val = $current_text_settings['link_tiktok'] ?: "https://tiktok.com";
 $markup_type_val = $current_text_settings['admin_markup_type'] ?: "nominal";
 $markup_value_val = $current_text_settings['admin_markup_value'] ?: "5000";
+$maintenance_mode_val = $current_text_settings['maintenance_mode'] ?? '0';
 ?>
 <!DOCTYPE html>
 <html lang="id">
@@ -246,6 +247,29 @@ $markup_value_val = $current_text_settings['admin_markup_value'] ?: "5000";
                                             <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Besaran Biaya Layanan</label>
                                             <input type="number" name="admin_markup_value" value="<?= htmlspecialchars($markup_value_val) ?>" min="0" class="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-sm font-medium outline-none">
                                             <p class="text-[10px] text-slate-400 mt-1">Jika memilih persentase, isi dengan angka persen (misal: 10 untuk 10%). Jika nominal, isi dengan harga flat (misal: 5000).</p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <hr class="border-slate-100">
+
+                                <div>
+                                    <h4 class="text-sm font-bold text-slate-800 mb-4 flex items-center gap-2">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+                                        Mode Pemeliharaan (Maintenance)
+                                    </h4>
+                                    
+                                    <div class="bg-amber-50/50 p-6 rounded-2xl border border-amber-100 flex items-start gap-4">
+                                        <div class="flex-1">
+                                            <label class="block text-sm font-bold text-slate-800 mb-1">Aktifkan Maintenance Mode</label>
+                                            <p class="text-xs text-slate-500">Jika diaktifkan, halaman publik akan dialihkan ke halaman peringatan maintenance. Halaman Admin, Panitia, dan Validator tetap bisa diakses.</p>
+                                        </div>
+                                        <div class="shrink-0 pt-2">
+                                            <!-- Checkbox toggle fallback -->
+                                            <select name="maintenance_mode" class="px-4 py-2 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-all text-sm font-bold outline-none text-slate-700">
+                                                <option value="0" <?= $maintenance_mode_val == '0' ? 'selected' : '' ?>>Nonaktif (Normal)</option>
+                                                <option value="1" <?= $maintenance_mode_val == '1' ? 'selected' : '' ?>>Aktif (Maintenance)</option>
+                                            </select>
                                         </div>
                                     </div>
                                 </div>

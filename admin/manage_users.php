@@ -14,6 +14,23 @@ if (isset($_GET['del'])) {
     exit;
 }
 
+if (isset($_GET['approve'])) {
+    $id = (int)$_GET['approve'];
+    $conn->query("UPDATE users SET status_approval = 'approved' WHERE id = $id AND role = 'validator'");
+    logActivity($conn, $_SESSION['user_id'], 'Approve Validator', "Menyetujui validator ID: $id");
+    header("Location: manage_users.php");
+    exit;
+}
+
+if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['action']) && $_POST['action'] == 'reject_validator') {
+    $id = (int)$_POST['reject_id'];
+    $reason = $conn->real_escape_string($_POST['reject_reason']);
+    $conn->query("UPDATE users SET status_approval = 'rejected', reject_reason = '$reason' WHERE id = $id AND role = 'validator'");
+    logActivity($conn, $_SESSION['user_id'], 'Reject Validator', "Menolak validator ID: $id. Alasan: $reason");
+    header("Location: manage_users.php");
+    exit;
+}
+
 $edit_user = null;
 if (isset($_GET['edit_id'])) {
     $edit_id = (int)$_GET['edit_id'];
@@ -30,22 +47,27 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $alamat = $_POST['alamat'] ?? '';
     $no_hp = $_POST['no_hp'] ?? '';
     
+    // Khusus validator/panitia
+    $validator_quota = isset($_POST['validator_quota']) ? (int)$_POST['validator_quota'] : 0;
+    $keterangan = $_POST['keterangan'] ?? null;
+    $status_approval = ($role == 'validator') ? 'approved' : null;
+    
     if (isset($_POST['user_id']) && !empty($_POST['user_id'])) {
         $id = (int)$_POST['user_id'];
         if (!empty($_POST['password'])) {
             $password = password_hash($_POST['password'], PASSWORD_DEFAULT);
-            $stmt = $conn->prepare("UPDATE users SET email=?, password=?, role=?, nama_lengkap=?, alamat=?, no_hp=? WHERE id=?");
-            $stmt->bind_param("ssssssi", $email, $password, $role, $nama, $alamat, $no_hp, $id);
+            $stmt = $conn->prepare("UPDATE users SET email=?, password=?, role=?, nama_lengkap=?, alamat=?, no_hp=?, validator_quota=?, keterangan=? WHERE id=?");
+            $stmt->bind_param("ssssssisi", $email, $password, $role, $nama, $alamat, $no_hp, $validator_quota, $keterangan, $id);
         } else {
-            $stmt = $conn->prepare("UPDATE users SET email=?, role=?, nama_lengkap=?, alamat=?, no_hp=? WHERE id=?");
-            $stmt->bind_param("sssssi", $email, $role, $nama, $alamat, $no_hp, $id);
+            $stmt = $conn->prepare("UPDATE users SET email=?, role=?, nama_lengkap=?, alamat=?, no_hp=?, validator_quota=?, keterangan=? WHERE id=?");
+            $stmt->bind_param("sssssisi", $email, $role, $nama, $alamat, $no_hp, $validator_quota, $keterangan, $id);
         }
         $stmt->execute();
         logActivity($conn, $_SESSION['user_id'], 'Edit User', "Mengubah data user ID: $id");
     } else {
         $password = password_hash($_POST['password'], PASSWORD_DEFAULT);
-        $stmt = $conn->prepare("INSERT INTO users (email, password, role, nama_lengkap, alamat, no_hp) VALUES (?, ?, ?, ?, ?, ?)");
-        $stmt->bind_param("ssssss", $email, $password, $role, $nama, $alamat, $no_hp);
+        $stmt = $conn->prepare("INSERT INTO users (email, password, role, nama_lengkap, alamat, no_hp, validator_quota, keterangan, status_approval) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
+        $stmt->bind_param("ssssssiss", $email, $password, $role, $nama, $alamat, $no_hp, $validator_quota, $keterangan, $status_approval);
         $stmt->execute();
         logActivity($conn, $_SESSION['user_id'], 'Add User', "Menambahkan user baru: $email ($role)");
     }
@@ -201,16 +223,51 @@ $users = $conn->query("SELECT * FROM users WHERE id != {$_SESSION['user_id']} OR
             <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
             </div>
-            <select name="role" class="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-sm font-medium appearance-none" required>
-                <option value="admin">Admin</option>
-                <option value="panitia">Panitia</option>
-                <option value="validator">Validator</option>
+            <select name="role" id="role_select" class="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-sm font-medium appearance-none" required>
+                <option value="admin" <?= ($edit_user && $edit_user['role'] == 'admin') ? 'selected' : '' ?>>Admin</option>
+                <option value="panitia" <?= ($edit_user && $edit_user['role'] == 'panitia') ? 'selected' : '' ?>>Panitia</option>
+                <option value="validator" <?= ($edit_user && $edit_user['role'] == 'validator') ? 'selected' : '' ?>>Validator</option>
             </select>
             <div class="absolute inset-y-0 right-0 flex items-center px-3 pointer-events-none text-slate-400">
                 <svg class="w-4 h-4 fill-current" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"/></svg>
             </div>
         </div>
     </div>
+    
+    <div id="quota_container" class="<?= ($edit_user && $edit_user['role'] == 'panitia') ? '' : 'hidden' ?>">
+        <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Set Kuota Validator</label>
+        <div class="relative">
+            <input type="number" name="validator_quota" id="validator_quota" min="0" value="<?= $edit_user ? (int)$edit_user['validator_quota'] : 0 ?>" class="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-sm font-medium" placeholder="0">
+        </div>
+        <p class="text-[10px] text-slate-400 mt-1">*Maksimal akun validator yang bisa dibuat oleh panitia ini.</p>
+    </div>
+
+    <div id="keterangan_container" class="<?= ($edit_user && $edit_user['role'] == 'validator') ? '' : 'hidden' ?>">
+        <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Keterangan / Lokasi Jaga</label>
+        <div class="relative">
+            <input type="text" name="keterangan" id="keterangan" value="<?= $edit_user ? htmlspecialchars((string)$edit_user['keterangan']) : '' ?>" class="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-sm font-medium" placeholder="Pintu Masuk VIP">
+        </div>
+    </div>
+    
+    <script>
+        document.getElementById('role_select').addEventListener('change', function() {
+            var role = this.value;
+            var quotaContainer = document.getElementById('quota_container');
+            var ketContainer = document.getElementById('keterangan_container');
+            
+            if (role === 'panitia') {
+                quotaContainer.classList.remove('hidden');
+            } else {
+                quotaContainer.classList.add('hidden');
+            }
+            
+            if (role === 'validator') {
+                ketContainer.classList.remove('hidden');
+            } else {
+                ketContainer.classList.add('hidden');
+            }
+        });
+    </script>
     
     <button type="submit" class="w-full bg-slate-900 hover:bg-primary text-white font-bold py-2.5 px-4 rounded-xl transition-all duration-300 mt-4 shadow-md shadow-slate-900/20 flex items-center justify-center gap-2 group text-sm">
         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 group-hover:scale-110 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" /></svg>
@@ -257,12 +314,31 @@ $users = $conn->query("SELECT * FROM users WHERE id != {$_SESSION['user_id']} OR
                                             </td>
                                             <td class="px-6 py-4 whitespace-nowrap">
                                                 <?php if($row['role'] == 'panitia'): ?>
-                                                    <span class="px-3 py-1 inline-flex text-xs leading-5 font-bold rounded-full bg-violet-50 text-violet-700 border border-violet-100">Panitia</span>
+                                                    <span class="px-3 py-1 inline-flex text-xs leading-5 font-bold rounded-full bg-violet-50 text-violet-700 border border-violet-100 mb-1">Panitia</span>
+                                                    <div class="text-[10px] text-slate-500 font-medium">Kuota Validator: <?= $row['validator_quota'] ?></div>
                                                 <?php else: ?>
-                                                    <span class="px-3 py-1 inline-flex text-xs leading-5 font-bold rounded-full bg-emerald-50 text-emerald-700 border border-emerald-100">Validator</span>
+                                                    <span class="px-3 py-1 inline-flex text-xs leading-5 font-bold rounded-full bg-emerald-50 text-emerald-700 border border-emerald-100 mb-1">Validator</span>
+                                                    <?php if($row['status_approval'] == 'pending'): ?>
+                                                        <span class="px-2 py-0.5 inline-flex text-[10px] leading-5 font-bold rounded-full bg-amber-50 text-amber-600 border border-amber-100">Pending</span>
+                                                    <?php elseif($row['status_approval'] == 'rejected'): ?>
+                                                        <span class="px-2 py-0.5 inline-flex text-[10px] leading-5 font-bold rounded-full bg-red-50 text-red-600 border border-red-100" title="<?= htmlspecialchars((string)$row['reject_reason']) ?>">Ditolak</span>
+                                                    <?php else: ?>
+                                                        <span class="px-2 py-0.5 inline-flex text-[10px] leading-5 font-bold rounded-full bg-blue-50 text-blue-600 border border-blue-100">Approved</span>
+                                                    <?php endif; ?>
+                                                    <?php if(!empty($row['keterangan'])): ?>
+                                                        <div class="text-[10px] text-slate-500 mt-1 max-w-[150px] truncate" title="<?= htmlspecialchars($row['keterangan']) ?>"><?= htmlspecialchars($row['keterangan']) ?></div>
+                                                    <?php endif; ?>
                                                 <?php endif; ?>
                                             </td>
                                             <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                                <?php if($row['role'] == 'validator' && $row['status_approval'] == 'pending'): ?>
+                                                    <a href="manage_users.php?approve=<?= $row['id'] ?>" class="text-emerald-500 hover:text-emerald-700 bg-emerald-50 hover:bg-emerald-100 p-2 rounded-lg transition-colors inline-flex border border-transparent hover:border-emerald-200 mr-1" title="Approve" onclick="return confirm('Setujui validator ini?');">
+                                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
+                                                    </a>
+                                                    <button type="button" onclick="rejectValidator(<?= $row['id'] ?>)" class="text-amber-500 hover:text-amber-700 bg-amber-50 hover:bg-amber-100 p-2 rounded-lg transition-colors inline-flex border border-transparent hover:border-amber-200 mr-1" title="Tolak">
+                                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+                                                    </button>
+                                                <?php endif; ?>
                                                 <a href="manage_users.php?edit_id=<?= $row['id'] ?>" class="text-blue-500 hover:text-blue-700 bg-blue-50 hover:bg-blue-100 p-2 rounded-lg transition-colors inline-flex border border-transparent hover:border-blue-200 mr-1" title="Edit">
                                                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
                                                 </a>
@@ -356,7 +432,24 @@ $users = $conn->query("SELECT * FROM users WHERE id != {$_SESSION['user_id']} OR
                 }
             });
         });
+        
+        function rejectValidator(id) {
+            let reason = prompt("Masukkan alasan penolakan untuk validator ini:");
+            if (reason != null && reason.trim() !== "") {
+                document.getElementById('reject_id').value = id;
+                document.getElementById('reject_reason').value = reason;
+                document.getElementById('rejectForm').submit();
+            } else if (reason != null) {
+                alert("Alasan penolakan tidak boleh kosong.");
+            }
+        }
     </script>
 
+    <!-- Hidden form for rejection -->
+    <form id="rejectForm" action="" method="POST" class="hidden">
+        <input type="hidden" name="action" value="reject_validator">
+        <input type="hidden" name="reject_id" id="reject_id" value="">
+        <input type="hidden" name="reject_reason" id="reject_reason" value="">
+    </form>
 </body>
 </html>

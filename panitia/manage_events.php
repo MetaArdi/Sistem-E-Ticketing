@@ -48,6 +48,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $kategori = $_POST['kategori'] ?? 'Music';
     $nama_vendor = !empty($_POST['nama_vendor']) ? $_POST['nama_vendor'] : null;
     $banner = null;
+    $tiket_header = null;
 
     if (isset($_FILES['banner_image']) && $_FILES['banner_image']['error'] == 0) {
         $filename = time() . '_' . basename($_FILES['banner_image']['name']);
@@ -57,8 +58,18 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         }
     }
 
-    $stmt = $conn->prepare("INSERT INTO events (id_panitia, judul, kategori, deskripsi, tanggal, waktu, waktu_selesai, lokasi, link_gmaps, harga, stok, banner_image, status_approval, nama_vendor) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?)");
-    $stmt->bind_param("issssssssdisss", $id_panitia, $judul, $kategori, $deskripsi, $tanggal, $waktu, $waktu_selesai, $lokasi, $link_gmaps, $harga, $stok, $banner, $nama_vendor);
+    if (isset($_FILES['tiket_header']) && $_FILES['tiket_header']['error'] == 0) {
+        $ext = strtolower(pathinfo($_FILES['tiket_header']['name'], PATHINFO_EXTENSION));
+        if (in_array($ext, ['jpg', 'jpeg', 'png'])) {
+            $fname_header = time() . '_header.' . $ext;
+            if (move_uploaded_file($_FILES['tiket_header']['tmp_name'], "../assets/images/events/" . $fname_header)) {
+                $tiket_header = $fname_header;
+            }
+        }
+    }
+
+    $stmt = $conn->prepare("INSERT INTO events (id_panitia, judul, kategori, deskripsi, tanggal, waktu, waktu_selesai, lokasi, link_gmaps, harga, stok, banner_image, tiket_header, status_approval, nama_vendor) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?)");
+    $stmt->bind_param("issssssssdissss", $id_panitia, $judul, $kategori, $deskripsi, $tanggal, $waktu, $waktu_selesai, $lokasi, $link_gmaps, $harga, $stok, $banner, $tiket_header, $nama_vendor);
     $stmt->execute();
     $new_event_id = $conn->insert_id;
     
@@ -275,6 +286,11 @@ $events = $conn->query("SELECT * FROM events WHERE id_panitia = $id_panitia ORDE
                             <div class="md:col-span-2">
                                 <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Foto Event (JPG, PNG, JPEG)</label>
                                 <input type="file" name="banner_image" accept=".jpg,.jpeg,.png" class="w-full text-sm font-medium file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-bold file:bg-primary/10 file:text-primary hover:file:bg-primary/20 transition-all">
+                            </div>
+                            <div class="md:col-span-2">
+                                <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Desain Header Tiket PDF (Opsional)</label>
+                                <input type="file" name="tiket_header" accept=".jpg,.jpeg,.png" class="w-full text-sm font-medium file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-bold file:bg-indigo-50 file:text-indigo-600 hover:file:bg-indigo-100 transition-all">
+                                <p class="text-[10px] text-slate-400 mt-1">*Gambar ini akan dipasang di bagian paling atas PDF Tiket.</p>
                             </div>
                             <div class="md:col-span-2 flex justify-end">
                                 <button type="submit" class="bg-primary hover:opacity-90 text-white font-bold py-3 px-8 rounded-xl transition-all shadow-md">Buat Event</button>

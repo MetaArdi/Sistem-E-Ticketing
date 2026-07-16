@@ -11,9 +11,26 @@ $tot_users = $conn->query("SELECT COUNT(*) as c FROM users")->fetch_assoc()['c']
 $tot_events = $conn->query("SELECT COUNT(*) as c FROM events")->fetch_assoc()['c'];
 $tot_tickets = $conn->query("SELECT COUNT(*) as c FROM tickets")->fetch_assoc()['c'];
 
-// Estimasi Pendapatan
-$rev_query = $conn->query("SELECT SUM(e.harga) as revenue FROM tickets t JOIN events e ON t.id_event = e.id WHERE t.status IN ('lunas', 'scanned')");
-$revenue = $rev_query->fetch_assoc()['revenue'] ?? 0;
+// Estimasi Pendapatan (Biaya Platform)
+$markup_type = $global_settings['admin_markup_type'] ?? 'nominal';
+$markup_value = $global_settings['admin_markup_value'] ?? 5000;
+
+$revenue = 0;
+$trx_lunas = $conn->query("SELECT COUNT(*) as c FROM tickets WHERE status IN ('lunas', 'scanned')")->fetch_assoc()['c'];
+$trx_pending = $conn->query("SELECT COUNT(*) as c FROM tickets WHERE status = 'pending'")->fetch_assoc()['c'];
+$trx_batal = $conn->query("SELECT COUNT(*) as c FROM tickets WHERE status = 'batal'")->fetch_assoc()['c'];
+
+if ($markup_type == 'nominal') {
+    $revenue = $trx_lunas * $markup_value;
+} else {
+    $rev_query = $conn->query("
+        SELECT SUM((v.harga * $markup_value) / 100) as revenue 
+        FROM tickets t 
+        JOIN event_ticket_variants v ON t.id_ticket_variant = v.id 
+        WHERE t.status IN ('lunas', 'scanned')
+    ");
+    $revenue = $rev_query->fetch_assoc()['revenue'] ?? 0;
+}
 ?>
 <!DOCTYPE html>
 <html lang="id">
@@ -126,6 +143,34 @@ $revenue = $rev_query->fetch_assoc()['revenue'] ?? 0;
                             </div>
                             <h3 class="text-xs md:text-sm font-bold text-slate-400 uppercase tracking-widest mb-1 relative z-10">Pendapatan</h3>
                             <p class="text-2xl md:text-3xl font-extrabold text-slate-900 relative z-10">Rp <?= number_format($revenue, 0, ',', '.') ?></p>
+                        </div>
+                        
+                        <!-- Status Transaksi Cards -->
+                        <div class="bg-white rounded-3xl border border-slate-200 shadow-sm p-5 md:p-6 relative overflow-hidden group hover:shadow-lg transition-all duration-300 hover:-translate-y-1">
+                            <div class="absolute -right-6 -top-6 w-24 h-24 bg-emerald-500/5 rounded-full group-hover:scale-[2] transition-transform duration-700 ease-out"></div>
+                            <div class="w-12 h-12 bg-emerald-50 text-emerald-500 rounded-2xl flex items-center justify-center mb-5 border border-emerald-200 relative z-10 shadow-inner">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                            </div>
+                            <h3 class="text-xs md:text-sm font-bold text-slate-400 uppercase tracking-widest mb-1 relative z-10">Transaksi Berhasil</h3>
+                            <p class="text-3xl md:text-4xl font-extrabold text-slate-900 relative z-10"><?= $trx_lunas ?></p>
+                        </div>
+                        
+                        <div class="bg-white rounded-3xl border border-slate-200 shadow-sm p-5 md:p-6 relative overflow-hidden group hover:shadow-lg transition-all duration-300 hover:-translate-y-1">
+                            <div class="absolute -right-6 -top-6 w-24 h-24 bg-amber-500/5 rounded-full group-hover:scale-[2] transition-transform duration-700 ease-out"></div>
+                            <div class="w-12 h-12 bg-amber-50 text-amber-500 rounded-2xl flex items-center justify-center mb-5 border border-amber-200 relative z-10 shadow-inner">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                            </div>
+                            <h3 class="text-xs md:text-sm font-bold text-slate-400 uppercase tracking-widest mb-1 relative z-10">Transaksi Pending</h3>
+                            <p class="text-3xl md:text-4xl font-extrabold text-slate-900 relative z-10"><?= $trx_pending ?></p>
+                        </div>
+                        
+                        <div class="bg-white rounded-3xl border border-slate-200 shadow-sm p-5 md:p-6 relative overflow-hidden group hover:shadow-lg transition-all duration-300 hover:-translate-y-1">
+                            <div class="absolute -right-6 -top-6 w-24 h-24 bg-red-500/5 rounded-full group-hover:scale-[2] transition-transform duration-700 ease-out"></div>
+                            <div class="w-12 h-12 bg-red-50 text-red-500 rounded-2xl flex items-center justify-center mb-5 border border-red-200 relative z-10 shadow-inner">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                            </div>
+                            <h3 class="text-xs md:text-sm font-bold text-slate-400 uppercase tracking-widest mb-1 relative z-10">Transaksi Gagal</h3>
+                            <p class="text-3xl md:text-4xl font-extrabold text-slate-900 relative z-10"><?= $trx_batal ?></p>
                         </div>
                     </div>
                 </div>

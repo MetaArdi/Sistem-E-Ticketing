@@ -50,7 +50,20 @@ if (isset($_GET['code'])) {
             // To be safe, we won't overwrite a local avatar with a Google URL unless we adapt the display logic.
         }
         
+        // Cek Maintenance Mode
+        if (isset($is_maintenance) && $is_maintenance && $user['role'] != 'admin') {
+            $_SESSION['error'] = "Sistem sedang dalam masa pemeliharaan (Maintenance). Hanya Admin yang diizinkan untuk login saat ini.";
+            header("Location: login.php");
+            exit;
+        }
+
         // Create session
+        if ($user['role'] == 'validator' && $user['status_approval'] != 'approved') {
+            $_SESSION['error'] = "Akun validator Anda belum aktif. Menunggu persetujuan Admin atau telah ditolak.";
+            header("Location: login.php");
+            exit;
+        }
+
         session_regenerate_id(true);
         $_SESSION['user_id'] = $user['id'];
         $_SESSION['email'] = $user['email'];
@@ -72,6 +85,13 @@ if (isset($_GET['code'])) {
         
     } else {
         // User doesn't exist, register them as 'panitia' by default
+        // Cek Maintenance Mode
+        if (isset($is_maintenance) && $is_maintenance) {
+            $_SESSION['error'] = "Sistem sedang dalam masa pemeliharaan (Maintenance). Pendaftaran akun baru ditutup sementara.";
+            header("Location: login.php");
+            exit;
+        }
+
         $default_role = 'panitia';
         $random_password = password_hash(bin2hex(random_bytes(8)), PASSWORD_DEFAULT);
         

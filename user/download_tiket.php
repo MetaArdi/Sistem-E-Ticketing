@@ -12,7 +12,7 @@ if (!isset($_GET['token'])) {
 }
 
 $token = $_GET['token'];
-$stmt = $conn->prepare("SELECT t.*, e.judul, e.tanggal, e.waktu, e.lokasi, u.nama_lengkap as penyelenggara 
+$stmt = $conn->prepare("SELECT t.*, e.judul, e.tanggal, e.waktu, e.lokasi, e.tiket_header, u.nama_lengkap as penyelenggara 
                         FROM tickets t 
                         JOIN events e ON t.id_event = e.id 
                         JOIN users u ON e.id_panitia = u.id
@@ -49,13 +49,27 @@ $pdf = new Fpdf('P', 'mm', 'A4');
 $pdf->AddPage();
 
 // Header PDF
-$pdf->SetFont('Arial', 'B', 24);
-$pdf->SetTextColor(13, 110, 253); // Primary Color
-$pdf->Cell(0, 20, 'HALOTIKET E-TICKET', 0, 1, 'C');
+if (!empty($tiket['tiket_header']) && file_exists('../assets/images/events/' . $tiket['tiket_header'])) {
+    // Header image full width (A4 is 210mm wide)
+    $pdf->Image('../assets/images/events/' . $tiket['tiket_header'], 0, 0, 210);
+    // Asumsikan tinggi gambar proporsional, kita geser Y ke bawah
+    // Dapatkan tinggi gambar proporsional
+    $size = getimagesize('../assets/images/events/' . $tiket['tiket_header']);
+    if ($size) {
+        $img_height = (210 / $size[0]) * $size[1];
+        $pdf->SetY($img_height + 10);
+    } else {
+        $pdf->SetY(60);
+    }
+} else {
+    $pdf->SetFont('Arial', 'B', 24);
+    $pdf->SetTextColor(13, 110, 253); // Primary Color
+    $pdf->Cell(0, 20, 'HALOTIKET E-TICKET', 0, 1, 'C');
 
-$pdf->SetDrawColor(200, 200, 200);
-$pdf->Line(10, 30, 200, 30);
-$pdf->Ln(10);
+    $pdf->SetDrawColor(200, 200, 200);
+    $pdf->Line(10, 30, 200, 30);
+    $pdf->Ln(10);
+}
 
 // Info Event
 $pdf->SetFont('Arial', 'B', 16);
@@ -88,9 +102,10 @@ $pdf->Cell(0, 10, ': ' . $tiket['email_pembeli'], 0, 1);
 $pdf->Ln(10);
 
 // QR Code
-$pdf->Image($tempQrFile, 75, 140, 60, 60);
+$currentY = $pdf->GetY();
+$pdf->Image($tempQrFile, 75, $currentY, 60, 60);
 
-$pdf->SetXY(10, 210);
+$pdf->SetXY(10, $currentY + 65);
 $pdf->SetFont('Arial', 'I', 10);
 $pdf->SetTextColor(108, 117, 125);
 $pdf->Cell(0, 10, '* Tunjukkan QR Code ini kepada petugas validator di pintu masuk.', 0, 1, 'C');

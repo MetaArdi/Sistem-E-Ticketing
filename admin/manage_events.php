@@ -88,10 +88,21 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && ($_POST['action'] ?? '') == 'create'
         }
     }
 
+    $tiket_header_val = "NULL";
+    if (isset($_FILES['tiket_header']) && $_FILES['tiket_header']['error'] == 0) {
+        $ext_header = strtolower(pathinfo($_FILES['tiket_header']['name'], PATHINFO_EXTENSION));
+        if (in_array($ext_header, $allowed_ext)) {
+            $fname_header = time() . '_header.' . $ext_header;
+            if (move_uploaded_file($_FILES['tiket_header']['tmp_name'], "../assets/images/events/" . $fname_header)) {
+                $tiket_header_val = "'$fname_header'";
+            }
+        }
+    }
+
     if (empty($error)) {
         $status_approval = ($_SESSION['role'] == 'admin') ? 'approved' : 'pending';
-        $sql = "INSERT INTO events (id_panitia,judul,kategori,deskripsi,tanggal,waktu,waktu_selesai,lokasi,link_gmaps,harga,stok,banner_image,banner_image2,banner_image3,banner_image4,status_approval,nama_vendor)
-                VALUES ($id_panitia,'$judul','$kategori','$deskripsi','$tanggal','$waktu',$waktu_selesai,'$lokasi',$link_gmaps,$harga,$stok,{$images[0]},{$images[1]},{$images[2]},{$images[3]},'$status_approval',$nama_vendor)";
+        $sql = "INSERT INTO events (id_panitia,judul,kategori,deskripsi,tanggal,waktu,waktu_selesai,lokasi,link_gmaps,harga,stok,banner_image,banner_image2,banner_image3,banner_image4,status_approval,nama_vendor,tiket_header)
+                VALUES ($id_panitia,'$judul','$kategori','$deskripsi','$tanggal','$waktu',$waktu_selesai,'$lokasi',$link_gmaps,$harga,$stok,{$images[0]},{$images[1]},{$images[2]},{$images[3]},'$status_approval',$nama_vendor,$tiket_header_val)";
         if ($conn->query($sql)) {
             $new_event_id = $conn->insert_id;
             
@@ -338,6 +349,11 @@ while ($c = $cat_q->fetch_assoc()) { $cat_list[] = $c['nama']; }
                                 <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Foto Event (Maks. 4 - JPG, PNG, JPEG)</label>
                                 <input type="file" name="banners[]" multiple accept=".jpg,.jpeg,.png" class="w-full text-sm font-medium file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-bold file:bg-primary/10 file:text-primary hover:file:bg-primary/20 transition-all">
                                 <p class="text-[10px] text-slate-400 mt-1">*Anda bisa memilih hingga 4 foto sekaligus (tekan Ctrl/Cmd saat memilih).</p>
+                            </div>
+                            <div class="md:col-span-2">
+                                <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Desain Header Tiket PDF (Opsional)</label>
+                                <input type="file" name="tiket_header" accept=".jpg,.jpeg,.png" class="w-full text-sm font-medium file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-bold file:bg-indigo-50 file:text-indigo-600 hover:file:bg-indigo-100 transition-all">
+                                <p class="text-[10px] text-slate-400 mt-1">*Gambar ini akan dipasang di bagian paling atas PDF Tiket (seperti desain tiket fisik).</p>
                             </div>
                             <div class="md:col-span-2 flex justify-end">
                                 <button type="submit" class="bg-primary hover:opacity-90 text-white font-bold py-3 px-8 rounded-xl transition-all shadow-md">Buat Event</button>

@@ -34,7 +34,18 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     if (isset($_FILES['banner_image']) && $_FILES['banner_image']['error'] == 0) {
         $filename = time() . '_' . basename($_FILES['banner_image']['name']);
         if (move_uploaded_file($_FILES['banner_image']['tmp_name'], "../assets/images/events/" . $filename)) {
-            $banner_query = ", banner_image = '$filename'";
+            $banner_query .= ", banner_image = '$filename'";
+        }
+    }
+    
+    // Update tiket_header
+    if (isset($_FILES['tiket_header']) && $_FILES['tiket_header']['error'] == 0) {
+        $ext_header = strtolower(pathinfo($_FILES['tiket_header']['name'], PATHINFO_EXTENSION));
+        if (in_array($ext_header, ['jpg', 'jpeg', 'png'])) {
+            $fname_header = time() . '_header.' . $ext_header;
+            if (move_uploaded_file($_FILES['tiket_header']['tmp_name'], "../assets/images/events/" . $fname_header)) {
+                $banner_query .= ", tiket_header = '$fname_header'";
+            }
         }
     }
 
@@ -250,6 +261,15 @@ while ($v = $variants_q->fetch_assoc()) {
                     <div class="md:col-span-2">
                         <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Deskripsi</label>
                         <textarea name="deskripsi" rows="3" class="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary/20 text-sm outline-none"><?= htmlspecialchars($event['deskripsi']) ?></textarea>
+                    </div>
+                    <div class="md:col-span-2">
+                        <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Desain Header Tiket PDF (Update Opsional)</label>
+                        <input type="file" name="tiket_header" accept=".jpg,.jpeg,.png" class="w-full text-sm font-medium file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-bold file:bg-indigo-50 file:text-indigo-600 hover:file:bg-indigo-100 transition-all">
+                        <?php if(!empty($event['tiket_header']) && file_exists('../assets/images/events/'.$event['tiket_header'])): ?>
+                            <p class="text-[10px] text-emerald-500 mt-1 font-bold">✓ Header tiket sudah terpasang. Abaikan jika tidak ingin mengubah.</p>
+                        <?php else: ?>
+                            <p class="text-[10px] text-slate-400 mt-1">*Gambar ini akan dipasang di bagian paling atas PDF Tiket (seperti desain tiket fisik).</p>
+                        <?php endif; ?>
                     </div>
                     <div class="md:col-span-2 flex justify-end">
                         <button type="submit" class="bg-primary hover:opacity-90 text-white font-bold py-3 px-8 rounded-xl shadow-md">Simpan Perubahan</button>

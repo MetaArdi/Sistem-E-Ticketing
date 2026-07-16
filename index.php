@@ -226,7 +226,7 @@ while ($row = $res_upcoming->fetch_assoc()) {
         <!-- Categories -->
         <div class="mb-10 md:mb-12">
             <div class="flex items-center justify-between mb-4">
-                <h2 class="text-lg md:text-2xl font-bold text-slate-800">Categories</h2>
+                <h2 class="text-lg md:text-2xl font-bold text-slate-800">Kategori Event</h2>
             </div>
             <div
                 class="flex items-center gap-4 md:gap-8 overflow-x-auto pb-4 scrollbar-hide -mx-5 px-5 md:mx-0 md:px-0">
