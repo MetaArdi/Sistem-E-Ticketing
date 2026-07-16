@@ -262,7 +262,7 @@ $maintenance_mode_val = $current_text_settings['maintenance_mode'] ?? '0';
                                     <div class="bg-amber-50/50 p-6 rounded-2xl border border-amber-100 flex items-start gap-4">
                                         <div class="flex-1">
                                             <label class="block text-sm font-bold text-slate-800 mb-1">Aktifkan Maintenance Mode</label>
-                                            <p class="text-xs text-slate-500">Jika diaktifkan, halaman publik akan dialihkan ke halaman peringatan maintenance. Halaman Admin, Panitia, dan Validator tetap bisa diakses.</p>
+                                            <p class="text-xs text-slate-500">Jika diaktifkan, halaman publik akan dialihkan ke halaman peringatan maintenance. Halaman Admin tetap bisa diakses.</p>
                                         </div>
                                         <div class="shrink-0 pt-2">
                                             <!-- Checkbox toggle fallback -->

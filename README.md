@@ -34,11 +34,12 @@
 |---|---|
 | Beranda Event | Menampilkan event terbaru & akan datang dengan filter kategori dan pencarian |
 | Detail Event | Info lengkap event: deskripsi, jadwal, lokasi, vendor, link Google Maps |
-| Pembelian Tiket | Form checkout dengan integrasi pembayaran Midtrans (Maks. 1 tiket per akun) |
+| Pembelian Tiket | Form checkout dengan integrasi pembayaran **Midtrans** & **Dynamic QRIS HaloTiket** |
 | Cek Tiket | Pencarian E-Ticket berdasarkan email pembeli (dilengkapi proteksi anti-scraping) |
 | Unduh E-Ticket | Download tiket dalam format PDF lengkap dengan QR Code & Custom Header |
 | Riwayat Pembelian | Lihat seluruh history transaksi berdasarkan email |
 | Autentikasi | Mendukung pendaftaran dan login via **Google Account** |
+| Lupa Password | Fitur reset password yang aman menggunakan **Verifikasi OTP via Email** |
 | Halaman Sukses | Halaman interaktif (Lunas/Pending/Batal) usai pembayaran & fitur kirim ulang E-Ticket ke email |
 
 ### 🛡️ Dashboard Admin
@@ -65,7 +66,9 @@
 ### ✅ Dashboard Validator
 | Fitur | Keterangan |
 |---|---|
-| Scan QR Code | Validasi tiket pengunjung menggunakan kamera perangkat |
+| Dashboard Analytics | Ringkasan statistik jumlah tiket yang berhasil di-scan, gagal, dan total tiket aktif |
+| Scan QR Code | Validasi tiket pengunjung menggunakan kamera perangkat dengan antarmuka modern |
+| Kontrol Kamera | Fitur kustom untuk menyalakan/mematikan kamera dan berganti antara kamera depan/belakang |
 | Update Status | Tiket otomatis berubah status menjadi "Scanned" setelah diverifikasi |
 
 ---

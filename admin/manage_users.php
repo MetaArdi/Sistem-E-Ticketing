@@ -75,7 +75,20 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     exit;
 }
 
-$users = $conn->query("SELECT * FROM users WHERE id != {$_SESSION['user_id']} ORDER BY id DESC");
+$filter_role = isset($_GET['role']) && in_array($_GET['role'], ['admin','panitia','validator']) ? $_GET['role'] : '';
+
+$where_clause = "WHERE u.id != {$_SESSION['user_id']}";
+if ($filter_role) {
+    $where_clause .= " AND u.role = '$filter_role'";
+}
+
+$users = $conn->query("
+    SELECT u.*, p.nama_lengkap as pembuat_nama 
+    FROM users u 
+    LEFT JOIN users p ON u.id_panitia = p.id 
+    $where_clause 
+    ORDER BY u.id DESC
+");
 ?>
 <!DOCTYPE html>
 <html lang="id">
@@ -144,23 +157,25 @@ $users = $conn->query("SELECT * FROM users WHERE id != {$_SESSION['user_id']} OR
             </header>
 
             <main class="flex-1 overflow-y-auto p-6 lg:p-10 relative z-10">
-                <div class="mb-10">
+                <div class="mb-8">
                     <h1 class="text-3xl font-extrabold text-slate-900 tracking-tight">Manage Users</h1>
                     <p class="text-slate-500 mt-2 font-medium">Tambahkan admin, panitia, atau validator baru ke sistem.</p>
                 </div>
                 
-                <div class="grid grid-cols-1 xl:grid-cols-3 gap-8">
-                    <!-- Form Tambah User -->
-                    <div class="xl:col-span-1">
-                        <div class="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden">
-                            <div class="px-6 py-4 border-b border-slate-100 bg-slate-50/50">
-                                <h3 class="font-extrabold text-slate-900 flex items-center gap-2 text-sm">
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" /></svg>
-                                    Tambah Pengguna
-                                </h3>
-                            </div>
-                            <div class="p-6">
-                                <form action="" method="POST" class="space-y-4">
+                <!-- Form Tambah/Edit User -->
+                <div class="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden mb-8">
+                    <div class="px-6 py-4 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between cursor-pointer" onclick="document.getElementById('form-user').classList.toggle('hidden')">
+                        <h3 class="font-extrabold text-slate-900 flex items-center gap-2 text-sm">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" /></svg>
+                            <?= $edit_user ? 'Edit Pengguna' : 'Tambah Pengguna' ?>
+                        </h3>
+                        <span class="text-xs text-slate-400 font-medium">Klik untuk buka/tutup</span>
+                    </div>
+                    <div id="form-user" class="p-6 <?= $edit_user ? '' : 'hidden' ?>">
+                        <form action="" method="POST" class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                            <?php if($edit_user): ?>
+                                        <input type="hidden" name="user_id" value="<?= $edit_user['id'] ?>">
+                                    <?php endif; ?>
     <div>
         <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Nama Lengkap</label>
         <div class="relative">
@@ -177,7 +192,7 @@ $users = $conn->query("SELECT * FROM users WHERE id != {$_SESSION['user_id']} OR
             <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
             </div>
-            <input type="email" name="email" class="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-sm font-medium" placeholder="admin@example.com" required>
+            <input type="email" name="email" value="<?= $edit_user ? htmlspecialchars($edit_user['email']) : '' ?>" class="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-sm font-medium" placeholder="admin@example.com" required>
         </div>
     </div>
     
@@ -187,7 +202,7 @@ $users = $conn->query("SELECT * FROM users WHERE id != {$_SESSION['user_id']} OR
             <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
             </div>
-            <input type="text" name="alamat" class="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-sm font-medium" placeholder="Jl. Contoh No. 123">
+            <input type="text" name="alamat" value="<?= $edit_user ? htmlspecialchars($edit_user['alamat']) : '' ?>" class="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-sm font-medium" placeholder="Jl. Contoh No. 123">
         </div>
     </div>
     
@@ -233,7 +248,6 @@ $users = $conn->query("SELECT * FROM users WHERE id != {$_SESSION['user_id']} OR
             </div>
         </div>
     </div>
-    
     <div id="quota_container" class="<?= ($edit_user && $edit_user['role'] == 'panitia') ? '' : 'hidden' ?>">
         <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Set Kuota Validator</label>
         <div class="relative">
@@ -269,21 +283,32 @@ $users = $conn->query("SELECT * FROM users WHERE id != {$_SESSION['user_id']} OR
         });
     </script>
     
-    <button type="submit" class="w-full bg-slate-900 hover:bg-primary text-white font-bold py-2.5 px-4 rounded-xl transition-all duration-300 mt-4 shadow-md shadow-slate-900/20 flex items-center justify-center gap-2 group text-sm">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 group-hover:scale-110 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" /></svg>
-        <?= $edit_user ? 'Update Pengguna' : 'Simpan Pengguna' ?>
-    </button>
+    <div class="md:col-span-2">
+        <button type="submit" class="w-full bg-slate-900 hover:bg-primary text-white font-bold py-3 px-4 rounded-xl transition-all duration-300 mt-2 shadow-md shadow-slate-900/20 flex items-center justify-center gap-2 group text-sm">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 group-hover:scale-110 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" /></svg>
+            <?= $edit_user ? 'Update Pengguna' : 'Simpan Pengguna' ?>
+        </button>
+    </div>
 </form>
-                            </div>
-                        </div>
                     </div>
+                </div>
 
-                    <!-- Tabel User -->
-                    <div class="xl:col-span-2">
-                        <div class="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden">
-                            <div class="px-6 py-4 border-b border-slate-100 bg-slate-50/50 flex justify-between items-center">
-                                <h3 class="font-extrabold text-slate-900">Daftar Pengguna</h3>
-                                <span class="bg-indigo-50 text-primary text-xs font-bold px-3 py-1 rounded-full">Total: <?= $users->num_rows ?></span>
+                <!-- Tabel User -->
+                <div class="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden">
+                            <div class="px-6 py-4 border-b border-slate-100 bg-slate-50/50 flex justify-between items-center flex-wrap gap-4">
+                                <div class="flex items-center gap-4">
+                                    <h3 class="font-extrabold text-slate-900">Daftar Pengguna</h3>
+                                    <span class="bg-indigo-50 text-primary text-xs font-bold px-3 py-1 rounded-full">Total: <?= $users->num_rows ?></span>
+                                </div>
+                                <form method="GET" action="" class="flex items-center gap-2 text-sm">
+                                    <label for="filter_role" class="font-bold text-slate-500">Filter Role:</label>
+                                    <select name="role" id="filter_role" onchange="this.form.submit()" class="bg-white border border-slate-200 rounded-lg px-3 py-1 focus:ring-2 focus:ring-primary/20 focus:border-primary font-medium text-slate-700">
+                                        <option value="">Semua Role</option>
+                                        <option value="admin" <?= $filter_role == 'admin' ? 'selected' : '' ?>>Admin</option>
+                                        <option value="panitia" <?= $filter_role == 'panitia' ? 'selected' : '' ?>>Panitia</option>
+                                        <option value="validator" <?= $filter_role == 'validator' ? 'selected' : '' ?>>Validator</option>
+                                    </select>
+                                </form>
                             </div>
                             <div class="overflow-x-auto">
                                 <table class="min-w-full divide-y divide-slate-100">
@@ -318,6 +343,7 @@ $users = $conn->query("SELECT * FROM users WHERE id != {$_SESSION['user_id']} OR
                                                     <div class="text-[10px] text-slate-500 font-medium">Kuota Validator: <?= $row['validator_quota'] ?></div>
                                                 <?php else: ?>
                                                     <span class="px-3 py-1 inline-flex text-xs leading-5 font-bold rounded-full bg-emerald-50 text-emerald-700 border border-emerald-100 mb-1">Validator</span>
+                                                    <div class="text-[10px] text-slate-500 font-medium">Dibuat oleh: <?= $row['pembuat_nama'] ? htmlspecialchars($row['pembuat_nama']) : 'Admin' ?></div>
                                                     <?php if($row['status_approval'] == 'pending'): ?>
                                                         <span class="px-2 py-0.5 inline-flex text-[10px] leading-5 font-bold rounded-full bg-amber-50 text-amber-600 border border-amber-100">Pending</span>
                                                     <?php elseif($row['status_approval'] == 'rejected'): ?>
@@ -355,8 +381,6 @@ $users = $conn->query("SELECT * FROM users WHERE id != {$_SESSION['user_id']} OR
                                 </table>
                             </div>
                         </div>
-                    </div>
-                </div>
             </main>
         </div>
     </div>

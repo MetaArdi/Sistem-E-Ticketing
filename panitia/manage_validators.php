@@ -8,16 +8,11 @@ require_once '../config/koneksi.php';
 
 $id_panitia = (int)$_SESSION['user_id'];
 
-// Get quota info
-$panitia_query = $conn->query("SELECT validator_quota FROM users WHERE id = $id_panitia");
-$panitia_data = $panitia_query->fetch_assoc();
-$quota = (int)($panitia_data['validator_quota'] ?? 0);
-
 // Get current validators count
 $count_query = $conn->query("SELECT COUNT(*) as c FROM users WHERE role = 'validator' AND id_panitia = $id_panitia");
 $current_count = (int)$count_query->fetch_assoc()['c'];
 
-$can_add = ($current_count < $quota);
+$can_add = true; // Bebas membuat berapapun
 
 // Handle POST request
 if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['action'])) {
@@ -133,8 +128,8 @@ $validators = $conn->query("SELECT * FROM users WHERE role = 'validator' AND id_
                     <div class="xl:col-span-1">
                         <div class="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden mb-6">
                             <div class="p-6 text-center border-b border-slate-100 bg-slate-50">
-                                <h3 class="text-sm font-bold text-slate-500 uppercase tracking-widest mb-2">Sisa Kuota Validator</h3>
-                                <div class="text-5xl font-extrabold text-slate-900"><?= $quota - $current_count ?> <span class="text-lg text-slate-400 font-medium">/ <?= $quota ?></span></div>
+                                <h3 class="text-sm font-bold text-slate-500 uppercase tracking-widest mb-2">Total Validator Anda</h3>
+                                <div class="text-5xl font-extrabold text-slate-900"><?= $current_count ?></div>
                             </div>
                         </div>
 
@@ -170,14 +165,6 @@ $validators = $conn->query("SELECT * FROM users WHERE role = 'validator' AND id_
                                         Daftarkan Validator
                                     </button>
                                 </form>
-                                <?php else: ?>
-                                    <div class="text-center py-6">
-                                        <div class="inline-flex w-12 h-12 rounded-full bg-amber-50 text-amber-500 items-center justify-center mb-3">
-                                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
-                                        </div>
-                                        <h4 class="font-bold text-slate-900 mb-1">Kuota Habis</h4>
-                                        <p class="text-xs text-slate-500">Anda telah mencapai batas maksimal pendaftaran validator. Hubungi Admin jika butuh tambahan kuota.</p>
-                                    </div>
                                 <?php endif; ?>
                             </div>
                         </div>

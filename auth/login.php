@@ -133,17 +133,15 @@ $site_favicon = (isset($settings['site_favicon']) && $settings['site_favicon'] !
                         </svg>
                     </div>
                     <!-- type="email" ensures strictly email format is expected by the browser -->
-                    <input type="email" name="email" required placeholder="Masukan Email Anda"
+                    <input type="email" name="email" required placeholder="Masukkan Email Anda" tabindex="1"
                         class="w-full pl-11 pr-5 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary focus:bg-white transition-all text-sm font-semibold outline-none text-slate-800 placeholder-slate-400">
                 </div>
             </div>
 
             <div class="space-y-1.5">
                 <div class="flex justify-between items-center">
-                    <label
-                        class="text-[11px] font-extrabold text-slate-500 uppercase tracking-widest block">Password</label>
-                    <a href="#" class="text-[11px] font-bold text-primary hover:text-secondary transition-colors">Lupa
-                        Password?</a>
+                    <label class="text-[11px] font-extrabold text-slate-500 uppercase tracking-widest block">Password</label>
+                    <a href="forgot_password.php" tabindex="4" class="text-[11px] font-bold text-primary hover:text-secondary transition-colors">Lupa Password?</a>
                 </div>
                 <div class="relative group">
                     <div
@@ -154,7 +152,7 @@ $site_favicon = (isset($settings['site_favicon']) && $settings['site_favicon'] !
                                 d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
                         </svg>
                     </div>
-                    <input type="password" id="password_input" name="password" required placeholder="••••••••"
+                    <input type="password" id="password_input" name="password" required placeholder="••••••••" tabindex="2"
                         class="w-full pl-11 pr-12 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary focus:bg-white transition-all text-sm font-semibold outline-none text-slate-800 placeholder-slate-400">
                     <button type="button" id="toggle_password"
                         class="absolute inset-y-0 right-0 pr-4 flex items-center text-slate-400 hover:text-slate-600 focus:outline-none">
@@ -170,7 +168,7 @@ $site_favicon = (isset($settings['site_favicon']) && $settings['site_favicon'] !
             </div>
 
             <div class="pt-4">
-                <button type="submit"
+                <button type="submit" tabindex="3"
                     class="w-full bg-slate-900 hover:bg-primary text-white font-bold py-3.5 px-6 rounded-xl transition-all duration-300 shadow-lg shadow-slate-900/20 hover:shadow-primary/30 hover:-translate-y-0.5 text-sm tracking-wide">
                     Masuk Sekarang
                 </button>
