@@ -60,8 +60,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && ($_POST['action'] ?? '') == 'create'
     $waktu_selesai = !empty($_POST['waktu_selesai']) ? "'" . $conn->real_escape_string($_POST['waktu_selesai']) . "'" : "NULL";
     $lokasi    = $conn->real_escape_string(trim($_POST['lokasi']));
     $link_gmaps = !empty($_POST['link_gmaps']) ? "'" . $conn->real_escape_string(trim($_POST['link_gmaps'])) . "'" : "NULL";
-    $harga     = min($_POST['harga_varian']);
-    $stok      = array_sum($_POST['stok_varian']);
+    $harga     = (isset($_POST['harga_varian']) && is_array($_POST['harga_varian']) && count($_POST['harga_varian']) > 0) ? min($_POST['harga_varian']) : 0;
+    $stok      = (isset($_POST['stok_varian']) && is_array($_POST['stok_varian'])) ? array_sum($_POST['stok_varian']) : 0;
     $nama_vendor = !empty($_POST['nama_vendor']) ? "'" . $conn->real_escape_string(trim($_POST['nama_vendor'])) . "'" : "NULL";
     $id_panitia = (int)$_SESSION['user_id'];
     $images = ["NULL", "NULL", "NULL", "NULL"];
@@ -107,13 +107,13 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && ($_POST['action'] ?? '') == 'create'
             $new_event_id = $conn->insert_id;
             
             // Insert variants
-            $nama_periode = $_POST['nama_periode'];
-            $tgl_mulai_varian = $_POST['tgl_mulai_varian'];
-            $tgl_selesai_varian = $_POST['tgl_selesai_varian'];
-            $kategori_tempat = $_POST['kategori_tempat'];
-            $tipe_paket = $_POST['tipe_paket'];
-            $harga_variants = $_POST['harga_varian'];
-            $stok_variants = $_POST['stok_varian'];
+            $nama_periode = $_POST['nama_periode'] ?? [];
+            $tgl_mulai_varian = $_POST['tgl_mulai_varian'] ?? [];
+            $tgl_selesai_varian = $_POST['tgl_selesai_varian'] ?? [];
+            $kategori_tempat = $_POST['kategori_tempat'] ?? [];
+            $tipe_paket = $_POST['tipe_paket'] ?? [];
+            $harga_variants = $_POST['harga_varian'] ?? [];
+            $stok_variants = $_POST['stok_varian'] ?? [];
             
             $stmt_var = $conn->prepare("INSERT INTO event_ticket_variants (id_event, nama_varian, harga, stok, sisa_stok, tgl_mulai, tgl_selesai, kategori_tempat, tipe_paket) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
             for ($i = 0; $i < count($nama_periode); $i++) {

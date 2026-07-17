@@ -26,8 +26,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $nama_vendor = !empty($_POST['nama_vendor']) ? $_POST['nama_vendor'] : null;
     
     // Hitung stok & harga dasar dari form
-    $harga_dasar = min($_POST['harga_varian']);
-    $total_stok = array_sum($_POST['stok_varian']);
+    $harga_dasar = (isset($_POST['harga_varian']) && is_array($_POST['harga_varian']) && count($_POST['harga_varian']) > 0) ? min($_POST['harga_varian']) : 0;
+    $total_stok = (isset($_POST['stok_varian']) && is_array($_POST['stok_varian'])) ? array_sum($_POST['stok_varian']) : 0;
 
     // Update banner if provided
     $banner_query = "";

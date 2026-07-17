@@ -43,8 +43,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $waktu_selesai = !empty($_POST['waktu_selesai']) ? $_POST['waktu_selesai'] : null;
     $lokasi = $_POST['lokasi'];
     $link_gmaps = !empty($_POST['link_gmaps']) ? $_POST['link_gmaps'] : null;
-    $harga     = min($_POST['harga_varian']);
-    $stok      = array_sum($_POST['stok_varian']);
+    $harga     = (isset($_POST['harga_varian']) && is_array($_POST['harga_varian']) && count($_POST['harga_varian']) > 0) ? min($_POST['harga_varian']) : 0;
+    $stok      = (isset($_POST['stok_varian']) && is_array($_POST['stok_varian'])) ? array_sum($_POST['stok_varian']) : 0;
     $kategori = $_POST['kategori'] ?? 'Music';
     $nama_vendor = !empty($_POST['nama_vendor']) ? $_POST['nama_vendor'] : null;
     $banner = null;
@@ -69,22 +69,33 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     }
 
     $stmt = $conn->prepare("INSERT INTO events (id_panitia, judul, kategori, deskripsi, tanggal, waktu, waktu_selesai, lokasi, link_gmaps, harga, stok, banner_image, tiket_header, status_approval, nama_vendor) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?)");
-    $stmt->bind_param("issssssssdissss", $id_panitia, $judul, $kategori, $deskripsi, $tanggal, $waktu, $waktu_selesai, $lokasi, $link_gmaps, $harga, $stok, $banner, $tiket_header, $nama_vendor);
+    $stmt->bind_param("issssssssdisss", $id_panitia, $judul, $kategori, $deskripsi, $tanggal, $waktu, $waktu_selesai, $lokasi, $link_gmaps, $harga, $stok, $banner, $tiket_header, $nama_vendor);
     $stmt->execute();
     $new_event_id = $conn->insert_id;
     
     // Insert variants
-    $nama_variants = $_POST['nama_varian'];
-    $harga_variants = $_POST['harga_varian'];
-    $stok_variants = $_POST['stok_varian'];
+    $nama_periode = $_POST['nama_periode'] ?? [];
+    $tgl_mulai_varian = $_POST['tgl_mulai_varian'] ?? [];
+    $tgl_selesai_varian = $_POST['tgl_selesai_varian'] ?? [];
+    $kategori_tempat = $_POST['kategori_tempat'] ?? [];
+    $tipe_paket = $_POST['tipe_paket'] ?? [];
+    $harga_variants = $_POST['harga_varian'] ?? [];
+    $stok_variants = $_POST['stok_varian'] ?? [];
     
-    $stmt_var = $conn->prepare("INSERT INTO event_ticket_variants (id_event, nama_varian, harga, stok, sisa_stok) VALUES (?, ?, ?, ?, ?)");
-    for ($i = 0; $i < count($nama_variants); $i++) {
-        $n_var = trim($nama_variants[$i]);
+    $stmt_var = $conn->prepare("INSERT INTO event_ticket_variants (id_event, nama_varian, harga, stok, sisa_stok, tgl_mulai, tgl_selesai, kategori_tempat, tipe_paket) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
+    for ($i = 0; $i < count($nama_periode); $i++) {
+        $periode = trim($nama_periode[$i]);
+        $tgl_mulai = $tgl_mulai_varian[$i];
+        $tgl_selesai = $tgl_selesai_varian[$i];
+        $kat = trim($kategori_tempat[$i]);
+        $tipe = trim($tipe_paket[$i]);
         $h_var = (float)$harga_variants[$i];
         $s_var = (int)$stok_variants[$i];
-        if (!empty($n_var) && $s_var > 0) {
-            $stmt_var->bind_param("isdii", $new_event_id, $n_var, $h_var, $s_var, $s_var);
+        
+        $n_var = $periode . ' - ' . $kat . ' (' . $tipe . ')';
+        
+        if (!empty($periode) && $s_var > 0) {
+            $stmt_var->bind_param("isdiissss", $new_event_id, $n_var, $h_var, $s_var, $s_var, $tgl_mulai, $tgl_selesai, $kat, $tipe);
             $stmt_var->execute();
         }
     }
