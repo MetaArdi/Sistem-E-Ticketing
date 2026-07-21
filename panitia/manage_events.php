@@ -5,6 +5,7 @@ if (!isset($_SESSION['user_id']) || $_SESSION['role'] != 'panitia') {
     exit;
 }
 require_once '../config/koneksi.php';
+require_once '../config/cleanup_images.php';
 
 // Ambil data biaya admin untuk ditampilkan sebagai catatan panitia
 $markup_type = $global_settings['admin_markup_type'] ?? 'nominal';
@@ -20,10 +21,10 @@ if (isset($_GET['del'])) {
     $stmt->execute();
     $evt = $stmt->get_result()->fetch_assoc();
     if ($evt) {
-        $imgs = [$evt['banner_image'], $evt['banner_image2'], $evt['banner_image3'], $evt['banner_image4']];
+        $imgs = [$evt['banner_image'], $evt['banner_image2'], $evt['banner_image3'], $evt['banner_image4'], $evt['tiket_header']];
         foreach($imgs as $img) {
-            if ($img && file_exists("../assets/images/events/".$img)) {
-                unlink("../assets/images/events/".$img);
+            if ($img) {
+                moveToImageTrash($conn, $img);
             }
         }
         $stmt = $conn->prepare("DELETE FROM events WHERE id = ? AND id_panitia = ?");
@@ -47,6 +48,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $stok      = array_sum($_POST['stok_varian']);
     $kategori = $_POST['kategori'] ?? 'Music';
     $nama_vendor = !empty($_POST['nama_vendor']) ? $_POST['nama_vendor'] : null;
+    $is_war_ticket = isset($_POST['is_war_ticket']) ? 1 : 0;
+    $war_start_time = (!empty($_POST['war_start_time']) && $is_war_ticket) ? $_POST['war_start_time'] : null;
     $banner = null;
     $tiket_header = null;
 
@@ -68,23 +71,32 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         }
     }
 
-    $stmt = $conn->prepare("INSERT INTO events (id_panitia, judul, kategori, deskripsi, tanggal, waktu, waktu_selesai, lokasi, link_gmaps, harga, stok, banner_image, tiket_header, status_approval, nama_vendor) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?)");
-    $stmt->bind_param("issssssssdissss", $id_panitia, $judul, $kategori, $deskripsi, $tanggal, $waktu, $waktu_selesai, $lokasi, $link_gmaps, $harga, $stok, $banner, $tiket_header, $nama_vendor);
+    $stmt = $conn->prepare("INSERT INTO events (id_panitia, judul, kategori, deskripsi, tanggal, waktu, waktu_selesai, lokasi, link_gmaps, harga, stok, banner_image, tiket_header, status_approval, nama_vendor, is_war_ticket, war_start_time) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?, ?)");
+    $stmt->bind_param("issssssssdisssis", $id_panitia, $judul, $kategori, $deskripsi, $tanggal, $waktu, $waktu_selesai, $lokasi, $link_gmaps, $harga, $stok, $banner, $tiket_header, $nama_vendor, $is_war_ticket, $war_start_time);
     $stmt->execute();
     $new_event_id = $conn->insert_id;
     
     // Insert variants
-    $nama_variants = $_POST['nama_varian'];
-    $harga_variants = $_POST['harga_varian'];
-    $stok_variants = $_POST['stok_varian'];
+    $nama_variants = $_POST['nama_periode'] ?? [];
+    $harga_variants = $_POST['harga_varian'] ?? [];
+    $stok_variants = $_POST['stok_varian'] ?? [];
+    $tgl_mulai_variants = $_POST['tgl_mulai_varian'] ?? [];
+    $tgl_selesai_variants = $_POST['tgl_selesai_varian'] ?? [];
+    $kategori_tempat_variants = $_POST['kategori_tempat'] ?? [];
+    $tipe_paket_variants = $_POST['tipe_paket'] ?? [];
     
-    $stmt_var = $conn->prepare("INSERT INTO event_ticket_variants (id_event, nama_varian, harga, stok, sisa_stok) VALUES (?, ?, ?, ?, ?)");
+    $stmt_var = $conn->prepare("INSERT INTO event_ticket_variants (id_event, nama_varian, harga, stok, sisa_stok, tgl_mulai, tgl_selesai, kategori_tempat, tipe_paket) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
     for ($i = 0; $i < count($nama_variants); $i++) {
         $n_var = trim($nama_variants[$i]);
-        $h_var = (float)$harga_variants[$i];
-        $s_var = (int)$stok_variants[$i];
+        $h_var = (float)($harga_variants[$i] ?? 0);
+        $s_var = (int)($stok_variants[$i] ?? 0);
+        $t_mulai = !empty($tgl_mulai_variants[$i]) ? $tgl_mulai_variants[$i] : null;
+        $t_selesai = !empty($tgl_selesai_variants[$i]) ? $tgl_selesai_variants[$i] : null;
+        $k_tempat = !empty($kategori_tempat_variants[$i]) ? trim($kategori_tempat_variants[$i]) : null;
+        $t_paket = !empty($tipe_paket_variants[$i]) ? trim($tipe_paket_variants[$i]) : 'Sendiri';
+
         if (!empty($n_var) && $s_var > 0) {
-            $stmt_var->bind_param("isdii", $new_event_id, $n_var, $h_var, $s_var, $s_var);
+            $stmt_var->bind_param("isdiissss", $new_event_id, $n_var, $h_var, $s_var, $s_var, $t_mulai, $t_selesai, $k_tempat, $t_paket);
             $stmt_var->execute();
         }
     }
@@ -279,18 +291,43 @@ $events = $conn->query("SELECT * FROM events WHERE id_panitia = $id_panitia ORDE
                                     </div>
                                 </div>
                             </div>
+                            <!-- Feature War Ticket Toggle & Waktu -->
+                            <div class="md:col-span-2 bg-gradient-to-r from-amber-50 to-orange-50 p-4 rounded-2xl border border-amber-200/80 mb-2">
+                                <div class="flex items-center justify-between">
+                                    <div>
+                                        <label for="is_war_ticket" class="text-sm font-extrabold text-amber-900 flex items-center gap-2 cursor-pointer">
+                                            ⚡ Aktifkan Fitur War Ticket
+                                        </label>
+                                        <p class="text-xs text-amber-700 mt-0.5">Tahan pembelian tiket di landing page hingga waktu hitung mundur (countdown) dimulai.</p>
+                                    </div>
+                                    <input type="checkbox" id="is_war_ticket" name="is_war_ticket" value="1" onchange="document.getElementById('war_time_container').classList.toggle('hidden', !this.checked)" class="w-5 h-5 text-amber-600 rounded border-amber-300 focus:ring-amber-500 cursor-pointer">
+                                </div>
+                                <div id="war_time_container" class="mt-4 hidden">
+                                    <label class="block text-xs font-bold text-amber-800 uppercase tracking-wider mb-2">Waktu Mulai War Ticket</label>
+                                    <input type="datetime-local" name="war_start_time" class="w-full md:w-1/2 px-4 py-2 bg-white border border-amber-200 rounded-xl focus:ring-2 focus:ring-amber-400 focus:border-amber-400 text-sm font-medium outline-none">
+                                </div>
+                            </div>
+
                             <div class="md:col-span-2">
                                 <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Deskripsi</label>
                                 <textarea name="deskripsi" rows="3" placeholder="Deskripsi event..." class="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-sm font-medium outline-none"></textarea>
                             </div>
                             <div class="md:col-span-2">
                                 <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Foto Event (JPG, PNG, JPEG)</label>
-                                <input type="file" name="banner_image" accept=".jpg,.jpeg,.png" class="w-full text-sm font-medium file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-bold file:bg-primary/10 file:text-primary hover:file:bg-primary/20 transition-all">
+                                <input type="file" id="bannerInput" name="banner_image" accept=".jpg,.jpeg,.png" class="w-full text-sm font-medium file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-bold file:bg-primary/10 file:text-primary hover:file:bg-primary/20 transition-all">
+                                <div id="bannerPreviewContainer" class="mt-3 hidden">
+                                    <p class="text-xs font-bold text-slate-400 mb-1">Preview Foto Event:</p>
+                                    <img id="bannerPreviewImg" class="h-44 w-full max-w-md rounded-2xl object-cover border border-slate-200 shadow-sm" src="">
+                                </div>
                             </div>
                             <div class="md:col-span-2">
                                 <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Desain Header Tiket PDF (Opsional)</label>
-                                <input type="file" name="tiket_header" accept=".jpg,.jpeg,.png" class="w-full text-sm font-medium file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-bold file:bg-indigo-50 file:text-indigo-600 hover:file:bg-indigo-100 transition-all">
+                                <input type="file" id="headerInput" name="tiket_header" accept=".jpg,.jpeg,.png" class="w-full text-sm font-medium file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-bold file:bg-indigo-50 file:text-indigo-600 hover:file:bg-indigo-100 transition-all">
                                 <p class="text-[10px] text-slate-400 mt-1">*Gambar ini akan dipasang di bagian paling atas PDF Tiket.</p>
+                                <div id="headerPreviewContainer" class="mt-3 hidden">
+                                    <p class="text-xs font-bold text-slate-400 mb-1">Preview Header Tiket PDF:</p>
+                                    <img id="headerPreviewImg" class="h-28 w-full max-w-md rounded-2xl object-cover border border-slate-200 shadow-sm" src="">
+                                </div>
                             </div>
                             <div class="md:col-span-2 flex justify-end">
                                 <button type="submit" class="bg-primary hover:opacity-90 text-white font-bold py-3 px-8 rounded-xl transition-all shadow-md">Buat Event</button>
@@ -458,6 +495,30 @@ $events = $conn->query("SELECT * FROM events WHERE id_panitia = $id_panitia ORDE
                 rows[0].querySelector('.btn-remove-variant').classList.add('hidden');
             }
         }
+
+        // Live Image Preview Handler
+        function setupLivePreview(inputId, containerId, previewImgId) {
+            const input = document.getElementById(inputId);
+            const container = document.getElementById(containerId);
+            const previewImg = document.getElementById(previewImgId);
+            if (!input || !container || !previewImg) return;
+            input.addEventListener('change', function(e) {
+                const file = e.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = function(evt) {
+                        previewImg.src = evt.target.result;
+                        container.classList.remove('hidden');
+                    };
+                    reader.readAsDataURL(file);
+                }
+            });
+        }
+        document.addEventListener('DOMContentLoaded', () => {
+            setupLivePreview('bannerInput', 'bannerPreviewContainer', 'bannerPreviewImg');
+            setupLivePreview('headerInput', 'headerPreviewContainer', 'headerPreviewImg');
+        });
     </script>
 </body>
 </html>
+

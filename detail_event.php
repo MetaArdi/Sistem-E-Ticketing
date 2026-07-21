@@ -19,6 +19,16 @@ if ($result->num_rows == 0) {
 }
 $event = $result->fetch_assoc();
 
+// War Ticket Status Check
+$is_war_active = false;
+$war_start_timestamp = 0;
+if (!empty($event['is_war_ticket']) && $event['is_war_ticket'] == 1 && !empty($event['war_start_time'])) {
+    $war_start_timestamp = strtotime($event['war_start_time']);
+    if ($war_start_timestamp > time()) {
+        $is_war_active = true;
+    }
+}
+
 // Cek varian tiket yang aktif
 $stmt_var = $conn->prepare("SELECT * FROM event_ticket_variants WHERE id_event = ? AND tgl_mulai <= NOW() AND tgl_selesai >= NOW() AND sisa_stok > 0 ORDER BY harga ASC");
 $stmt_var->bind_param("i", $id);
@@ -33,6 +43,7 @@ while ($v = $variants->fetch_assoc()) {
 $error = isset($_SESSION['error']) ? $_SESSION['error'] : null;
 unset($_SESSION['error']);
 ?>
+
 <!DOCTYPE html>
 <html lang="id">
 
@@ -199,6 +210,17 @@ unset($_SESSION['error']);
                             </div>
                         </div>
 
+                        <?php if ($is_war_active): ?>
+                            <div class="mb-6 p-5 bg-gradient-to-r from-amber-500 to-orange-600 rounded-2xl text-white shadow-lg shadow-orange-500/20 text-center relative overflow-hidden">
+                                <div class="relative z-10">
+                                    <span class="inline-block px-3 py-1 bg-white/20 backdrop-blur-md text-white text-[11px] font-extrabold uppercase tracking-widest rounded-full mb-2">⚡ WAR TIKET ONGOING</span>
+                                    <h4 class="text-base font-extrabold mb-1">Penjualan Tiket Dibuka Dalam:</h4>
+                                    <div id="warCountdown" class="text-3xl font-black tracking-tight font-mono my-2 text-yellow-300">00 : 00 : 00</div>
+                                    <p class="text-xs text-amber-100 font-medium">Harap bersiap sebelum hitung mundur selesai.</p>
+                                </div>
+                            </div>
+                        <?php endif; ?>
+
                         <form action="checkout.php" method="POST" id="ticketForm">
                             <input type="hidden" name="id" value="<?= $event['id'] ?>">
                             <div class="mb-6">
@@ -244,7 +266,12 @@ unset($_SESSION['error']);
                                 <?php endif; ?>
                             </div>
 
-                            <?php if (count($variants_data) > 0 && strtotime($event['tanggal']) >= strtotime(date('Y-m-d'))): ?>
+                            <?php if ($is_war_active): ?>
+                                <button disabled id="warSubmitBtn" type="button"
+                                    class="block w-full bg-slate-300 text-slate-600 text-center font-extrabold py-4 px-6 rounded-2xl cursor-not-allowed text-lg transition-all shadow-inner">
+                                    ⚡ War Ticket Belum Dimulai
+                                </button>
+                            <?php elseif (count($variants_data) > 0 && strtotime($event['tanggal']) >= strtotime(date('Y-m-d'))): ?>
                                 <button type="submit"
                                     class="block w-full bg-slate-900 hover:bg-primary text-white text-center font-bold py-4 px-6 rounded-2xl transition-all duration-300 shadow-xl shadow-slate-900/20 hover:shadow-indigo-500/30 hover:-translate-y-1 text-lg">
                                     Pesan Tiket Sekarang
@@ -256,6 +283,7 @@ unset($_SESSION['error']);
                                 </button>
                             <?php endif; ?>
                         </form>
+
 
                         <!-- Customer Service Section -->
                         <div class="mt-8 pt-6 border-t border-slate-100">
@@ -302,7 +330,40 @@ unset($_SESSION['error']);
             element.classList.add('bg-indigo-50/50', 'border-primary', 'ring-1', 'ring-primary');
             element.querySelector('input[type="radio"]').checked = true;
         }
+
+        <?php if ($is_war_active): ?>
+        document.addEventListener('DOMContentLoaded', () => {
+            const warTargetTime = <?= $war_start_timestamp ?> * 1000;
+            const countdownEl = document.getElementById('warCountdown');
+
+            function updateWarCountdown() {
+                const now = new Date().getTime();
+                const distance = warTargetTime - now;
+
+                if (distance <= 0) {
+                    if (countdownEl) countdownEl.innerText = "00 : 00 : 00";
+                    window.location.reload();
+                    return;
+                }
+
+                const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+                const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+
+                const hStr = String(hours).padStart(2, '0');
+                const mStr = String(minutes).padStart(2, '0');
+                const sStr = String(seconds).padStart(2, '0');
+
+                if (countdownEl) {
+                    countdownEl.innerText = `${hStr} : ${mStr} : ${sStr}`;
+                }
+            }
+
+            updateWarCountdown();
+            setInterval(updateWarCountdown, 1000);
+        });
+        <?php endif; ?>
     </script>
 </body>
 
-</html>
+</html>

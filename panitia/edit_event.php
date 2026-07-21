@@ -1,6 +1,7 @@
 <?php
 session_start();
 require_once '../config/koneksi.php';
+require_once '../config/cleanup_images.php';
 
 if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'panitia') {
     header("Location: ../auth/login.php");
@@ -30,11 +31,19 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $harga_dasar = min($_POST['harga_varian']);
     $total_stok = array_sum($_POST['stok_varian']);
 
+    // Update War Ticket & Images
+    $is_war_ticket = isset($_POST['is_war_ticket']) ? 1 : 0;
+    $war_start_time = (!empty($_POST['war_start_time']) && $is_war_ticket) ? $_POST['war_start_time'] : null;
+    $war_sql = ", is_war_ticket = " . (int)$is_war_ticket . ", war_start_time = " . ($war_start_time ? "'". $conn->real_escape_string($war_start_time) ."'" : "NULL");
+
     // Update banner if provided
     $banner_query = "";
     if (isset($_FILES['banner_image']) && $_FILES['banner_image']['error'] == 0) {
         $filename = time() . '_' . basename($_FILES['banner_image']['name']);
         if (move_uploaded_file($_FILES['banner_image']['tmp_name'], "../assets/images/events/" . $filename)) {
+            if (!empty($event['banner_image'])) {
+                moveToImageTrash($conn, $event['banner_image']);
+            }
             $banner_query .= ", banner_image = '$filename'";
         }
     }
@@ -45,12 +54,15 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         if (in_array($ext_header, ['jpg', 'jpeg', 'png'])) {
             $fname_header = time() . '_header.' . $ext_header;
             if (move_uploaded_file($_FILES['tiket_header']['tmp_name'], "../assets/images/events/" . $fname_header)) {
+                if (!empty($event['tiket_header'])) {
+                    moveToImageTrash($conn, $event['tiket_header']);
+                }
                 $banner_query .= ", tiket_header = '$fname_header'";
             }
         }
     }
 
-    $stmt_upd = $conn->prepare("UPDATE events SET judul=?, deskripsi=?, tanggal=?, waktu=?, waktu_selesai=?, lokasi=?, link_gmaps=?, kategori=?, nama_vendor=?, harga=?, stok=? $banner_query WHERE id=? AND id_panitia = ?");
+    $stmt_upd = $conn->prepare("UPDATE events SET judul=?, deskripsi=?, tanggal=?, waktu=?, waktu_selesai=?, lokasi=?, link_gmaps=?, kategori=?, nama_vendor=?, harga=?, stok=? $banner_query $war_sql WHERE id=? AND id_panitia = ?");
     if ('panitia' == 'admin') {
         $stmt_upd->bind_param("sssssssssdii", $judul, $deskripsi, $tanggal, $waktu, $waktu_selesai, $lokasi, $link_gmaps, $kategori, $nama_vendor, $harga_dasar, $total_stok, $id_event);
     } else {
@@ -259,18 +271,44 @@ while ($v = $variants_q->fetch_assoc()) {
                         </div>
                     </div>
                     
+                    <!-- Feature War Ticket Toggle & Waktu -->
+                    <div class="md:col-span-2 bg-gradient-to-r from-amber-50 to-orange-50 p-4 rounded-2xl border border-amber-200/80">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <label for="is_war_ticket" class="text-sm font-extrabold text-amber-900 flex items-center gap-2 cursor-pointer">
+                                    ⚡ Aktifkan Fitur War Ticket
+                                </label>
+                                <p class="text-xs text-amber-700 mt-0.5">Tahan pembelian tiket di landing page hingga waktu hitung mundur (countdown) dimulai.</p>
+                            </div>
+                            <input type="checkbox" id="is_war_ticket" name="is_war_ticket" value="1" <?= (!empty($event['is_war_ticket']) && $event['is_war_ticket'] == 1) ? 'checked' : '' ?> onchange="document.getElementById('war_time_container').classList.toggle('hidden', !this.checked)" class="w-5 h-5 text-amber-600 rounded border-amber-300 focus:ring-amber-500 cursor-pointer">
+                        </div>
+                        <div id="war_time_container" class="mt-4 <?= (!empty($event['is_war_ticket']) && $event['is_war_ticket'] == 1) ? '' : 'hidden' ?>">
+                            <label class="block text-xs font-bold text-amber-800 uppercase tracking-wider mb-2">Waktu Mulai War Ticket</label>
+                            <input type="datetime-local" name="war_start_time" value="<?= !empty($event['war_start_time']) ? date('Y-m-d\TH:i', strtotime($event['war_start_time'])) : '' ?>" class="w-full md:w-1/2 px-4 py-2 bg-white border border-amber-200 rounded-xl focus:ring-2 focus:ring-amber-400 text-sm font-medium outline-none">
+                        </div>
+                    </div>
+
                     <div class="md:col-span-2">
                         <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Deskripsi</label>
                         <textarea name="deskripsi" rows="3" class="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary/20 text-sm outline-none"><?= htmlspecialchars($event['deskripsi']) ?></textarea>
                     </div>
+
+                    <div class="md:col-span-2">
+                        <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Foto Event (Update Opsional)</label>
+                        <input type="file" id="bannerInput" name="banner_image" accept=".jpg,.jpeg,.png" class="w-full text-sm font-medium file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-bold file:bg-primary/10 file:text-primary hover:file:bg-primary/20 transition-all">
+                        <div id="bannerPreviewContainer" class="mt-3 <?= (!empty($event['banner_image']) && file_exists('../assets/images/events/'.$event['banner_image'])) ? '' : 'hidden' ?>">
+                            <p class="text-xs font-bold text-slate-400 mb-1">Preview Foto Event:</p>
+                            <img id="bannerPreviewImg" class="h-44 w-full max-w-md rounded-2xl object-cover border border-slate-200 shadow-sm" src="<?= (!empty($event['banner_image']) && file_exists('../assets/images/events/'.$event['banner_image'])) ? '../assets/images/events/'.htmlspecialchars($event['banner_image']) : '' ?>">
+                        </div>
+                    </div>
+
                     <div class="md:col-span-2">
                         <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Desain Header Tiket PDF (Update Opsional)</label>
-                        <input type="file" name="tiket_header" accept=".jpg,.jpeg,.png" class="w-full text-sm font-medium file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-bold file:bg-indigo-50 file:text-indigo-600 hover:file:bg-indigo-100 transition-all">
-                        <?php if(!empty($event['tiket_header']) && file_exists('../assets/images/events/'.$event['tiket_header'])): ?>
-                            <p class="text-[10px] text-emerald-500 mt-1 font-bold">✓ Header tiket sudah terpasang. Abaikan jika tidak ingin mengubah.</p>
-                        <?php else: ?>
-                            <p class="text-[10px] text-slate-400 mt-1">*Gambar ini akan dipasang di bagian paling atas PDF Tiket.</p>
-                        <?php endif; ?>
+                        <input type="file" id="headerInput" name="tiket_header" accept=".jpg,.jpeg,.png" class="w-full text-sm font-medium file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-bold file:bg-indigo-50 file:text-indigo-600 hover:file:bg-indigo-100 transition-all">
+                        <div id="headerPreviewContainer" class="mt-3 <?= (!empty($event['tiket_header']) && file_exists('../assets/images/events/'.$event['tiket_header'])) ? '' : 'hidden' ?>">
+                            <p class="text-xs font-bold text-slate-400 mb-1">Preview Header Tiket PDF:</p>
+                            <img id="headerPreviewImg" class="h-28 w-full max-w-md rounded-2xl object-cover border border-slate-200 shadow-sm" src="<?= (!empty($event['tiket_header']) && file_exists('../assets/images/events/'.$event['tiket_header'])) ? '../assets/images/events/'.htmlspecialchars($event['tiket_header']) : '' ?>">
+                        </div>
                     </div>
                     <div class="md:col-span-2 flex justify-end">
                         <button type="submit" class="bg-primary hover:opacity-90 text-white font-bold py-3 px-8 rounded-xl shadow-md">Simpan Perubahan</button>
@@ -316,6 +354,29 @@ while ($v = $variants_q->fetch_assoc()) {
                 rows[0].querySelector('.btn-remove-variant').classList.add('hidden');
             }
         }
+
+        // Live Image Preview Handler
+        function setupLivePreview(inputId, containerId, previewImgId) {
+            const input = document.getElementById(inputId);
+            const container = document.getElementById(containerId);
+            const previewImg = document.getElementById(previewImgId);
+            if (!input || !container || !previewImg) return;
+            input.addEventListener('change', function(e) {
+                const file = e.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = function(evt) {
+                        previewImg.src = evt.target.result;
+                        container.classList.remove('hidden');
+                    };
+                    reader.readAsDataURL(file);
+                }
+            });
+        }
+        document.addEventListener('DOMContentLoaded', () => {
+            setupLivePreview('bannerInput', 'bannerPreviewContainer', 'bannerPreviewImg');
+            setupLivePreview('headerInput', 'headerPreviewContainer', 'headerPreviewImg');
+        });
     </script>
 </body>
-</html>
+</html>
