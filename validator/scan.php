@@ -73,15 +73,15 @@ $active_menu = 'scan';
                 </div>
             </header>
 
-            <main class="flex-1 overflow-y-auto p-4 md:p-6 lg:p-10 flex flex-col items-center justify-center relative">
-                <div class="max-w-xl w-full">
+            <main class="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8 flex flex-col items-center relative">
+                <div class="max-w-xl w-full my-auto py-6">
                     <div class="bg-white rounded-[2rem] shadow-xl border border-slate-100 overflow-hidden relative">
                         <!-- Top Decorative Line -->
                         <div class="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-primary to-secondary"></div>
                         
-                        <div class="bg-white border-b border-slate-100 p-6 md:p-8 text-center">
-                            <div class="w-16 h-16 bg-white rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-sm border border-slate-100 text-primary">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm14 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" /></svg>
+                        <div class="bg-white border-b border-slate-100 p-6 md:p-8 text-center pt-8">
+                            <div class="w-16 h-16 bg-gradient-to-br from-primary/10 to-teal-500/20 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-sm border border-primary/20 text-primary">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm14 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" /></svg>
                             </div>
                             <h2 class="text-2xl font-extrabold text-slate-900 tracking-tight">QR Code Scanner</h2>
                             <p class="text-slate-500 mt-1 font-medium text-sm">Arahkan kamera ke QR Code e-ticket pengunjung.</p>

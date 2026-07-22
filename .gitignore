@@ -2,3 +2,6 @@
 /database.sql
 /node_modules/
 .env
+*.sql
+/cache/
+/assets/images/events/

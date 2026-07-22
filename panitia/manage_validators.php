@@ -8,26 +8,30 @@ require_once '../config/koneksi.php';
 
 $id_panitia = (int)$_SESSION['user_id'];
 
-// Get current validators count
-$count_query = $conn->query("SELECT COUNT(*) as c FROM users WHERE role = 'validator' AND id_panitia = $id_panitia");
-$current_count = (int)$count_query->fetch_assoc()['c'];
+// Get current validators count (Prepared Statement)
+$count_stmt = $conn->prepare("SELECT COUNT(*) as c FROM users WHERE role = 'validator' AND id_panitia = ?");
+$count_stmt->bind_param("i", $id_panitia);
+$count_stmt->execute();
+$current_count = (int)$count_stmt->get_result()->fetch_assoc()['c'];
 
-$can_add = true; // Bebas membuat berapapun
+$can_add = true;
 
 // Handle POST request
 if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['action'])) {
     if ($_POST['action'] == 'add_validator') {
         if ($can_add) {
             $email = trim($_POST['email']);
-            $nama = $_POST['nama_lengkap'];
-            $keterangan = $_POST['keterangan'];
+            $nama = trim($_POST['nama_lengkap']);
+            $keterangan = trim($_POST['keterangan']);
             $password = password_hash($_POST['password'], PASSWORD_DEFAULT);
             $role = 'validator';
             $status_approval = 'pending';
             
-            // Cek email unique
-            $check_email = $conn->query("SELECT id FROM users WHERE email = '$email'");
-            if ($check_email->num_rows > 0) {
+            // Cek email unique (Prepared Statement)
+            $check_stmt = $conn->prepare("SELECT id FROM users WHERE email = ?");
+            $check_stmt->bind_param("s", $email);
+            $check_stmt->execute();
+            if ($check_stmt->get_result()->num_rows > 0) {
                 $_SESSION['error'] = "Email sudah terdaftar. Gunakan email lain.";
             } else {
                 $stmt = $conn->prepare("INSERT INTO users (email, password, role, nama_lengkap, id_panitia, status_approval, keterangan) VALUES (?, ?, ?, ?, ?, ?, ?)");
@@ -35,13 +39,43 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['action'])) {
                 if ($stmt->execute()) {
                     $_SESSION['success'] = "Validator berhasil didaftarkan dan sedang menunggu persetujuan admin.";
                 } else {
-                    $_SESSION['error'] = "Terjadi kesalahan sistem.";
+                    $_SESSION['error'] = "Terjadi kesalahan sistem saat mendaftarkan validator.";
                 }
+            }
+        }
+    } elseif ($_POST['action'] == 'edit_validator') {
+        $id_edit = (int)$_POST['edit_id'];
+        $nama = trim($_POST['nama_lengkap']);
+        $email = trim($_POST['email']);
+        $keterangan = trim($_POST['keterangan']);
+        $new_pass = $_POST['password'] ?? '';
+
+        // Cek email conflict (Prepared Statement)
+        $check_stmt = $conn->prepare("SELECT id FROM users WHERE email = ? AND id != ?");
+        $check_stmt->bind_param("si", $email, $id_edit);
+        $check_stmt->execute();
+        if ($check_stmt->get_result()->num_rows > 0) {
+            $_SESSION['error'] = "Email sudah digunakan oleh akun lain.";
+        } else {
+            if (!empty($new_pass)) {
+                $hashed = password_hash($new_pass, PASSWORD_DEFAULT);
+                $stmt_upd = $conn->prepare("UPDATE users SET nama_lengkap = ?, email = ?, keterangan = ?, password = ? WHERE id = ? AND id_panitia = ? AND role = 'validator'");
+                $stmt_upd->bind_param("ssssii", $nama, $email, $keterangan, $hashed, $id_edit, $id_panitia);
+            } else {
+                $stmt_upd = $conn->prepare("UPDATE users SET nama_lengkap = ?, email = ?, keterangan = ? WHERE id = ? AND id_panitia = ? AND role = 'validator'");
+                $stmt_upd->bind_param("sssii", $nama, $email, $keterangan, $id_edit, $id_panitia);
+            }
+            if ($stmt_upd->execute()) {
+                $_SESSION['success'] = "Data validator berhasil diperbarui.";
+            } else {
+                $_SESSION['error'] = "Gagal memperbarui data validator.";
             }
         }
     } elseif ($_POST['action'] == 'delete_validator') {
         $id_del = (int)$_POST['delete_id'];
-        $conn->query("DELETE FROM users WHERE id = $id_del AND id_panitia = $id_panitia AND role = 'validator'");
+        $stmt_del = $conn->prepare("DELETE FROM users WHERE id = ? AND id_panitia = ? AND role = 'validator'");
+        $stmt_del->bind_param("ii", $id_del, $id_panitia);
+        $stmt_del->execute();
         $_SESSION['success'] = "Validator berhasil dihapus.";
     }
     
@@ -49,9 +83,13 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['action'])) {
     exit;
 }
 
-// Get validators list
-$validators = $conn->query("SELECT * FROM users WHERE role = 'validator' AND id_panitia = $id_panitia ORDER BY id DESC");
+// Get validators list (Prepared Statement)
+$stmt_val = $conn->prepare("SELECT * FROM users WHERE role = 'validator' AND id_panitia = ? ORDER BY id DESC");
+$stmt_val->bind_param("i", $id_panitia);
+$stmt_val->execute();
+$validators = $stmt_val->get_result();
 ?>
+
 <!DOCTYPE html>
 <html lang="id">
 <head>
@@ -209,7 +247,10 @@ $validators = $conn->query("SELECT * FROM users WHERE role = 'validator' AND id_
                                                     <span class="px-3 py-1 inline-flex text-[10px] leading-5 font-bold rounded-full bg-emerald-50 text-emerald-700 border border-emerald-100">Disetujui Aktif</span>
                                                 <?php endif; ?>
                                             </td>
-                                            <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                            <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium flex justify-end gap-2">
+                                                <button type="button" onclick="openEditModal('<?= $row['id'] ?>', '<?= htmlspecialchars(addslashes($row['nama_lengkap'])) ?>', '<?= htmlspecialchars(addslashes($row['email'])) ?>', '<?= htmlspecialchars(addslashes($row['keterangan'])) ?>')" class="text-indigo-600 hover:text-indigo-900 bg-indigo-50 hover:bg-indigo-100 p-2 rounded-lg transition-colors inline-flex border border-transparent hover:border-indigo-200" title="Edit Validator">
+                                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+                                                </button>
                                                 <form action="" method="POST" class="inline">
                                                     <input type="hidden" name="action" value="delete_validator">
                                                     <input type="hidden" name="delete_id" value="<?= $row['id'] ?>">
@@ -232,6 +273,55 @@ $validators = $conn->query("SELECT * FROM users WHERE role = 'validator' AND id_
             </main>
         </div>
     </div>
+
+    <!-- Modal Edit Validator -->
+    <div id="editValidatorModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl shadow-xl border border-slate-200 w-full max-w-md overflow-hidden">
+            <div class="px-6 py-4 border-b border-slate-100 bg-slate-50 flex items-center justify-between">
+                <h3 class="font-extrabold text-slate-900 text-sm">Edit Data Validator</h3>
+                <button type="button" onclick="closeEditModal()" class="text-slate-400 hover:text-slate-600 font-bold">&times;</button>
+            </div>
+            <form action="" method="POST" class="p-6 space-y-4">
+                <input type="hidden" name="action" value="edit_validator">
+                <input type="hidden" name="edit_id" id="edit_id">
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Nama Petugas</label>
+                    <input type="text" name="nama_lengkap" id="edit_nama" class="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium outline-none focus:ring-2 focus:ring-primary/20" required>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Email Login</label>
+                    <input type="email" name="email" id="edit_email" class="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium outline-none focus:ring-2 focus:ring-primary/20" required>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Password Baru (Opsional)</label>
+                    <input type="password" name="password" placeholder="Kosongkan jika tidak diubah" class="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium outline-none focus:ring-2 focus:ring-primary/20">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Keterangan / Pos Jaga</label>
+                    <input type="text" name="keterangan" id="edit_keterangan" class="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium outline-none focus:ring-2 focus:ring-primary/20" required>
+                </div>
+                <div class="flex items-center justify-end gap-3 pt-2">
+                    <button type="button" onclick="closeEditModal()" class="px-4 py-2 text-sm font-bold text-slate-500 hover:text-slate-700 bg-slate-100 rounded-xl">Batal</button>
+                    <button type="submit" class="px-5 py-2 text-sm font-bold text-white bg-primary hover:opacity-90 rounded-xl shadow-md">Simpan Perubahan</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Script for Modal & Sidebar Toggle -->
+    <script>
+        function openEditModal(id, nama, email, keterangan) {
+            document.getElementById('edit_id').value = id;
+            document.getElementById('edit_nama').value = nama;
+            document.getElementById('edit_email').value = email;
+            document.getElementById('edit_keterangan').value = keterangan;
+            document.getElementById('editValidatorModal').classList.remove('hidden');
+        }
+        function closeEditModal() {
+            document.getElementById('editValidatorModal').classList.add('hidden');
+        }
+    </script>
+
 
     <!-- Script for Sidebar Toggle -->
     <script>
