@@ -104,6 +104,18 @@ if ($id_panitia) {
                     <p class="text-slate-500 mt-2 font-medium">Ini adalah dashboard khusus validator untuk melakukan pemindaian tiket event.</p>
                 </div>
                 
+                <!-- Scanner Section -->
+                <div class="bg-indigo-50 border border-indigo-100 rounded-3xl p-8 flex flex-col items-center text-center gap-6 shadow-sm mb-10">
+                    <div>
+                        <h3 class="text-xl font-extrabold text-indigo-900 mb-2">Mulai Scan Tiket Pengunjung</h3>
+                        <p class="text-indigo-700 font-medium">Buka kamera Anda dan pindai QR Code yang terdapat pada e-ticket pengunjung untuk memvalidasi akses masuk mereka ke dalam event.</p>
+                    </div>
+                    <a href="scan.php" class="shrink-0 bg-primary hover:bg-teal-600 text-white font-bold py-4 px-8 rounded-2xl shadow-lg shadow-primary/30 transition-all hover:-translate-y-1 flex items-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm14 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" /></svg>
+                        Buka Scanner
+                    </a>
+                </div>
+
                 <!-- Stats Grid -->
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
                     <!-- Berhasil Scan -->
@@ -138,16 +150,6 @@ if ($id_panitia) {
                         <p class="text-4xl font-extrabold text-slate-900 relative z-10"><?= $tot_all ?></p>
                         <p class="text-xs text-slate-400 mt-2 relative z-10">Total tiket aktif untuk event panitia ini</p>
                     </div>
-
-                <div class="bg-indigo-50 border border-indigo-100 rounded-3xl p-8 flex flex-col md:flex-row items-center justify-between gap-6 shadow-sm">
-                    <div class="flex-1">
-                        <h3 class="text-xl font-extrabold text-indigo-900 mb-2">Mulai Scan Tiket Pengunjung</h3>
-                        <p class="text-indigo-700 font-medium">Buka kamera Anda dan pindai QR Code yang terdapat pada e-ticket pengunjung untuk memvalidasi akses masuk mereka ke dalam event.</p>
-                    </div>
-                    <a href="scan.php" class="shrink-0 bg-primary hover:bg-teal-600 text-white font-bold py-4 px-8 rounded-2xl shadow-lg shadow-primary/30 transition-all hover:-translate-y-1 flex items-center gap-2">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm14 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" /></svg>
-                        Buka Scanner
-                    </a>
                 </div>
             </main>
         </div>
