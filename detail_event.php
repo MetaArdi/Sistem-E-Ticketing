@@ -140,9 +140,18 @@ unset($_SESSION['error']);
                 <!-- Content Section -->
                 <div class="p-8 sm:p-12 lg:p-16 flex flex-col relative">
                     <div class="mb-8">
-                        <div
-                            class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider mb-4 <?= $event['stok'] > 0 ? 'bg-indigo-50 text-primary' : 'bg-red-50 text-red-500' ?>">
-                            <?= $event['stok'] > 0 ? 'Tiket Tersedia' : 'Sold Out' ?>
+                        <div class="flex flex-wrap items-center gap-2 mb-4">
+                            <div class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider <?= $event['stok'] > 0 ? 'bg-indigo-50 text-primary' : 'bg-red-50 text-red-500' ?>">
+                                <?= $event['stok'] > 0 ? 'Tiket Tersedia' : 'Sold Out' ?>
+                            </div>
+                            <?php if (!empty($event['kategori'])): ?>
+                                <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-slate-100 text-slate-700 border border-slate-200/60">
+                                    <svg class="w-3.5 h-3.5 text-primary shrink-0" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">
+                                        <?= getCategoryIconSvg('', $event['kategori']) ?>
+                                    </svg>
+                                    <?= htmlspecialchars($event['kategori']) ?>
+                                </div>
+                            <?php endif; ?>
                         </div>
                         <h1
                             class="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-slate-900 tracking-tight leading-tight mb-4">

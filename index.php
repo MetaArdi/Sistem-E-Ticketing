@@ -233,43 +233,35 @@ while ($row = $res_upcoming->fetch_assoc()) {
 
                 <?php
                 // Ambil kategori dari tabel event_categories
-                $cat_db = $conn->query("SELECT nama FROM event_categories ORDER BY nama ASC");
+                $cat_db = $conn->query("SELECT nama, ikon FROM event_categories ORDER BY nama ASC");
                 $categories = [];
-                while ($cr = $cat_db->fetch_assoc()) {
-                    $categories[] = $cr['nama'];
+                if ($cat_db) {
+                    while ($cr = $cat_db->fetch_assoc()) {
+                        $categories[] = [
+                            'nama' => $cr['nama'],
+                            'ikon' => $cr['ikon'] ?? 'star'
+                        ];
+                    }
                 }
                 if (empty($categories)) {
-                    $categories = ['Musik', 'Olahraga', 'Kuliner', 'Seni'];
+                    $categories = [
+                        ['nama' => 'Musik', 'ikon' => 'music'],
+                        ['nama' => 'Olahraga', 'ikon' => 'sports'],
+                        ['nama' => 'Kuliner', 'ikon' => 'food'],
+                        ['nama' => 'Seni', 'ikon' => 'arts']
+                    ];
                 }
 
-                $default_icon = '<polygon fill="none" stroke="currentColor" stroke-width="2" points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>';
-
-                foreach ($categories as $cat):
+                foreach ($categories as $cat_item):
+                    $cat = $cat_item['nama'];
+                    $cat_icon_key = $cat_item['ikon'];
 
                     if (empty($cat)) continue;
                     $isActive = ($kategori == $cat);
                     $url = "index.php?kategori=" . urlencode($cat);
                     if ($search != '') $url .= "&q=" . urlencode($search);
                     
-                    // Match icon dynamically based on keyword
-                    $cat_lower = strtolower($cat);
-                    $icon_svg = $default_icon;
-
-                    if (strpos($cat_lower, 'music') !== false || strpos($cat_lower, 'musik') !== false || strpos($cat_lower, 'konser') !== false) {
-                        $icon_svg = '<path fill="currentColor" stroke="none" d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/>';
-                    } elseif (strpos($cat_lower, 'sport') !== false || strpos($cat_lower, 'olahraga') !== false || strpos($cat_lower, 'pertandingan') !== false) {
-                        $icon_svg = '<circle fill="none" stroke="currentColor" stroke-width="2" cx="12" cy="12" r="10"></circle><path fill="none" stroke="currentColor" stroke-width="2" d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path><path fill="none" stroke="currentColor" stroke-width="2" d="M2 12h20"></path>';
-                    } elseif (strpos($cat_lower, 'food') !== false || strpos($cat_lower, 'makanan') !== false || strpos($cat_lower, 'kuliner') !== false || strpos($cat_lower, 'festival') !== false) {
-                        $icon_svg = '<path fill="none" stroke="currentColor" stroke-width="2" d="M18 8h1a4 4 0 0 1 0 8h-1"></path><path fill="none" stroke="currentColor" stroke-width="2" d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"></path><line fill="none" stroke="currentColor" stroke-width="2" x1="6" y1="1" x2="6" y2="4"></line>';
-                    } elseif (strpos($cat_lower, 'art') !== false || strpos($cat_lower, 'seni') !== false || strpos($cat_lower, 'pameran') !== false || strpos($cat_lower, 'budaya') !== false) {
-                        $icon_svg = '<path fill="none" stroke="currentColor" stroke-width="2" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"></path>';
-                    } elseif (strpos($cat_lower, 'seminar') !== false || strpos($cat_lower, 'edukasi') !== false || strpos($cat_lower, 'pendidikan') !== false || strpos($cat_lower, 'workshop') !== false) {
-                        $icon_svg = '<path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>';
-                    } elseif (strpos($cat_lower, 'tech') !== false || strpos($cat_lower, 'teknologi') !== false || strpos($cat_lower, 'game') !== false) {
-                        $icon_svg = '<rect fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" x="2" y="3" width="20" height="14" rx="2" ry="2"></rect><line fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" x1="8" y1="21" x2="16" y2="21"></line><line fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" x1="12" y1="17" x2="12" y2="21"></line>';
-                    } elseif (strpos($cat_lower, 'hiburan') !== false || strpos($cat_lower, 'entertainment') !== false || strpos($cat_lower, 'film') !== false || strpos($cat_lower, 'teater') !== false) {
-                        $icon_svg = '<rect fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" x="2" y="2" width="20" height="20" rx="2.18" ry="2.18"></rect><line fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" x1="7" y1="2" x2="7" y2="22"></line><line fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" x1="17" y1="2" x2="17" y2="22"></line><line fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" x1="2" y1="12" x2="22" y2="12"></line><line fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" x1="2" y1="7" x2="7" y2="7"></line><line fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" x1="2" y1="17" x2="7" y2="17"></line><line fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" x1="17" y1="17" x2="22" y2="17"></line><line fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" x1="17" y1="7" x2="22" y2="7"></line>';
-                    }
+                    $icon_svg = getCategoryIconSvg($cat_icon_key, $cat);
                     ?>
                     <a href="<?= $url ?>"
                         class="flex flex-col items-center gap-2 md:gap-3 min-w-[70px] md:min-w-[90px] shrink-0 group">

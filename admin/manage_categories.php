@@ -47,15 +47,17 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['action'])) {
 $cats = $conn->query("SELECT * FROM event_categories ORDER BY nama ASC");
 
 $icon_options = [
-    'music'   => 'Musik 🎵',
-    'sports'  => 'Olahraga ⚽',
-    'food'    => 'Makanan 🍔',
-    'arts'    => 'Seni 🎨',
-    'seminar' => 'Seminar 📚',
-    'festival'=> 'Festival 🎉',
-    'comedy'  => 'Komedi 😂',
-    'tech'    => 'Teknologi 💻',
-    'star'    => 'Lainnya ⭐',
+    'music'      => 'Musik 🎵',
+    'sports'     => 'Olahraga ⚽',
+    'food'       => 'Makanan 🍔',
+    'arts'       => 'Seni 🎨',
+    'seminar'    => 'Seminar 📚',
+    'festival'   => 'Festival 🎉',
+    'comedy'     => 'Komedi 😂',
+    'tech'       => 'Teknologi 💻',
+    'automotive' => 'Otomotif 🏎️',
+    'fashion'    => 'Fashion 👗',
+    'star'       => 'Lainnya ⭐',
 ];
 ?>
 <!DOCTYPE html>
@@ -172,8 +174,10 @@ $icon_options = [
                                 <?php while($cat = $cats->fetch_assoc()): ?>
                                 <div class="px-6 py-4 flex items-center justify-between gap-4 hover:bg-slate-50/80 transition-colors group" id="cat-row-<?= $cat['id'] ?>">
                                     <div class="flex items-center gap-4 flex-1">
-                                        <div class="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary font-bold text-lg shrink-0">
-                                            <?= mb_substr($cat['nama'], 0, 1) ?>
+                                        <div class="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary font-bold shrink-0">
+                                            <svg class="w-5 h-5 text-primary" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">
+                                                <?= getCategoryIconSvg($cat['ikon'] ?? '', $cat['nama']) ?>
+                                            </svg>
                                         </div>
                                         <!-- View Mode -->
                                         <div class="view-mode-<?= $cat['id'] ?>">
