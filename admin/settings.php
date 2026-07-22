@@ -31,6 +31,93 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         }
     }
 
+    // Handle Slider Slide Addition
+    if (isset($_POST['action']) && $_POST['action'] == 'add_slider') {
+        $slide_title = trim($_POST['slide_title'] ?? '');
+        $slide_subtitle = trim($_POST['slide_subtitle'] ?? '');
+        $slide_link = trim($_POST['slide_link'] ?? '');
+        
+        if (isset($_FILES['slider_image']) && $_FILES['slider_image']['error'] == 0) {
+            $allowed = ['jpg', 'jpeg', 'png', 'webp'];
+            $ext = strtolower(pathinfo($_FILES['slider_image']['name'], PATHINFO_EXTENSION));
+            if (in_array($ext, $allowed)) {
+                $upload_dir = "../assets/images/slider/";
+                if (!is_dir($upload_dir)) {
+                    mkdir($upload_dir, 0755, true);
+                }
+                $filename = time() . '_' . uniqid() . '.' . $ext;
+                $target = $upload_dir . $filename;
+                if (move_uploaded_file($_FILES['slider_image']['tmp_name'], $target)) {
+                    $sq = $conn->query("SELECT setting_value FROM settings WHERE setting_key = 'landing_hero_slider'");
+                    $current_sliders = [];
+                    if ($sq && $sq->num_rows > 0) {
+                        $row = $sq->fetch_assoc();
+                        $current_sliders = json_decode($row['setting_value'], true) ?: [];
+                    }
+                    
+                    $new_slide = [
+                        'id' => uniqid('slide_'),
+                        'image' => $filename,
+                        'title' => $slide_title,
+                        'subtitle' => $slide_subtitle,
+                        'link' => $slide_link,
+                        'created_at' => date('Y-m-d H:i:s')
+                    ];
+                    
+                    $current_sliders[] = $new_slide;
+                    $new_json = json_encode(array_values($current_sliders));
+                    
+                    $stmt = $conn->prepare("INSERT INTO settings (setting_key, setting_value) VALUES ('landing_hero_slider', ?) ON DUPLICATE KEY UPDATE setting_value = ?");
+                    $stmt->bind_param("ss", $new_json, $new_json);
+                    $stmt->execute();
+                    $stmt->close();
+                    
+                    logActivity($conn, $_SESSION['user_id'], 'Add Slider', 'Admin menambahkan slide baru pada slider landing page.');
+                    $success_msg = "Slide slider baru berhasil ditambahkan.";
+                } else {
+                    $error_msg = "Gagal mengunggah gambar slider.";
+                }
+            } else {
+                $error_msg = "Format gambar tidak didukung (Hanya JPG, JPEG, PNG, WEBP).";
+            }
+        } else {
+            $error_msg = "Pilih gambar slider yang ingin diunggah.";
+        }
+    }
+
+    // Handle Slider Slide Deletion
+    if (isset($_POST['action']) && $_POST['action'] == 'delete_slider') {
+        $delete_id = $_POST['slider_id'] ?? '';
+        if (!empty($delete_id)) {
+            $sq = $conn->query("SELECT setting_value FROM settings WHERE setting_key = 'landing_hero_slider'");
+            if ($sq && $sq->num_rows > 0) {
+                $row = $sq->fetch_assoc();
+                $current_sliders = json_decode($row['setting_value'], true) ?: [];
+                
+                $updated_sliders = [];
+                foreach ($current_sliders as $slide) {
+                    if ($slide['id'] === $delete_id) {
+                        $file_path = "../assets/images/slider/" . $slide['image'];
+                        if (file_exists($file_path) && is_file($file_path)) {
+                            @unlink($file_path);
+                        }
+                    } else {
+                        $updated_sliders[] = $slide;
+                    }
+                }
+                
+                $new_json = json_encode(array_values($updated_sliders));
+                $stmt = $conn->prepare("INSERT INTO settings (setting_key, setting_value) VALUES ('landing_hero_slider', ?) ON DUPLICATE KEY UPDATE setting_value = ?");
+                $stmt->bind_param("ss", $new_json, $new_json);
+                $stmt->execute();
+                $stmt->close();
+                
+                logActivity($conn, $_SESSION['user_id'], 'Delete Slider', 'Admin menghapus slide slider landing page.');
+                $success_msg = "Slide slider berhasil dihapus.";
+            }
+        }
+    }
+
     // Proses Text Settings
     $text_settings = ['contact_address', 'contact_cs', 'link_ig', 'link_tiktok', 'admin_markup_type', 'admin_markup_value', 'maintenance_mode'];
     $stmt = $conn->prepare("INSERT INTO settings (setting_key, setting_value) VALUES (?, ?) ON DUPLICATE KEY UPDATE setting_value = ?");
@@ -44,7 +131,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
     logActivity($conn, $_SESSION['user_id'], 'Update Settings', 'Admin mengubah pengaturan sistem (Tampilan & Kontak).');
 
-    $success_msg = "Pengaturan berhasil disimpan.";
+    if (!isset($success_msg)) {
+        $success_msg = "Pengaturan berhasil disimpan.";
+    }
 }
 
 // Ambil nilai saat ini
@@ -53,6 +142,12 @@ $current_logo = $logo_query->num_rows > 0 ? $logo_query->fetch_assoc()['setting_
 
 $favicon_query = $conn->query("SELECT setting_value FROM settings WHERE setting_key = 'site_favicon'");
 $current_favicon = $favicon_query->num_rows > 0 ? $favicon_query->fetch_assoc()['setting_value'] : '';
+
+$slider_query = $conn->query("SELECT setting_value FROM settings WHERE setting_key = 'landing_hero_slider'");
+$current_sliders = [];
+if ($slider_query && $slider_query->num_rows > 0) {
+    $current_sliders = json_decode($slider_query->fetch_assoc()['setting_value'], true) ?: [];
+}
 
 $text_settings_keys = ['contact_address', 'contact_cs', 'link_ig', 'link_tiktok', 'admin_markup_type', 'admin_markup_value', 'maintenance_mode'];
 $current_text_settings = [];
@@ -123,14 +218,14 @@ $maintenance_mode_val = $current_text_settings['maintenance_mode'] ?? '0';
                 
                 <div class="flex items-center gap-4">
                     <a href="profile.php" class="hidden md:flex items-center gap-3 mr-2 px-3 py-1.5 rounded-full border border-slate-100 bg-slate-50 hover:bg-slate-100 hover:border-slate-200 transition-colors group cursor-pointer">
-                        <?php if (isset($_SESSION['foto_profil']) && !empty($_SESSION['foto_profil']) && file_exists('../assets/images/profil/'.$_SESSION['foto_profil'])): ?>
-                            <img src="../assets/images/profil/<?= htmlspecialchars($_SESSION['foto_profil']) ?>" class="w-8 h-8 rounded-full object-cover shadow-sm">
+                        <?php if (isset($_SESSION['foto_profil']) && !empty($_SESSION['foto_profil']) && (str_starts_with($_SESSION['foto_profil'], 'http') || file_exists('../assets/images/profil/'.$_SESSION['foto_profil']))): ?>
+                            <img src="<?= str_starts_with($_SESSION['foto_profil'], 'http') ? htmlspecialchars($_SESSION['foto_profil']) : '../assets/images/profil/'.htmlspecialchars($_SESSION['foto_profil']) ?>" class="w-8 h-8 rounded-full object-cover shadow-sm">
                         <?php else: ?>
                             <div class="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-secondary text-white flex items-center justify-center font-bold text-sm shadow-sm group-hover:shadow transition-all">
-                                <?= strtoupper(substr($_SESSION['nama_lengkap'], 0, 1)) ?>
+                                <?= strtoupper(substr($_SESSION['nama_lengkap'] ?? 'A', 0, 1)) ?>
                             </div>
                         <?php endif; ?>
-                        <span class="text-sm font-bold text-slate-700 pr-2 group-hover:text-primary transition-colors"><?= htmlspecialchars($_SESSION['nama_lengkap']) ?></span>
+                        <span class="text-sm font-bold text-slate-700 pr-2 group-hover:text-primary transition-colors"><?= htmlspecialchars($_SESSION['nama_lengkap'] ?? 'Admin') ?></span>
                     </a>
                 </div>
             </header>
@@ -175,7 +270,11 @@ $maintenance_mode_val = $current_text_settings['maintenance_mode'] ?? '0';
                                             </div>
                                         <?php endif; ?>
 
-                                        <input type="file" name="logo" accept="image/*" class="w-full text-sm font-medium file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-bold file:bg-primary/10 file:text-primary hover:file:bg-primary/20 transition-all">
+                                        <input type="file" id="logoInput" name="logo" accept="image/*" class="w-full text-sm font-medium file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-bold file:bg-primary/10 file:text-primary hover:file:bg-primary/20 transition-all">
+                                        <div id="logoPreviewContainer" class="hidden mt-3 p-3 bg-slate-50 border border-slate-200 rounded-2xl flex items-center gap-3">
+                                            <img id="logoPreviewImg" class="h-14 object-contain rounded-lg border border-slate-200 bg-white p-1">
+                                            <span class="text-xs font-bold text-slate-700">Pratinjau Logo Baru</span>
+                                        </div>
                                     </div>
 
                                     <!-- Favicon -->
@@ -193,7 +292,104 @@ $maintenance_mode_val = $current_text_settings['maintenance_mode'] ?? '0';
                                             </div>
                                         <?php endif; ?>
 
-                                        <input type="file" name="favicon" accept="image/*" class="w-full text-sm font-medium file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-bold file:bg-primary/10 file:text-primary hover:file:bg-primary/20 transition-all">
+                                        <input type="file" id="faviconInput" name="favicon" accept="image/*" class="w-full text-sm font-medium file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-bold file:bg-primary/10 file:text-primary hover:file:bg-primary/20 transition-all">
+                                        <div id="faviconPreviewContainer" class="hidden mt-3 p-3 bg-slate-50 border border-slate-200 rounded-2xl flex items-center gap-3">
+                                            <img id="faviconPreviewImg" class="h-10 w-10 object-contain rounded-lg border border-slate-200 bg-white p-1">
+                                            <span class="text-xs font-bold text-slate-700">Pratinjau Favicon Baru</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <hr class="border-slate-100">
+
+                                <!-- Image Slider Landing Page -->
+                                <div>
+                                    <h4 class="text-sm font-bold text-slate-800 mb-2 flex items-center gap-2">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                                        Pengaturan Image Slider Landing Page
+                                    </h4>
+                                    <p class="text-xs text-slate-400 mb-5">Kelola spanduk promo/event yang tampil pada slider paling atas di halaman utama (Landing Page).</p>
+
+                                    <!-- Slide List -->
+                                    <?php if (!empty($current_sliders)): ?>
+                                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                                            <?php foreach ($current_sliders as $idx => $slide): ?>
+                                                <div class="relative group bg-slate-50 border border-slate-200 rounded-2xl overflow-hidden shadow-sm p-3 flex flex-col justify-between">
+                                                    <div>
+                                                        <div class="h-32 w-full rounded-xl overflow-hidden bg-slate-200 relative mb-3">
+                                                            <img src="../assets/images/slider/<?= htmlspecialchars($slide['image']) ?>" class="w-full h-full object-cover">
+                                                            <span class="absolute top-2 left-2 bg-slate-900/80 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">Slide <?= $idx + 1 ?></span>
+                                                        </div>
+                                                        <h5 class="text-xs font-bold text-slate-800 truncate"><?= !empty($slide['title']) ? htmlspecialchars($slide['title']) : '(Tanpa Judul)' ?></h5>
+                                                        <p class="text-[11px] text-slate-500 truncate mb-1"><?= !empty($slide['subtitle']) ? htmlspecialchars($slide['subtitle']) : '(Tanpa Subjudul)' ?></p>
+                                                        <?php if (!empty($slide['link'])): ?>
+                                                            <a href="<?= htmlspecialchars($slide['link']) ?>" target="_blank" class="text-[10px] font-bold text-primary truncate block hover:underline">Link: <?= htmlspecialchars($slide['link']) ?></a>
+                                                        <?php endif; ?>
+                                                    </div>
+                                                    <div class="mt-3 pt-3 border-t border-slate-200 flex justify-end">
+                                                        <form method="POST" action="" onsubmit="return confirm('Yakin ingin menghapus slide slider ini?');">
+                                                            <input type="hidden" name="action" value="delete_slider">
+                                                            <input type="hidden" name="slider_id" value="<?= htmlspecialchars($slide['id']) ?>">
+                                                            <button type="submit" class="px-3 py-1.5 bg-red-50 hover:bg-red-100 text-red-600 rounded-xl text-xs font-bold transition-colors flex items-center gap-1">
+                                                                <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                                                                Hapus Slide
+                                                            </button>
+                                                        </form>
+                                                    </div>
+                                                </div>
+                                            <?php endforeach; ?>
+                                        </div>
+                                    <?php else: ?>
+                                        <div class="mb-6 bg-slate-50 border border-dashed border-slate-200 rounded-2xl p-6 text-center text-slate-400 text-xs font-medium">
+                                            Belum ada slide custom yang diunggah. Slider landing page akan menampilkan spanduk default sistem.
+                                        </div>
+                                    <?php endif; ?>
+
+                                    <!-- Form Tambah Slide Baru -->
+                                    <div class="bg-slate-50/80 border border-slate-200 rounded-2xl p-5">
+                                        <h5 class="text-xs font-bold text-slate-700 uppercase tracking-wider mb-4 flex items-center gap-2">
+                                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" /></svg>
+                                            Tambah Slide Slider Baru
+                                        </h5>
+                                        <form method="POST" action="" enctype="multipart/form-data" class="space-y-4">
+                                            <input type="hidden" name="action" value="add_slider">
+                                            
+                                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                <div class="md:col-span-2">
+                                                    <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Gambar Slider <span class="text-red-500">*</span></label>
+                                                    <input type="file" id="newSliderInput" name="slider_image" accept="image/*" required class="w-full text-sm font-medium file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-bold file:bg-primary/10 file:text-primary hover:file:bg-primary/20 transition-all cursor-pointer">
+                                                    <p class="text-[10px] text-slate-400 mt-1">Rekomendasi rasio 16:9 atau 21:9. Format JPG, PNG, WEBP.</p>
+
+                                                    <!-- Live Preview for Slider Upload -->
+                                                    <div id="newSliderPreviewContainer" class="hidden mt-3 p-3 bg-white border border-slate-200 rounded-2xl">
+                                                        <p class="text-xs font-bold text-slate-700 mb-2">Pratinjau Gambar Slider Baru</p>
+                                                        <img id="newSliderPreviewImg" class="w-full h-36 object-cover rounded-xl border border-slate-200 shadow-sm">
+                                                    </div>
+                                                </div>
+
+                                                <div>
+                                                    <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Judul Banner <span class="text-slate-400 font-normal">(Opsional)</span></label>
+                                                    <input type="text" name="slide_title" placeholder="Contoh: Konser Musik Terbesar 2026" class="w-full px-4 py-2 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-sm font-medium outline-none">
+                                                </div>
+
+                                                <div>
+                                                    <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Subjudul / Deskripsi Singkat <span class="text-slate-400 font-normal">(Opsional)</span></label>
+                                                    <input type="text" name="slide_subtitle" placeholder="Contoh: Beli tiketnya sekarang sebelum kehabisan" class="w-full px-4 py-2 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-sm font-medium outline-none">
+                                                </div>
+
+                                                <div class="md:col-span-2">
+                                                    <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Link Tujuan Button / Banner <span class="text-slate-400 font-normal">(Opsional)</span></label>
+                                                    <input type="url" name="slide_link" placeholder="https://..." class="w-full px-4 py-2 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-sm font-medium outline-none">
+                                                </div>
+                                            </div>
+
+                                            <div class="flex justify-end pt-2">
+                                                <button type="submit" class="bg-primary hover:opacity-90 text-white font-bold py-2.5 px-6 rounded-xl text-xs transition-all shadow-sm flex items-center gap-2">
+                                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" /></svg>
+                                                    Tambah Slide
+                                                </button>
+                                            </div>
+                                        </form>
                                     </div>
                                 </div>
 
@@ -339,6 +535,30 @@ $maintenance_mode_val = $current_text_settings['maintenance_mode'] ?? '0';
                     }
                 }
             });
+
+            // Live Image Preview Setup
+            function setupLivePreview(inputId, containerId, previewImgId) {
+                const input = document.getElementById(inputId);
+                const container = document.getElementById(containerId);
+                const previewImg = document.getElementById(previewImgId);
+                if (!input || !container || !previewImg) return;
+                input.addEventListener('change', function(e) {
+                    const file = e.target.files[0];
+                    if (file) {
+                        const reader = new FileReader();
+                        reader.onload = function(evt) {
+                            previewImg.src = evt.target.result;
+                            container.classList.remove('hidden');
+                        };
+                        reader.readAsDataURL(file);
+                    } else {
+                        container.classList.add('hidden');
+                    }
+                });
+            }
+            setupLivePreview('logoInput', 'logoPreviewContainer', 'logoPreviewImg');
+            setupLivePreview('faviconInput', 'faviconPreviewContainer', 'faviconPreviewImg');
+            setupLivePreview('newSliderInput', 'newSliderPreviewContainer', 'newSliderPreviewImg');
         });
     </script>
 

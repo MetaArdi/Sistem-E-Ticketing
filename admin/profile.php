@@ -38,7 +38,35 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         if (empty($error_msg)) {
             // Handle foto profil upload
             $foto_profil = $user_data['foto_profil'];
-            if (isset($_FILES['foto_profil']) && $_FILES['foto_profil']['error'] == 0) {
+            
+            // Check if there is a cropped image from the modal (Base64)
+            if (isset($_POST['cropped_image']) && !empty($_POST['cropped_image'])) {
+                $img_data = $_POST['cropped_image'];
+                if (preg_match('/^data:image\/(\w+);base64,/', $img_data, $type)) {
+                    $img_data = substr($img_data, strpos($img_data, ',') + 1);
+                    $ext = strtolower($type[1]);
+                    if (in_array($ext, ['jpg', 'jpeg', 'png'])) {
+                        $img_data = base64_decode($img_data);
+                        if ($img_data !== false) {
+                            $new_filename = uniqid('profil_') . '.' . $ext;
+                            $upload_dir = '../assets/images/profil/';
+                            if (!is_dir($upload_dir)) {
+                                mkdir($upload_dir, 0755, true);
+                            }
+                            $upload_path = $upload_dir . $new_filename;
+                            if (file_put_contents($upload_path, $img_data)) {
+                                $foto_profil = $new_filename;
+                            } else {
+                                $error_msg = "Gagal mengunggah foto profil.";
+                            }
+                        } else {
+                            $error_msg = "Gagal memproses foto profil.";
+                        }
+                    } else {
+                        $error_msg = "Format foto tidak didukung. Hanya JPG, JPEG, dan PNG.";
+                    }
+                }
+            } elseif (isset($_FILES['foto_profil']) && $_FILES['foto_profil']['error'] == 0) {
                 $allowed = ['jpg', 'jpeg', 'png'];
                 $filename = $_FILES['foto_profil']['name'];
                 $ext = strtolower(pathinfo($filename, PATHINFO_EXTENSION));
@@ -111,6 +139,21 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     <?php endif; ?>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.css">
+    <style>
+        /* circular cropper mask */
+        .cropper-view-box,
+        .cropper-face {
+            border-radius: 50%;
+        }
+        .cropper-line, .cropper-point {
+            display: none !important;
+        }
+        .cropper-view-box {
+            outline: 2px solid #00c2cb;
+            outline-color: rgba(0, 194, 203, 0.7);
+        }
+    </style>
     <script>
         tailwind.config = {
             theme: { extend: { fontFamily: { sans: ['Outfit','sans-serif'] }, colors: { primary: '#00c2cb', secondary: '#0f1c3f', dark: '#0a1020' } } }
@@ -138,14 +181,14 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             
             <div class="flex items-center gap-4">
                 <a href="profile.php" class="hidden md:flex items-center gap-3 mr-2 px-3 py-1.5 rounded-full border border-slate-100 bg-slate-50 hover:bg-slate-100 hover:border-slate-200 transition-colors group cursor-pointer">
-                    <?php if (isset($_SESSION['foto_profil']) && !empty($_SESSION['foto_profil']) && file_exists('../assets/images/profil/'.$_SESSION['foto_profil'])): ?>
-                        <img src="../assets/images/profil/<?= htmlspecialchars($_SESSION['foto_profil']) ?>" class="w-8 h-8 rounded-full object-cover shadow-sm">
+                    <?php if (isset($_SESSION['foto_profil']) && !empty($_SESSION['foto_profil']) && (str_starts_with($_SESSION['foto_profil'], 'http') || file_exists('../assets/images/profil/'.$_SESSION['foto_profil']))): ?>
+                        <img src="<?= str_starts_with($_SESSION['foto_profil'], 'http') ? htmlspecialchars($_SESSION['foto_profil']) : '../assets/images/profil/'.htmlspecialchars($_SESSION['foto_profil']) ?>" class="w-8 h-8 rounded-full object-cover shadow-sm">
                     <?php else: ?>
                         <div class="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-secondary text-white flex items-center justify-center font-bold text-sm shadow-sm group-hover:shadow transition-all">
-                            <?= strtoupper(substr($_SESSION['nama_lengkap'], 0, 1)) ?>
+                            <?= strtoupper(substr($_SESSION['nama_lengkap'] ?? 'A', 0, 1)) ?>
                         </div>
                     <?php endif; ?>
-                    <span class="text-sm font-bold text-slate-700 pr-2 group-hover:text-primary transition-colors"><?= htmlspecialchars($_SESSION['nama_lengkap']) ?></span>
+                    <span class="text-sm font-bold text-slate-700 pr-2 group-hover:text-primary transition-colors"><?= htmlspecialchars($_SESSION['nama_lengkap'] ?? 'Admin') ?></span>
                 </a>
             </div>
         </header>
@@ -174,11 +217,11 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 <div class="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden">
                     <div class="px-6 py-6 border-b border-slate-100 bg-slate-50/50 flex justify-between items-center">
                         <div class="flex items-center gap-4">
-                            <?php if (isset($user_data['foto_profil']) && !empty($user_data['foto_profil']) && file_exists('../assets/images/profil/'.$user_data['foto_profil'])): ?>
-                                <img src="../assets/images/profil/<?= htmlspecialchars($user_data['foto_profil']) ?>" class="w-16 h-16 rounded-2xl object-cover shadow-md">
+                            <?php if (isset($user_data['foto_profil']) && !empty($user_data['foto_profil']) && (str_starts_with($user_data['foto_profil'], 'http') || file_exists('../assets/images/profil/'.$user_data['foto_profil']))): ?>
+                                <img id="profile-avatar-img" src="<?= str_starts_with($user_data['foto_profil'], 'http') ? htmlspecialchars($user_data['foto_profil']) : '../assets/images/profil/'.htmlspecialchars($user_data['foto_profil']) ?>" class="w-16 h-16 rounded-2xl object-cover shadow-md">
                             <?php else: ?>
-                                <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary to-secondary text-white flex items-center justify-center font-bold text-2xl shadow-md">
-                                    <?= strtoupper(substr($user_data['nama_lengkap'], 0, 1)) ?>
+                                <div id="profile-avatar-placeholder" class="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary to-secondary text-white flex items-center justify-center font-bold text-2xl shadow-md">
+                                    <?= strtoupper(substr($user_data['nama_lengkap'] ?? 'A', 0, 1)) ?>
                                 </div>
                             <?php endif; ?>
                             <div>
@@ -189,6 +232,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                     </div>
                     <div class="p-6 md:p-8">
                         <form method="POST" action="" enctype="multipart/form-data" class="space-y-5">
+                            <input type="hidden" name="cropped_image" id="cropped_image_input">
                             
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
                                 <div class="space-y-4">
@@ -203,8 +247,17 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                             
                             <div class="space-y-4 mt-5">
                                 <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider">Foto Profil <span class="text-slate-400 font-normal">(Opsional)</span></label>
-                                <input type="file" name="foto_profil" accept="image/jpeg, image/png, image/jpg" class="w-full bg-slate-50 border border-slate-200 text-slate-800 text-sm rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary block px-4 py-2.5 transition-colors font-medium file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-bold file:bg-primary/10 file:text-primary hover:file:bg-primary/20 cursor-pointer">
+                                <input type="file" id="adminFotoProfilInput" name="foto_profil" accept="image/jpeg, image/png, image/jpg" class="w-full bg-slate-50 border border-slate-200 text-slate-800 text-sm rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary block px-4 py-2.5 transition-colors font-medium file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-bold file:bg-primary/10 file:text-primary hover:file:bg-primary/20 cursor-pointer">
                                 <p class="text-xs text-slate-500 font-medium mt-1">Format: JPG, JPEG, PNG. Maksimal ukuran: 2MB.</p>
+                                
+                                <!-- Live Image Preview Box -->
+                                <div id="adminPhotoPreviewBox" class="hidden mt-3 p-3 bg-slate-50 border border-slate-200 rounded-2xl flex items-center gap-3">
+                                    <img id="adminPhotoPreviewImg" class="w-16 h-16 rounded-xl object-cover border border-slate-200 shadow-sm">
+                                    <div>
+                                        <p class="text-xs font-bold text-slate-700">Pratinjau Foto Profil Baru</p>
+                                        <p id="adminPhotoFileName" class="text-xs text-slate-500 font-medium truncate max-w-[200px]"></p>
+                                    </div>
+                                </div>
                             </div>
 
                             <hr class="border-slate-100 my-6">
@@ -312,6 +365,203 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             eye.classList.remove('hidden');
             eyeOff.classList.add('hidden');
         }
+    }
+</script>
+
+<!-- Modal Cropper Foto Profil Admin -->
+<div id="cropperModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl shadow-xl border border-slate-200 w-full max-w-lg overflow-hidden flex flex-col transform transition-all duration-300 scale-95 opacity-0" id="cropperModalContent">
+        <!-- Header -->
+        <div class="px-6 py-4 border-b border-slate-100 bg-slate-50 flex items-center justify-between">
+            <h3 class="font-extrabold text-slate-900 text-base">Sesuaikan Foto Profil Admin</h3>
+            <button type="button" id="closeCropperBtn" class="text-slate-400 hover:text-slate-650 font-bold text-2xl leading-none">&times;</button>
+        </div>
+        <!-- Body -->
+        <div class="p-6 flex flex-col items-center gap-4 bg-white">
+            <div class="w-full max-h-[350px] overflow-hidden rounded-2xl bg-slate-100 flex items-center justify-center border border-slate-200 relative">
+                <img id="cropperSourceImage" src="" alt="Source Image" class="max-w-full max-h-[350px]">
+            </div>
+            
+            <!-- Zoom & Rotate Controls -->
+            <div class="w-full space-y-3 mt-2">
+                <div class="flex items-center gap-3">
+                    <span class="text-xs font-bold text-slate-500 uppercase tracking-wider shrink-0">Perbesar/Kecil</span>
+                    <input type="range" id="cropperZoomRange" min="0.1" max="3" step="0.01" value="1" class="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-primary">
+                </div>
+                <div class="flex justify-center gap-4">
+                    <button type="button" id="cropperRotateLeft" class="px-3 py-1.5 bg-slate-100 text-slate-700 rounded-lg text-xs font-bold hover:bg-slate-200 transition-colors flex items-center gap-1">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12.066 11.2a1 1 0 000 1.6l5.334 4A1 1 0 0019 16V8a1 1 0 00-1.6-.8l-5.334 4z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 12a8 8 0 018-8m0 0l-3 3m3-3L9 3" /></svg>
+                        Putar Kiri
+                    </button>
+                    <button type="button" id="cropperRotateRight" class="px-3 py-1.5 bg-slate-100 text-slate-700 rounded-lg text-xs font-bold hover:bg-slate-200 transition-colors flex items-center gap-1">
+                        Putar Kanan
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.934 12.8a1 1 0 000-1.6l-5.334-4A1 1 0 005 8v8a1 1 0 001.6.8l5.334-4z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12a8 8 0 00-8-8m0 0l3 3m-3-3l3-3" /></svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+        <!-- Footer -->
+        <div class="px-6 py-4 border-t border-slate-100 bg-slate-50 flex items-center justify-end gap-3">
+            <button type="button" id="cancelCropperBtn" class="px-5 py-2 text-sm font-bold text-slate-500 hover:text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-xl transition-colors">Batal</button>
+            <button type="button" id="saveCropperBtn" class="px-6 py-2 text-sm font-bold text-white bg-primary hover:opacity-90 rounded-xl shadow-md transition-opacity">Simpan</button>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.js"></script>
+<script>
+    let cropper = null;
+    const fileInput = document.getElementById('adminFotoProfilInput');
+    const cropperModal = document.getElementById('cropperModal');
+    const cropperModalContent = document.getElementById('cropperModalContent');
+    const cropperSourceImage = document.getElementById('cropperSourceImage');
+    const cropperZoomRange = document.getElementById('cropperZoomRange');
+
+    if (fileInput) {
+        fileInput.addEventListener('change', function(e) {
+            const files = e.target.files;
+            if (files && files.length > 0) {
+                const file = files[0];
+                
+                const allowedTypes = ['image/jpeg', 'image/png', 'image/jpg'];
+                if (!allowedTypes.includes(file.type)) {
+                    alert('Format file tidak didukung. Hanya JPG, JPEG, dan PNG.');
+                    fileInput.value = '';
+                    return;
+                }
+                if (file.size > 2 * 1024 * 1024) {
+                    alert('Ukuran file maksimal 2MB.');
+                    fileInput.value = '';
+                    return;
+                }
+
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    cropperSourceImage.src = event.target.result;
+                    
+                    cropperModal.classList.remove('hidden');
+                    setTimeout(() => {
+                        cropperModalContent.classList.remove('scale-95', 'opacity-0');
+                        cropperModalContent.classList.add('scale-100', 'opacity-100');
+                    }, 50);
+
+                    if (cropper) {
+                        cropper.destroy();
+                    }
+
+                    cropper = new Cropper(cropperSourceImage, {
+                        aspectRatio: 1,
+                        viewMode: 1,
+                        dragMode: 'move',
+                        autoCropArea: 0.8,
+                        restore: false,
+                        guides: false,
+                        center: false,
+                        highlight: false,
+                        cropBoxMovable: true,
+                        cropBoxResizable: true,
+                        toggleDragModeOnDblclick: false,
+                        ready: function() {
+                            const imageData = cropper.getImageData();
+                            cropperZoomRange.min = imageData.width / imageData.naturalWidth * 0.5;
+                            cropperZoomRange.max = cropperZoomRange.min * 10;
+                            cropperZoomRange.value = cropper.getData().scaleX || 1;
+                        }
+                    });
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+    }
+
+    if (cropperZoomRange) {
+        cropperZoomRange.addEventListener('input', function() {
+            if (cropper) {
+                cropper.zoomTo(parseFloat(this.value));
+            }
+        });
+    }
+
+    const rotateLeft = document.getElementById('cropperRotateLeft');
+    if (rotateLeft) {
+        rotateLeft.addEventListener('click', function() {
+            if (cropper) cropper.rotate(-45);
+        });
+    }
+    const rotateRight = document.getElementById('cropperRotateRight');
+    if (rotateRight) {
+        rotateRight.addEventListener('click', function() {
+            if (cropper) cropper.rotate(45);
+        });
+    }
+
+    function closeCropperModal() {
+        if (cropperModalContent) {
+            cropperModalContent.classList.remove('scale-100', 'opacity-100');
+            cropperModalContent.classList.add('scale-95', 'opacity-0');
+        }
+        setTimeout(() => {
+            if (cropperModal) cropperModal.classList.add('hidden');
+            if (cropper) {
+                cropper.destroy();
+                cropper = null;
+            }
+            if (fileInput) fileInput.value = '';
+        }, 300);
+    }
+
+    const cancelCropper = document.getElementById('cancelCropperBtn');
+    if (cancelCropper) cancelCropper.addEventListener('click', closeCropperModal);
+    const closeCropper = document.getElementById('closeCropperBtn');
+    if (closeCropper) closeCropper.addEventListener('click', closeCropperModal);
+
+    const saveCropper = document.getElementById('saveCropperBtn');
+    if (saveCropper) {
+        saveCropper.addEventListener('click', function() {
+            if (cropper) {
+                const canvas = cropper.getCroppedCanvas({
+                    width: 400,
+                    height: 400,
+                    imageSmoothingEnabled: true,
+                    imageSmoothingQuality: 'high'
+                });
+                
+                const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
+                
+                const croppedInput = document.getElementById('cropped_image_input');
+                if (croppedInput) croppedInput.value = dataUrl;
+                
+                const profileAvatarImg = document.getElementById('profile-avatar-img');
+                const profileAvatarPlaceholder = document.getElementById('profile-avatar-placeholder');
+                
+                if (profileAvatarImg) {
+                    profileAvatarImg.src = dataUrl;
+                } else if (profileAvatarPlaceholder) {
+                    const newImg = document.createElement('img');
+                    newImg.id = 'profile-avatar-img';
+                    newImg.src = dataUrl;
+                    newImg.className = 'w-16 h-16 rounded-2xl object-cover shadow-md';
+                    profileAvatarPlaceholder.replaceWith(newImg);
+                }
+                
+                const headerProfileImgs = document.querySelectorAll('header img');
+                headerProfileImgs.forEach(img => {
+                    img.src = dataUrl;
+                });
+
+                if (cropperModalContent) {
+                    cropperModalContent.classList.remove('scale-100', 'opacity-100');
+                    cropperModalContent.classList.add('scale-95', 'opacity-0');
+                }
+                setTimeout(() => {
+                    if (cropperModal) cropperModal.classList.add('hidden');
+                    if (cropper) {
+                        cropper.destroy();
+                        cropper = null;
+                    }
+                }, 300);
+            }
+        });
     }
 </script>
 </body>

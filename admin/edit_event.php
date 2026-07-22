@@ -264,12 +264,21 @@ while ($v = $variants_q->fetch_assoc()) {
                     </div>
                     <div class="md:col-span-2">
                         <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Desain Header Tiket PDF (Update Opsional)</label>
-                        <input type="file" name="tiket_header" accept=".jpg,.jpeg,.png" class="w-full text-sm font-medium file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-bold file:bg-indigo-50 file:text-indigo-600 hover:file:bg-indigo-100 transition-all">
+                        <input type="file" id="adminEditHeaderInput" name="tiket_header" accept=".jpg,.jpeg,.png" class="w-full text-sm font-medium file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-bold file:bg-indigo-50 file:text-indigo-600 hover:file:bg-indigo-100 transition-all">
                         <?php if(!empty($event['tiket_header']) && file_exists('../assets/images/events/'.$event['tiket_header'])): ?>
-                            <p class="text-[10px] text-emerald-500 mt-1 font-bold">✓ Header tiket sudah terpasang. Abaikan jika tidak ingin mengubah.</p>
+                            <p class="text-[10px] text-emerald-500 mt-1 font-bold">✓ Header tiket saat ini sudah terpasang. Unggah baru jika ingin mengganti.</p>
+                            <div class="mt-2">
+                                <img src="../assets/images/events/<?= htmlspecialchars($event['tiket_header']) ?>" class="h-24 w-full max-w-md object-cover rounded-xl border border-slate-200">
+                            </div>
                         <?php else: ?>
                             <p class="text-[10px] text-slate-400 mt-1">*Gambar ini akan dipasang di bagian paling atas PDF Tiket (seperti desain tiket fisik).</p>
                         <?php endif; ?>
+                        
+                        <!-- Live Preview Box for New Header Tiket -->
+                        <div id="adminEditHeaderPreviewContainer" class="hidden mt-3 p-3 bg-indigo-50/50 border border-indigo-100 rounded-2xl max-w-md">
+                            <p class="text-xs font-bold text-indigo-900 mb-2">Pratinjau Desain Header Tiket PDF Baru</p>
+                            <img id="adminEditHeaderPreviewImg" class="w-full h-28 object-cover rounded-xl border border-indigo-200 shadow-sm">
+                        </div>
                     </div>
                     <div class="md:col-span-2 flex justify-end">
                         <button type="submit" class="bg-primary hover:opacity-90 text-white font-bold py-3 px-8 rounded-xl shadow-md">Simpan Perubahan</button>
@@ -315,6 +324,29 @@ while ($v = $variants_q->fetch_assoc()) {
                 rows[0].querySelector('.btn-remove-variant').classList.add('hidden');
             }
         }
+
+        // Live Header Preview Handler
+        document.addEventListener('DOMContentLoaded', () => {
+            const adminEditHeaderInput = document.getElementById('adminEditHeaderInput');
+            const adminEditHeaderContainer = document.getElementById('adminEditHeaderPreviewContainer');
+            const adminEditHeaderPreviewImg = document.getElementById('adminEditHeaderPreviewImg');
+
+            if (adminEditHeaderInput && adminEditHeaderContainer && adminEditHeaderPreviewImg) {
+                adminEditHeaderInput.addEventListener('change', function(e) {
+                    const file = e.target.files[0];
+                    if (file) {
+                        const reader = new FileReader();
+                        reader.onload = function(evt) {
+                            adminEditHeaderPreviewImg.src = evt.target.result;
+                            adminEditHeaderContainer.classList.remove('hidden');
+                        };
+                        reader.readAsDataURL(file);
+                    } else {
+                        adminEditHeaderContainer.classList.add('hidden');
+                    }
+                });
+            }
+        });
     </script>
 </body>
 </html>

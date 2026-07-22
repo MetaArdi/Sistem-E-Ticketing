@@ -212,14 +212,14 @@ while ($c = $cat_q->fetch_assoc()) { $cat_list[] = $c['nama']; }
                 
                 <div class="flex items-center gap-4">
                     <a href="profile.php" class="hidden md:flex items-center gap-3 mr-2 px-3 py-1.5 rounded-full border border-slate-100 bg-slate-50 hover:bg-slate-100 hover:border-slate-200 transition-colors group cursor-pointer">
-                        <?php if (isset($_SESSION['foto_profil']) && !empty($_SESSION['foto_profil']) && file_exists('../assets/images/profil/'.$_SESSION['foto_profil'])): ?>
-                            <img src="../assets/images/profil/<?= htmlspecialchars($_SESSION['foto_profil']) ?>" class="w-8 h-8 rounded-full object-cover shadow-sm">
+                        <?php if (isset($_SESSION['foto_profil']) && !empty($_SESSION['foto_profil']) && (str_starts_with($_SESSION['foto_profil'], 'http') || file_exists('../assets/images/profil/'.$_SESSION['foto_profil']))): ?>
+                            <img src="<?= str_starts_with($_SESSION['foto_profil'], 'http') ? htmlspecialchars($_SESSION['foto_profil']) : '../assets/images/profil/'.htmlspecialchars($_SESSION['foto_profil']) ?>" class="w-8 h-8 rounded-full object-cover shadow-sm">
                         <?php else: ?>
                             <div class="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-secondary text-white flex items-center justify-center font-bold text-sm shadow-sm group-hover:shadow transition-all">
-                                <?= strtoupper(substr($_SESSION['nama_lengkap'], 0, 1)) ?>
+                                <?= strtoupper(substr($_SESSION['nama_lengkap'] ?? 'A', 0, 1)) ?>
                             </div>
                         <?php endif; ?>
-                        <span class="text-sm font-bold text-slate-700 pr-2 group-hover:text-primary transition-colors"><?= htmlspecialchars($_SESSION['nama_lengkap']) ?></span>
+                        <span class="text-sm font-bold text-slate-700 pr-2 group-hover:text-primary transition-colors"><?= htmlspecialchars($_SESSION['nama_lengkap'] ?? 'Admin') ?></span>
                     </a>
                 </div>
             </header>
@@ -347,13 +347,22 @@ while ($c = $cat_q->fetch_assoc()) { $cat_list[] = $c['nama']; }
                             </div>
                             <div class="md:col-span-2">
                                 <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Foto Event (Maks. 4 - JPG, PNG, JPEG)</label>
-                                <input type="file" name="banners[]" multiple accept=".jpg,.jpeg,.png" class="w-full text-sm font-medium file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-bold file:bg-primary/10 file:text-primary hover:file:bg-primary/20 transition-all">
+                                <input type="file" id="adminBannersInput" name="banners[]" multiple accept=".jpg,.jpeg,.png" class="w-full text-sm font-medium file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-bold file:bg-primary/10 file:text-primary hover:file:bg-primary/20 transition-all">
                                 <p class="text-[10px] text-slate-400 mt-1">*Anda bisa memilih hingga 4 foto sekaligus (tekan Ctrl/Cmd saat memilih).</p>
+                                
+                                <!-- Live Image Preview Grid for Event Banners -->
+                                <div id="adminBannersPreviewGrid" class="hidden mt-3 grid grid-cols-2 sm:grid-cols-4 gap-3"></div>
                             </div>
                             <div class="md:col-span-2">
                                 <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Desain Header Tiket PDF (Opsional)</label>
-                                <input type="file" name="tiket_header" accept=".jpg,.jpeg,.png" class="w-full text-sm font-medium file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-bold file:bg-indigo-50 file:text-indigo-600 hover:file:bg-indigo-100 transition-all">
+                                <input type="file" id="adminHeaderInput" name="tiket_header" accept=".jpg,.jpeg,.png" class="w-full text-sm font-medium file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-bold file:bg-indigo-50 file:text-indigo-600 hover:file:bg-indigo-100 transition-all">
                                 <p class="text-[10px] text-slate-400 mt-1">*Gambar ini akan dipasang di bagian paling atas PDF Tiket (seperti desain tiket fisik).</p>
+                                
+                                <!-- Live Image Preview Box for Header Tiket -->
+                                <div id="adminHeaderPreviewContainer" class="hidden mt-3 p-3 bg-indigo-50/50 border border-indigo-100 rounded-2xl">
+                                    <p class="text-xs font-bold text-indigo-900 mb-2">Pratinjau Desain Header Tiket PDF Baru</p>
+                                    <img id="adminHeaderPreviewImg" class="w-full h-28 object-cover rounded-xl border border-indigo-200 shadow-sm">
+                                </div>
                             </div>
                             <div class="md:col-span-2 flex justify-end">
                                 <button type="submit" class="bg-primary hover:opacity-90 text-white font-bold py-3 px-8 rounded-xl transition-all shadow-md">Buat Event</button>
@@ -615,6 +624,55 @@ while ($c = $cat_q->fetch_assoc()) { $cat_list[] = $c['nama']; }
                 if (e.key === 'ArrowLeft') prevImage();
             }
         });
+
+        // Banner Multi-image & Header Live Preview Handlers
+        const bannersInput = document.getElementById('adminBannersInput');
+        const bannersPreviewGrid = document.getElementById('adminBannersPreviewGrid');
+
+        if (bannersInput && bannersPreviewGrid) {
+            bannersInput.addEventListener('change', function(e) {
+                bannersPreviewGrid.innerHTML = '';
+                const files = Array.from(e.target.files).slice(0, 4);
+                if (files.length > 0) {
+                    bannersPreviewGrid.classList.remove('hidden');
+                    files.forEach((file, index) => {
+                        const reader = new FileReader();
+                        reader.onload = function(evt) {
+                            const item = document.createElement('div');
+                            item.className = 'relative group rounded-xl overflow-hidden border border-slate-200 shadow-sm bg-slate-100 h-24';
+                            item.innerHTML = `
+                                <img src="${evt.target.result}" class="w-full h-full object-cover">
+                                <span class="absolute top-1 left-1 bg-slate-900/70 text-white text-[9px] font-bold px-1.5 py-0.5 rounded">Foto ${index + 1}</span>
+                            `;
+                            bannersPreviewGrid.appendChild(item);
+                        };
+                        reader.readAsDataURL(file);
+                    });
+                } else {
+                    bannersPreviewGrid.classList.add('hidden');
+                }
+            });
+        }
+
+        const headerInput = document.getElementById('adminHeaderInput');
+        const headerContainer = document.getElementById('adminHeaderPreviewContainer');
+        const headerPreviewImg = document.getElementById('adminHeaderPreviewImg');
+
+        if (headerInput && headerContainer && headerPreviewImg) {
+            headerInput.addEventListener('change', function(e) {
+                const file = e.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = function(evt) {
+                        headerPreviewImg.src = evt.target.result;
+                        headerContainer.classList.remove('hidden');
+                    };
+                    reader.readAsDataURL(file);
+                } else {
+                    headerContainer.classList.add('hidden');
+                }
+            });
+        }
     </script>
 </body>
 </html>

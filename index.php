@@ -68,6 +68,37 @@ while ($row = $res_upcoming->fetch_assoc()) {
     $upcoming_events[] = $row;
 }
 
+// Fetch Hero Slider settings
+$hero_slides = [];
+if (isset($global_settings['landing_hero_slider']) && !empty($global_settings['landing_hero_slider'])) {
+    $hero_slides = json_decode($global_settings['landing_hero_slider'], true) ?: [];
+}
+
+// Fallback to default slides if no custom slides uploaded
+if (empty($hero_slides)) {
+    $hero_slides = [
+        [
+            'id' => 'default_1',
+            'image_url' => 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?auto=format&fit=crop&w=1400&q=80',
+            'title' => 'Ciptakan Momen & Konser Musik Terbaik',
+            'subtitle' => 'Temukan ribuan event seru, festival musik, dan pertunjukan favoritmu di HaloTiket.',
+            'link' => ''
+        ],
+        [
+            'id' => 'default_2',
+            'image_url' => 'https://images.unsplash.com/photo-1501386761578-eac5c94b800a?auto=format&fit=crop&w=1400&q=80',
+            'title' => 'Pengalaman Berkesan Tanpa Batas',
+            'subtitle' => 'Nikmati pemesanan tiket kilat, transaksi instan, dan QR Code pemindaian cepat.',
+            'link' => ''
+        ]
+    ];
+} else {
+    foreach ($hero_slides as &$slide) {
+        $slide['image_url'] = BASE_URL . 'assets/images/slider/' . $slide['image'];
+    }
+    unset($slide);
+}
+
 ?>
 <!DOCTYPE html>
 <html lang="id">
@@ -222,6 +253,58 @@ while ($row = $res_upcoming->fetch_assoc()) {
                 <a href="index.php" class="text-blue-500 hover:text-blue-800 font-bold underline text-xs">Reset</a>
             </div>
         <?php endif; ?>
+
+        <!-- HERO IMAGE SLIDER / CAROUSEL -->
+        <div class="mb-10 relative group rounded-3xl overflow-hidden shadow-xl border border-slate-200 bg-slate-900">
+            <div id="heroCarousel" class="relative w-full h-[230px] sm:h-[340px] md:h-[420px] overflow-hidden">
+                <?php foreach ($hero_slides as $index => $slide): ?>
+                    <div class="hero-slide absolute inset-0 transition-opacity duration-700 ease-in-out opacity-0 z-0 flex items-end <?= $index === 0 ? 'opacity-100 z-10' : '' ?>" data-slide-index="<?= $index ?>">
+                        <!-- Slide Background Image -->
+                        <img src="<?= htmlspecialchars($slide['image_url']) ?>" alt="Banner Slide <?= $index + 1 ?>" class="w-full h-full object-cover">
+                        <!-- Dark Overlay Gradient -->
+                        <div class="absolute inset-0 bg-gradient-to-t from-slate-950/90 via-slate-950/40 to-transparent"></div>
+
+                        <!-- Slide Content Overlay -->
+                        <div class="relative z-10 p-6 md:p-10 max-w-2xl text-white">
+                            <span class="inline-block px-3 py-1 bg-primary/90 text-white text-[10px] md:text-xs font-extrabold uppercase tracking-wider rounded-full mb-3 shadow-sm backdrop-blur-md">HaloTiket Featured</span>
+                            <?php if (!empty($slide['title'])): ?>
+                                <h2 class="text-xl sm:text-3xl md:text-4xl font-extrabold tracking-tight drop-shadow-md leading-tight text-white mb-2">
+                                    <?= htmlspecialchars($slide['title']) ?>
+                                </h2>
+                            <?php endif; ?>
+                            <?php if (!empty($slide['subtitle'])): ?>
+                                <p class="text-xs sm:text-sm md:text-base text-slate-200 font-medium line-clamp-2 mb-4 drop-shadow">
+                                    <?= htmlspecialchars($slide['subtitle']) ?>
+                                </p>
+                            <?php endif; ?>
+                            <?php if (!empty($slide['link'])): ?>
+                                <a href="<?= htmlspecialchars($slide['link']) ?>" class="inline-flex items-center gap-2 bg-primary hover:bg-primary/90 text-white text-xs sm:text-sm font-bold px-5 py-2.5 rounded-full shadow-lg transition-transform duration-300 transform hover:-translate-y-0.5">
+                                    Lihat Detail Event
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
+                                </a>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+                <?php endforeach; ?>
+            </div>
+
+            <!-- Navigation Controls -->
+            <?php if (count($hero_slides) > 1): ?>
+                <button id="sliderPrevBtn" aria-label="Previous Slide" class="absolute left-3 top-1/2 -translate-y-1/2 z-20 w-10 h-10 rounded-full bg-slate-900/50 hover:bg-slate-900/80 text-white backdrop-blur-sm border border-white/20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 cursor-pointer">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7" /></svg>
+                </button>
+                <button id="sliderNextBtn" aria-label="Next Slide" class="absolute right-3 top-1/2 -translate-y-1/2 z-20 w-10 h-10 rounded-full bg-slate-900/50 hover:bg-slate-900/80 text-white backdrop-blur-sm border border-white/20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 cursor-pointer">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7" /></svg>
+                </button>
+
+                <!-- Indicator Dots -->
+                <div class="absolute bottom-4 right-6 z-20 flex items-center gap-2" id="sliderDotsContainer">
+                    <?php foreach ($hero_slides as $index => $slide): ?>
+                        <button aria-label="Slide <?= $index + 1 ?>" class="slider-dot w-2.5 h-2.5 rounded-full transition-all duration-300 cursor-pointer <?= $index === 0 ? 'bg-primary w-7' : 'bg-white/50 hover:bg-white' ?>" data-dot-index="<?= $index ?>"></button>
+                    <?php endforeach; ?>
+                </div>
+            <?php endif; ?>
+        </div>
 
         <!-- Categories -->
         <div class="mb-10 md:mb-12">
@@ -633,6 +716,75 @@ while ($row = $res_upcoming->fetch_assoc()) {
             if (sidebar) {
                 closeBtn.addEventListener('click', closeSidebar);
                 overlay.addEventListener('click', closeSidebar);
+            }
+
+            // Hero Slider Carousel Logic
+            const slides = document.querySelectorAll('.hero-slide');
+            const dots = document.querySelectorAll('.slider-dot');
+            const prevBtn = document.getElementById('sliderPrevBtn');
+            const nextBtn = document.getElementById('sliderNextBtn');
+
+            if (slides.length > 1) {
+                let currentSlide = 0;
+                let autoPlayTimer = null;
+
+                function goToSlide(index) {
+                    slides[currentSlide].classList.remove('opacity-100', 'z-10');
+                    slides[currentSlide].classList.add('opacity-0', 'z-0');
+                    if (dots[currentSlide]) {
+                        dots[currentSlide].classList.remove('bg-primary', 'w-7');
+                        dots[currentSlide].classList.add('bg-white/50');
+                    }
+
+                    currentSlide = (index + slides.length) % slides.length;
+
+                    slides[currentSlide].classList.remove('opacity-0', 'z-0');
+                    slides[currentSlide].classList.add('opacity-100', 'z-10');
+                    if (dots[currentSlide]) {
+                        dots[currentSlide].classList.remove('bg-white/50');
+                        dots[currentSlide].classList.add('bg-primary', 'w-7');
+                    }
+                }
+
+                function startAutoPlay() {
+                    stopAutoPlay();
+                    autoPlayTimer = setInterval(() => {
+                        goToSlide(currentSlide + 1);
+                    }, 5000);
+                }
+
+                function stopAutoPlay() {
+                    if (autoPlayTimer) clearInterval(autoPlayTimer);
+                }
+
+                if (nextBtn) {
+                    nextBtn.addEventListener('click', () => {
+                        goToSlide(currentSlide + 1);
+                        startAutoPlay();
+                    });
+                }
+
+                if (prevBtn) {
+                    prevBtn.addEventListener('click', () => {
+                        goToSlide(currentSlide - 1);
+                        startAutoPlay();
+                    });
+                }
+
+                dots.forEach((dot, idx) => {
+                    dot.addEventListener('click', () => {
+                        goToSlide(idx);
+                        startAutoPlay();
+                    });
+                });
+
+                const carouselContainer = document.getElementById('heroCarousel');
+                if (carouselContainer) {
+                    carouselContainer.addEventListener('mouseenter', stopAutoPlay);
+                    carouselContainer.addEventListener('mouseleave', startAutoPlay);
+                }
+
+                startAutoPlay();
             }
         });
     </script>
