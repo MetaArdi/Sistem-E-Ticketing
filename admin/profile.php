@@ -75,7 +75,14 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             }
 
             if (empty($error_msg) && isset($stmt)) {
+                $old_photo = $user_data['foto_profil'];
                 if ($stmt->execute()) {
+                    if (!empty($old_photo) && $old_photo !== $foto_profil && !str_starts_with($old_photo, 'http')) {
+                        $old_path = '../assets/images/profil/' . $old_photo;
+                        if (file_exists($old_path) && is_file($old_path)) {
+                            @unlink($old_path);
+                        }
+                    }
                     $_SESSION['nama_lengkap'] = $nama_lengkap;
                     $_SESSION['foto_profil'] = $foto_profil;
                     $success_msg = "Profil berhasil diperbarui.";
