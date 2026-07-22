@@ -32,7 +32,7 @@
 ### 🌐 Halaman Publik
 | Fitur | Keterangan |
 |---|---|
-| Beranda Event | Menampilkan event terbaru & akan datang dengan filter kategori dan pencarian |
+| Beranda Event | Menampilkan **Hero Image Slider (Carousel)** promo, event terbaru & akan datang dengan filter kategori dan pencarian |
 | Detail Event | Info lengkap event: deskripsi, jadwal, lokasi, vendor, link Google Maps |
 | Pembelian Tiket | Form checkout dengan integrasi pembayaran **Midtrans** & **Dynamic QRIS HaloTiket** |
 | Cek Tiket | Pencarian E-Ticket berdasarkan email pembeli (dilengkapi proteksi anti-scraping) |
@@ -49,8 +49,11 @@
 | Approval Event | Setujui atau tolak event yang diajukan oleh Panitia |
 | Kelola Pengguna | Tambah, edit, nonaktifkan akun Panitia & Validator |
 | **Sistem Validator** | Mengatur kuota jumlah validator per panitia dan persetujuan (Approve/Reject) akun validator yang dibuat panitia |
-| Kelola Kategori | Buat kategori event kustom |
-| Pengaturan Sistem | Upload logo, favicon, konfigurasi kontak, sosial media, & **Maintenance Mode** |
+| Kelola Kategori | Buat kategori event kustom dengan penyesuaian ikon SVG |
+| Pengaturan Sistem | Upload logo, favicon, **Hero Image Slider Landing Page**, konfigurasi kontak, sosial media, & **Maintenance Mode** |
+| **Profil Admin Interaktif** | Modal pemotong foto **Cropper.js** (rasio 1:1, masker lingkaran, zoom, rotasi) & auto-delete foto lama |
+| **Foto Profil Navbar Header** | Menampilkan foto profil Admin (`foto_profil`) di navbar header seluruh halaman Admin |
+| **Live Image Previews** | Pratinjau langsung real-time sebelum upload foto profil, banner event 1-4, header tiket PDF, logo, & favicon |
 | Biaya Platform | Atur markup harga (Admin Fee) dinamis dalam Persentase (%) atau Nominal (Rp) |
 | Log Aktivitas | Pantau semua aktivitas pengguna di sistem |
 | Estimasi Pendapatan | Lihat ringkasan penjualan tiket per event |
@@ -58,8 +61,9 @@
 ### 🎪 Dashboard Panitia
 | Fitur | Keterangan |
 |---|---|
-| Buat Event | Submit event baru dengan **Desain Header Tiket** (memerlukan persetujuan Admin) |
+| Buat Event | Submit event baru dengan **Desain Header Tiket** & **Live Image Preview** (memerlukan persetujuan Admin) |
 | Status Event | Pantau status event: Pending, Disetujui, Ditolak |
+| **Profil Panitia Interaktif** | Modal pemotong foto **Cropper.js** (masker lingkaran, zoom slider, rotasi) & auto-delete foto lama |
 | **Kelola Validator** | Mendaftarkan akun validator (tergantung sisa kuota yang diset Admin) |
 | Laporan Penjualan | Lihat data tiket terjual & estimasi pendapatan event |
 
@@ -222,7 +226,9 @@ Halo_Tiket/
 │   └── images/
 │       ├── events/            # Foto/banner event
 │       ├── logo/              # File logo situs
-│       └── favicon/           # File favicon situs
+│       ├── favicon/           # File favicon situs
+│       ├── profil/            # Foto profil user/admin/panitia
+│       └── slider/            # Spanduk image slider landing page
 │
 ├── 📁 vendor/                 # Dependensi Composer (Midtrans SDK)
 │
