@@ -10,20 +10,53 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST' || empty($_POST['input_search'])) {
 }
 
 $input = trim($_POST['input_search']);
+$emailTarget = '';
 
-// Cari tiket di database
-$stmt = $conn->prepare("SELECT email_pembeli, order_id FROM tickets WHERE email_pembeli = ? OR order_id = ? LIMIT 1");
-$stmt->bind_param("ss", $input, $input);
-$stmt->execute();
-$res = $stmt->get_result();
-
-if ($res->num_rows === 0) {
-    echo json_encode(['status' => 'error', 'message' => 'Tidak ditemukan tiket dengan Email atau Order ID tersebut.']);
-    exit;
+// Tentukan apakah input berupa Email atau Order ID
+if (filter_var($input, FILTER_VALIDATE_EMAIL)) {
+    // Jika pengguna memasukkan alamat email langsung, OTP harus dikirimkan ke email tersebut!
+    $stmt = $conn->prepare("SELECT id FROM tickets WHERE email_pembeli = ? LIMIT 1");
+    if ($stmt) {
+        $stmt->bind_param("s", $input);
+        $stmt->execute();
+        $res = $stmt->get_result();
+        if ($res && $res->num_rows > 0) {
+            $emailTarget = $input;
+        }
+        $stmt->close();
+    }
+    
+    // Cek juga jika email terdaftar di tabel users
+    if (empty($emailTarget)) {
+        $stmt_u = $conn->prepare("SELECT email FROM users WHERE email = ? LIMIT 1");
+        if ($stmt_u) {
+            $stmt_u->bind_param("s", $input);
+            $stmt_u->execute();
+            $res_u = $stmt_u->get_result();
+            if ($res_u && $res_u->num_rows > 0) {
+                $emailTarget = $input;
+            }
+            $stmt_u->close();
+        }
+    }
+} else {
+    // Input berupa Order ID (misal: HTK-17482...)
+    $stmt = $conn->prepare("SELECT email_pembeli FROM tickets WHERE order_id = ? LIMIT 1");
+    if ($stmt) {
+        $stmt->bind_param("s", $input);
+        $stmt->execute();
+        $res = $stmt->get_result();
+        if ($res && $row = $res->fetch_assoc()) {
+            $emailTarget = $row['email_pembeli'];
+        }
+        $stmt->close();
+    }
 }
 
-$ticketData = $res->fetch_assoc();
-$emailTarget = $ticketData['email_pembeli'];
+if (empty($emailTarget)) {
+    echo json_encode(['status' => 'error', 'message' => 'Tidak ditemukan tiket aktif dengan Email atau Order ID tersebut.']);
+    exit;
+}
 
 // Generate 6 digit OTP random
 $otp = sprintf("%06d", mt_rand(100000, 999999));
@@ -32,7 +65,7 @@ $_SESSION['otp_ticket_code'] = $otp;
 $_SESSION['otp_ticket_email'] = $emailTarget;
 $_SESSION['otp_ticket_expires'] = time() + 300; // Berlaku 5 menit
 
-// Kirim Email OTP resmi ke inbox email pembeli
+// Kirim Email OTP resmi ke emailTarget (email terbaru yang dimasukkan)
 $to = $emailTarget;
 $subject = "[$otp] Kode OTP Verifikasi E-Ticket - HaloTiket";
 $message = "
@@ -53,7 +86,7 @@ $message = "
                 $otp
             </div>
 
-            <p style='font-size: 12px; color: #94a3b8; margin-top: 25px;'>Kode ini hanya berlaku selama <strong>5 menit</strong>. Harap tidak membagikan kode OTP ini kepada siapapun demi keamanan tiket Anda.</p>
+            <p style='font-size: 12px; color: #94a3b8; margin-top: 25px;'>Kode ini dikirimkan ke <strong>$emailTarget</strong> dan hanya berlaku selama <strong>5 menit</strong>.</p>
         </div>
         <div style='background: #f8fafc; padding: 15px; text-align: center; font-size: 11px; color: #94a3b8; border-top: 1px solid #f1f5f9;'>
             &copy; " . date('Y') . " HaloTiket. All rights reserved.

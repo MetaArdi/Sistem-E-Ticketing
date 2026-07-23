@@ -141,8 +141,20 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && !isset($_POST['withdraw_form']) && !
                                 @unlink($old_path);
                             }
                         }
+                        // Sync email_pembeli di tabel tickets jika email akun diubah
+                        if (!empty($user_data['email']) && $user_data['email'] !== $email) {
+                            $old_email = $user_data['email'];
+                            $stmt_sync = $conn->prepare("UPDATE tickets SET email_pembeli = ? WHERE email_pembeli = ?");
+                            if ($stmt_sync) {
+                                $stmt_sync->bind_param("ss", $email, $old_email);
+                                $stmt_sync->execute();
+                                $stmt_sync->close();
+                            }
+                        }
+
                         $_SESSION['nama_lengkap'] = $nama_lengkap;
                         $_SESSION['foto_profil'] = $foto_profil;
+                        $_SESSION['email'] = $email;
                         $success_msg = "Profil berhasil diperbarui.";
                         $user_data['nama_lengkap'] = $nama_lengkap;
                         $user_data['email'] = $email;
