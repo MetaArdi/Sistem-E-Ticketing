@@ -56,7 +56,7 @@ if ($action === 'update_bank') {
             $stmt->close();
         }
     }
-    header("Location: ../profile.php#withdrawal");
+    header("Location: ../withdraw.php");
     exit;
 }
 
@@ -78,13 +78,13 @@ if ($action === 'request_withdraw') {
 
     if (empty($user_bank['nama_bank']) || empty($user_bank['no_rekening']) || empty($user_bank['nama_rekening'])) {
         $_SESSION['error_withdraw'] = "Silakan lengkapi informasi rekening bank Anda terlebih dahulu sebelum mengajukan penarikan dana.";
-        header("Location: ../profile.php#withdrawal");
+        header("Location: ../withdraw.php");
         exit;
     }
 
     if ($amount < 10000) {
         $_SESSION['error_withdraw'] = "Minimal penarikan dana adalah Rp 10.000.";
-        header("Location: ../profile.php#withdrawal");
+        header("Location: ../withdraw.php");
         exit;
     }
 
@@ -128,7 +128,7 @@ if ($action === 'request_withdraw') {
 
     if ($amount > $available_balance) {
         $_SESSION['error_withdraw'] = "Saldo tersedia Anda tidak mencukupi untuk penarikan Rp " . number_format($amount, 0, ',', '.') . ". Saldo maksimal: Rp " . number_format($available_balance, 0, ',', '.');
-        header("Location: ../profile.php#withdrawal");
+        header("Location: ../withdraw.php");
         exit;
     }
 
@@ -148,7 +148,7 @@ if ($action === 'request_withdraw') {
         $stmt_ins->close();
     }
 
-    header("Location: ../profile.php#withdrawal");
+    header("Location: ../withdraw.php");
     exit;
 }
 

@@ -235,14 +235,17 @@ $daftar_events = $stats['daftar_events'];
                         <p class="text-4xl font-extrabold text-slate-900 relative z-10"><?= $sisa_tiket ?></p>
                     </div>
 
-                    <div class="bg-white rounded-3xl border border-slate-100 shadow-sm p-8 relative overflow-hidden group hover:shadow-md transition-shadow">
+                    <a href="withdraw.php" class="bg-white rounded-3xl border border-slate-100 shadow-sm p-8 relative overflow-hidden group hover:shadow-md hover:border-indigo-200 transition-all block">
                         <div class="absolute -right-6 -top-6 w-24 h-24 bg-indigo-500/10 rounded-full group-hover:scale-150 transition-transform duration-500 ease-out"></div>
                         <div class="w-12 h-12 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center mb-4 border border-indigo-200 relative z-10">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
                         </div>
-                        <h3 class="text-sm font-bold text-slate-400 uppercase tracking-wider mb-1 relative z-10">Estimasi Pendapatan</h3>
+                        <h3 class="text-sm font-bold text-slate-400 uppercase tracking-wider mb-1 relative z-10 flex items-center justify-between">
+                            Estimasi Pendapatan
+                            <span class="text-xs text-primary font-bold opacity-0 group-hover:opacity-100 transition-opacity">Cairkan &rarr;</span>
+                        </h3>
                         <p class="text-3xl font-extrabold text-slate-900 relative z-10">Rp <?= number_format($estimasi_pendapatan, 0, ',', '.') ?></p>
-                    </div>
+                    </a>
                 </div>
                 
                 <!-- Grid spacing -->
@@ -283,15 +286,19 @@ $daftar_events = $stats['daftar_events'];
                     </div>
                 </div>
 
-                <!-- Mobile Navigation Links -->
-                <div class="mt-8 grid grid-cols-1 gap-4 md:hidden">
+                <!-- Navigation Quick Links -->
+                <div class="mt-8 grid grid-cols-1 md:grid-cols-3 gap-4">
                     <a href="manage_events.php"
-                        class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 font-bold text-slate-700 flex justify-between items-center">
+                        class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 font-bold text-slate-700 flex justify-between items-center hover:border-primary/40 hover:text-primary transition-all">
                         Kelola Event Saya <span>&rarr;</span>
                     </a>
                     <a href="laporan_sales.php"
-                        class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 font-bold text-slate-700 flex justify-between items-center">
+                        class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 font-bold text-slate-700 flex justify-between items-center hover:border-primary/40 hover:text-primary transition-all">
                         Laporan Penjualan <span>&rarr;</span>
+                    </a>
+                    <a href="withdraw.php"
+                        class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 font-bold text-slate-700 flex justify-between items-center hover:border-primary/40 hover:text-primary transition-all">
+                        Tarik Tunai & Rekening <span>&rarr;</span>
                     </a>
                 </div>
             </main>

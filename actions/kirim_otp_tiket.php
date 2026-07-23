@@ -96,11 +96,16 @@ $message = "
 </html>
 ";
 
-$headers = "MIME-Version: 1.0" . "\r\n";
-$headers .= "Content-type:text/html;charset=UTF-8" . "\r\n";
-$headers .= "From: HaloTiket <no-reply@halotiket.com>" . "\r\n";
+$headers = "MIME-Version: 1.0\r\n";
+$headers .= "Content-Type: text/html; charset=UTF-8\r\n";
+$headers .= "From: HaloTiket <no-reply@halotiket.com>\r\n";
+$headers .= "Reply-To: no-reply@halotiket.com\r\n";
+$headers .= "X-Mailer: PHP/" . phpversion() . "\r\n";
 
-@mail($to, $subject, $message, $headers);
+$mail_sent = @mail($to, $subject, $message, $headers, "-f no-reply@halotiket.com");
+if (!$mail_sent) {
+    @mail($to, $subject, $message, $headers);
+}
 
 echo json_encode([
     'status' => 'success',

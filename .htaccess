@@ -1,27 +1,26 @@
 <IfModule mod_headers.c>
-    # Clickjacking protection
-    Header set X-Frame-Options "DENY"
+    # Clickjacking protection (SAMEORIGIN agar aman & tetap mendukung modal/frame internal)
+    Header set X-Frame-Options "SAMEORIGIN"
     
     # Cross-Site Scripting (XSS) protection
     Header set X-XSS-Protection "1; mode=block"
     
     # MIME-sniffing protection
     Header set X-Content-Type-Options "nosniff"
-    
-    # Strict-Transport-Security (HSTS) - Only uncomment if HTTPS is configured!
-    # Header set Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
 </IfModule>
 
-# Directives php_flag & php_value dikomentari agar tidak menyebabkan Error 500 di server cPanel (PHP-FPM / suPHP)
-# <IfModule mod_php.c>
-#     php_flag session.cookie_httponly on
-#     php_value session.cookie_samesite Strict
-# </IfModule>
-# <IfModule mod_php7.c>
-#     php_flag session.cookie_httponly on
-#     php_value session.cookie_samesite Strict
-# </IfModule>
-# <IfModule mod_php8.c>
-#     php_flag session.cookie_httponly on
-#     php_value session.cookie_samesite Strict
-# </IfModule>
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    
+    # Mencegah loop jika request ke direktori atau file statis asli (CSS, JS, Gambar)
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
+    
+    # Otomatis routing URL tanpa ekstensi .php ke file .php jika filenya ada
+    RewriteCond %{DOCUMENT_ROOT}%{REQUEST_URI}.php -f [OR]
+    RewriteCond %{REQUEST_FILENAME}.php -f
+    RewriteRule ^(.*)$ $1.php [L,QSA]
+</IfModule>
+
+# Keamanan Tambahan: Matikan browsing direktori
+Options -Indexes

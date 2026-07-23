@@ -2,8 +2,8 @@
 session_start();
 require_once '../config/google_oauth.php';
 
-if (GOOGLE_CLIENT_ID === 'YOUR_GOOGLE_CLIENT_ID' || empty(GOOGLE_CLIENT_ID)) {
-    $_SESSION['error'] = "Login Google belum dikonfigurasi. Silakan lengkapi Google Client ID & Client Secret di menu Admin Settings.";
+if (empty(GOOGLE_CLIENT_ID) || empty(GOOGLE_CLIENT_SECRET) || GOOGLE_CLIENT_ID === 'YOUR_GOOGLE_CLIENT_ID') {
+    $_SESSION['error'] = "Google Client ID atau Client Secret belum tersimpan. Silakan buka menu Admin Panel -> Settings, masukkan Google Client ID & Client Secret, lalu klik tombol 'Simpan Pengaturan'.";
     header("Location: login.php");
     exit();
 }
