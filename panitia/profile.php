@@ -8,33 +8,6 @@ if (!isset($_SESSION['user_id']) || $_SESSION['role'] != 'panitia') {
 
 require_once '../config/koneksi.php';
 
-// Pastikan tabel withdrawals & kolom bank di tabel users tersedia
-try {
-    $conn->query("
-        CREATE TABLE IF NOT EXISTS withdrawals (
-            id INT AUTO_INCREMENT PRIMARY KEY,
-            user_id INT NOT NULL,
-            amount DECIMAL(15,2) NOT NULL,
-            bank_name VARCHAR(100) NOT NULL,
-            account_number VARCHAR(50) NOT NULL,
-            account_name VARCHAR(100) NOT NULL,
-            status ENUM('pending', 'approved', 'rejected') DEFAULT 'pending',
-            admin_note TEXT NULL,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-    ");
-
-    $cols = $conn->query("SHOW COLUMNS FROM users LIKE 'nama_bank'");
-    if ($cols && $cols->num_rows == 0) {
-        @$conn->query("ALTER TABLE users ADD COLUMN nama_bank VARCHAR(100) NULL");
-        @$conn->query("ALTER TABLE users ADD COLUMN no_rekening VARCHAR(50) NULL");
-        @$conn->query("ALTER TABLE users ADD COLUMN nama_rekening VARCHAR(100) NULL");
-    }
-} catch (\Throwable $e) {
-    // Abaikan jika tabel/kolom sudah ada
-}
-
 $success_msg = '';
 $error_msg = '';
 $user_id = (int)($_SESSION['user_id'] ?? 0);
@@ -44,7 +17,7 @@ if ($user_id <= 0) {
     exit;
 }
 
-// Get current user info (including bank details)
+// Get current user info safely
 $user_data = [
     'nama_lengkap' => $_SESSION['nama_lengkap'] ?? 'Panitia Event',
     'email' => $_SESSION['email'] ?? '',
@@ -58,9 +31,9 @@ $stmt = $conn->prepare("SELECT email, nama_lengkap, foto_profil, nama_bank, no_r
 if ($stmt) {
     $stmt->bind_param("i", $user_id);
     $stmt->execute();
-    $db_user = $stmt->get_result()->fetch_assoc();
-    if ($db_user) {
-        $user_data = array_merge($user_data, $db_user);
+    $res = $stmt->get_result();
+    if ($res && $db_user = $res->fetch_assoc()) {
+        $user_data = array_merge($user_data, array_filter($db_user, function($v) { return $v !== null; }));
     }
     $stmt->close();
 }
@@ -76,17 +49,20 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && !isset($_POST['withdraw_form']) && !
         $error_msg = "Nama Lengkap dan Email tidak boleh kosong.";
     } else {
         // Cek apakah email sudah dipakai user lain
+        $email_check_pass = true;
         $stmt = $conn->prepare("SELECT id FROM users WHERE email = ? AND id != ?");
         if ($stmt) {
             $stmt->bind_param("si", $email, $user_id);
             $stmt->execute();
-            if ($stmt->get_result()->num_rows > 0) {
+            $res_check = $stmt->get_result();
+            if ($res_check && $res_check->num_rows > 0) {
                 $error_msg = "Email tersebut sudah terdaftar pada akun lain.";
+                $email_check_pass = false;
             }
             $stmt->close();
         }
 
-        if (empty($error_msg)) {
+        if ($email_check_pass) {
             $foto_profil = $user_data['foto_profil'] ?? '';
             
             // Check if there is a cropped image from the modal (Base64)
@@ -142,43 +118,44 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && !isset($_POST['withdraw_form']) && !
             }
 
             if (empty($error_msg)) {
+                $stmt_update = null;
                 if (!empty($password)) {
                     if ($password !== $password_confirm) {
                         $error_msg = "Konfirmasi password tidak cocok.";
                     } else {
                         $hashed_password = password_hash($password, PASSWORD_DEFAULT);
-                        $stmt = $conn->prepare("UPDATE users SET nama_lengkap = ?, email = ?, password = ?, foto_profil = ? WHERE id = ?");
-                        if ($stmt) $stmt->bind_param("ssssi", $nama_lengkap, $email, $hashed_password, $foto_profil, $user_id);
+                        $stmt_update = $conn->prepare("UPDATE users SET nama_lengkap = ?, email = ?, password = ?, foto_profil = ? WHERE id = ?");
+                        if ($stmt_update) $stmt_update->bind_param("ssssi", $nama_lengkap, $email, $hashed_password, $foto_profil, $user_id);
                     }
                 } else {
-                    $stmt = $conn->prepare("UPDATE users SET nama_lengkap = ?, email = ?, foto_profil = ? WHERE id = ?");
-                    if ($stmt) $stmt->bind_param("sssi", $nama_lengkap, $email, $foto_profil, $user_id);
+                    $stmt_update = $conn->prepare("UPDATE users SET nama_lengkap = ?, email = ?, foto_profil = ? WHERE id = ?");
+                    if ($stmt_update) $stmt_update->bind_param("sssi", $nama_lengkap, $email, $foto_profil, $user_id);
                 }
-            }
 
-            if (empty($error_msg) && isset($stmt) && $stmt) {
-                $old_photo = $user_data['foto_profil'] ?? '';
-                if ($stmt->execute()) {
-                    if (!empty($old_photo) && $old_photo !== $foto_profil && !str_starts_with($old_photo, 'http')) {
-                        $old_path = '../assets/images/profil/' . $old_photo;
-                        if (file_exists($old_path) && is_file($old_path)) {
-                            @unlink($old_path);
+                if (empty($error_msg) && $stmt_update) {
+                    $old_photo = $user_data['foto_profil'] ?? '';
+                    if ($stmt_update->execute()) {
+                        if (!empty($old_photo) && $old_photo !== $foto_profil && !str_starts_with($old_photo, 'http')) {
+                            $old_path = '../assets/images/profil/' . $old_photo;
+                            if (file_exists($old_path) && is_file($old_path)) {
+                                @unlink($old_path);
+                            }
                         }
+                        $_SESSION['nama_lengkap'] = $nama_lengkap;
+                        $_SESSION['foto_profil'] = $foto_profil;
+                        $success_msg = "Profil berhasil diperbarui.";
+                        $user_data['nama_lengkap'] = $nama_lengkap;
+                        $user_data['email'] = $email;
+                        $user_data['foto_profil'] = $foto_profil;
+                        
+                        if (function_exists('logActivity')) {
+                            logActivity($conn, $user_id, 'Update Profile', 'Panitia memperbarui data profil akunnya.');
+                        }
+                    } else {
+                        $error_msg = "Terjadi kesalahan saat menyimpan data.";
                     }
-                    $_SESSION['nama_lengkap'] = $nama_lengkap;
-                    $_SESSION['foto_profil'] = $foto_profil;
-                    $success_msg = "Profil berhasil diperbarui.";
-                    $user_data['nama_lengkap'] = $nama_lengkap;
-                    $user_data['email'] = $email;
-                    $user_data['foto_profil'] = $foto_profil;
-                    
-                    if (function_exists('logActivity')) {
-                        logActivity($conn, $user_id, 'Update Profile', 'Panitia memperbarui data profil akunnya.');
-                    }
-                } else {
-                    $error_msg = "Terjadi kesalahan saat menyimpan data.";
+                    $stmt_update->close();
                 }
-                $stmt->close();
             }
         }
     }
@@ -191,62 +168,77 @@ unset($_SESSION['success_withdraw'], $_SESSION['error_withdraw']);
 
 // Calculation for Vendor Saldo & Withdrawals safely
 $total_earnings = 0;
-$stmt_rev = $conn->prepare("
-    SELECT SUM(COALESCE(v.harga, e.harga)) as total_earnings
-    FROM tickets t
-    JOIN events e ON t.id_event = e.id
-    LEFT JOIN event_ticket_variants v ON t.id_ticket_variant = v.id
-    WHERE e.id_panitia = ? AND t.status IN ('lunas', 'scanned')
-");
-if ($stmt_rev) {
-    $stmt_rev->bind_param("i", $user_id);
-    $stmt_rev->execute();
-    $res = $stmt_rev->get_result();
-    if ($res) {
-        $total_earnings = (float)($res->fetch_assoc()['total_earnings'] ?? 0);
+try {
+    $stmt_rev = $conn->prepare("
+        SELECT SUM(e.harga) as total_earnings
+        FROM tickets t
+        JOIN events e ON t.id_event = e.id
+        WHERE e.id_panitia = ? AND t.status IN ('lunas', 'scanned')
+    ");
+    if ($stmt_rev) {
+        $stmt_rev->bind_param("i", $user_id);
+        $stmt_rev->execute();
+        $res = $stmt_rev->get_result();
+        if ($res && $row = $res->fetch_assoc()) {
+            $total_earnings = (float)($row['total_earnings'] ?? 0);
+        }
+        $stmt_rev->close();
     }
-    $stmt_rev->close();
+} catch (\Throwable $e) {
+    $total_earnings = 0;
 }
 
 $total_approved_withdraw = 0;
-$stmt_wd_approved = $conn->prepare("SELECT SUM(amount) as total_approved FROM withdrawals WHERE user_id = ? AND status = 'approved'");
-if ($stmt_wd_approved) {
-    $stmt_wd_approved->bind_param("i", $user_id);
-    $stmt_wd_approved->execute();
-    $res = $stmt_wd_approved->get_result();
-    if ($res) {
-        $total_approved_withdraw = (float)($res->fetch_assoc()['total_approved'] ?? 0);
+try {
+    $stmt_wd_approved = $conn->prepare("SELECT SUM(amount) as total_approved FROM withdrawals WHERE user_id = ? AND status = 'approved'");
+    if ($stmt_wd_approved) {
+        $stmt_wd_approved->bind_param("i", $user_id);
+        $stmt_wd_approved->execute();
+        $res = $stmt_wd_approved->get_result();
+        if ($res && $row = $res->fetch_assoc()) {
+            $total_approved_withdraw = (float)($row['total_approved'] ?? 0);
+        }
+        $stmt_wd_approved->close();
     }
-    $stmt_wd_approved->close();
+} catch (\Throwable $e) {
+    $total_approved_withdraw = 0;
 }
 
 $total_pending_withdraw = 0;
-$stmt_wd_pending = $conn->prepare("SELECT SUM(amount) as total_pending FROM withdrawals WHERE user_id = ? AND status = 'pending'");
-if ($stmt_wd_pending) {
-    $stmt_wd_pending->bind_param("i", $user_id);
-    $stmt_wd_pending->execute();
-    $res = $stmt_wd_pending->get_result();
-    if ($res) {
-        $total_pending_withdraw = (float)($res->fetch_assoc()['total_pending'] ?? 0);
+try {
+    $stmt_wd_pending = $conn->prepare("SELECT SUM(amount) as total_pending FROM withdrawals WHERE user_id = ? AND status = 'pending'");
+    if ($stmt_wd_pending) {
+        $stmt_wd_pending->bind_param("i", $user_id);
+        $stmt_wd_pending->execute();
+        $res = $stmt_wd_pending->get_result();
+        if ($res && $row = $res->fetch_assoc()) {
+            $total_pending_withdraw = (float)($row['total_pending'] ?? 0);
+        }
+        $stmt_wd_pending->close();
     }
-    $stmt_wd_pending->close();
+} catch (\Throwable $e) {
+    $total_pending_withdraw = 0;
 }
 
-$available_balance = $total_earnings - ($total_approved_withdraw + $total_pending_withdraw);
+$available_balance = max(0, $total_earnings - ($total_approved_withdraw + $total_pending_withdraw));
 
 // Fetch withdrawal history safely
 $withdraw_history_data = [];
-$stmt_history = $conn->prepare("SELECT * FROM withdrawals WHERE user_id = ? ORDER BY created_at DESC");
-if ($stmt_history) {
-    $stmt_history->bind_param("i", $user_id);
-    $stmt_history->execute();
-    $res = $stmt_history->get_result();
-    if ($res) {
-        while ($row = $res->fetch_assoc()) {
-            $withdraw_history_data[] = $row;
+try {
+    $stmt_history = $conn->prepare("SELECT * FROM withdrawals WHERE user_id = ? ORDER BY created_at DESC");
+    if ($stmt_history) {
+        $stmt_history->bind_param("i", $user_id);
+        $stmt_history->execute();
+        $res = $stmt_history->get_result();
+        if ($res) {
+            while ($row = $res->fetch_assoc()) {
+                $withdraw_history_data[] = $row;
+            }
         }
+        $stmt_history->close();
     }
-    $stmt_history->close();
+} catch (\Throwable $e) {
+    $withdraw_history_data = [];
 }
 ?>
 <!DOCTYPE html>
