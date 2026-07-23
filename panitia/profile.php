@@ -10,6 +10,7 @@ require_once '../config/koneksi.php';
 
 $success_msg = '';
 $error_msg = '';
+$show_otp_modal = false;
 $user_id = (int)($_SESSION['user_id'] ?? 0);
 
 if ($user_id <= 0) {
@@ -38,34 +39,79 @@ if ($stmt) {
     $stmt->close();
 }
 
-// Update Profile Logic
-if ($_SERVER['REQUEST_METHOD'] == 'POST' && !isset($_POST['withdraw_form']) && !isset($_POST['bank_form'])) {
+// PROSES VERIFIKASI OTP UBAH EMAIL PANITIA
+if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['verify_email_otp'])) {
+    $user_otp = trim($_POST['otp_code'] ?? '');
+    $pending_email = $_SESSION['pending_change_email'] ?? '';
+    $sess_otp = $_SESSION['change_email_otp'] ?? '';
+    $sess_expires = $_SESSION['change_email_otp_expires'] ?? 0;
+
+    if (empty($user_otp) || empty($pending_email) || empty($sess_otp)) {
+        $error_msg = "Sesi verifikasi OTP email telah kadaluarsa. Silakan ajukan ulang perubahan email.";
+    } elseif (time() > $sess_expires) {
+        $error_msg = "Kode OTP telah kadaluarsa. Silakan ajukan perubahan email kembali.";
+    } elseif ($user_otp !== $sess_otp) {
+        $error_msg = "Kode OTP yang Anda masukkan salah. Silakan periksa inbox email baru Anda.";
+        $show_otp_modal = true;
+    } else {
+        // OTP Valid! Simpan email baru ke tabel users & tickets
+        $old_email = $user_data['email'] ?? '';
+        $stmt_u = $conn->prepare("UPDATE users SET email = ? WHERE id = ?");
+        if ($stmt_u) {
+            $stmt_u->bind_param("si", $pending_email, $user_id);
+            $stmt_u->execute();
+            $stmt_u->close();
+        }
+
+        if (!empty($old_email)) {
+            $stmt_t = $conn->prepare("UPDATE tickets SET email_pembeli = ? WHERE email_pembeli = ?");
+            if ($stmt_t) {
+                $stmt_t->bind_param("ss", $pending_email, $old_email);
+                $stmt_t->execute();
+                $stmt_t->close();
+            }
+        }
+
+        $_SESSION['email'] = $pending_email;
+        $user_data['email'] = $pending_email;
+        unset($_SESSION['pending_change_email'], $_SESSION['change_email_otp'], $_SESSION['change_email_otp_expires']);
+        
+        $success_msg = "✓ Email login panitia Anda berhasil diubah menjadi: " . htmlspecialchars($pending_email);
+    }
+}
+
+// Update Profile Logic (Nama, Password, Foto & Pengajuan Ubah Email via OTP)
+if ($_SERVER['REQUEST_METHOD'] == 'POST' && !isset($_POST['withdraw_form']) && !isset($_POST['bank_form']) && !isset($_POST['verify_email_otp'])) {
     $nama_lengkap = trim($_POST['nama_lengkap'] ?? '');
-    $email = trim($_POST['email'] ?? '');
+    $email_baru = trim($_POST['email'] ?? '');
     $password = $_POST['password'] ?? '';
     $password_confirm = $_POST['password_confirm'] ?? '';
 
-    if (empty($nama_lengkap) || empty($email)) {
+    if (empty($nama_lengkap) || empty($email_baru)) {
         $error_msg = "Nama Lengkap dan Email tidak boleh kosong.";
     } else {
-        // Cek apakah email sudah dipakai user lain
+        $is_email_changed = (strtolower($user_data['email']) !== strtolower($email_baru));
+
+        // Jika email diubah, cek apakah email baru sudah dipakai user lain
         $email_check_pass = true;
-        $stmt = $conn->prepare("SELECT id FROM users WHERE email = ? AND id != ?");
-        if ($stmt) {
-            $stmt->bind_param("si", $email, $user_id);
-            $stmt->execute();
-            $res_check = $stmt->get_result();
-            if ($res_check && $res_check->num_rows > 0) {
-                $error_msg = "Email tersebut sudah terdaftar pada akun lain.";
-                $email_check_pass = false;
+        if ($is_email_changed) {
+            $stmt = $conn->prepare("SELECT id FROM users WHERE email = ? AND id != ?");
+            if ($stmt) {
+                $stmt->bind_param("si", $email_baru, $user_id);
+                $stmt->execute();
+                $res_check = $stmt->get_result();
+                if ($res_check && $res_check->num_rows > 0) {
+                    $error_msg = "Email baru tersebut sudah terdaftar pada akun lain.";
+                    $email_check_pass = false;
+                }
+                $stmt->close();
             }
-            $stmt->close();
         }
 
         if ($email_check_pass) {
             $foto_profil = $user_data['foto_profil'] ?? '';
             
-            // Check if there is a cropped image from the modal (Base64)
+            // Handle foto profil upload
             if (isset($_POST['cropped_image']) && !empty($_POST['cropped_image'])) {
                 $img_data = $_POST['cropped_image'];
                 if (preg_match('/^data:image\/(\w+);base64,/', $img_data, $type)) {
@@ -118,50 +164,68 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && !isset($_POST['withdraw_form']) && !
             }
 
             if (empty($error_msg)) {
+                // Update nama_lengkap, password, foto_profil (tanpa langsung mengubah email jika email berubah)
+                $target_email_to_update = $is_email_changed ? $user_data['email'] : $email_baru;
+
                 $stmt_update = null;
                 if (!empty($password)) {
                     if ($password !== $password_confirm) {
                         $error_msg = "Konfirmasi password tidak cocok.";
                     } else {
                         $hashed_password = password_hash($password, PASSWORD_DEFAULT);
-                        $stmt_update = $conn->prepare("UPDATE users SET nama_lengkap = ?, email = ?, password = ?, foto_profil = ? WHERE id = ?");
-                        if ($stmt_update) $stmt_update->bind_param("ssssi", $nama_lengkap, $email, $hashed_password, $foto_profil, $user_id);
+                        $stmt_update = $conn->prepare("UPDATE users SET nama_lengkap = ?, password = ?, foto_profil = ? WHERE id = ?");
+                        if ($stmt_update) $stmt_update->bind_param("sssi", $nama_lengkap, $hashed_password, $foto_profil, $user_id);
                     }
                 } else {
-                    $stmt_update = $conn->prepare("UPDATE users SET nama_lengkap = ?, email = ?, foto_profil = ? WHERE id = ?");
-                    if ($stmt_update) $stmt_update->bind_param("sssi", $nama_lengkap, $email, $foto_profil, $user_id);
+                    $stmt_update = $conn->prepare("UPDATE users SET nama_lengkap = ?, foto_profil = ? WHERE id = ?");
+                    if ($stmt_update) $stmt_update->bind_param("ssi", $nama_lengkap, $foto_profil, $user_id);
                 }
 
                 if (empty($error_msg) && $stmt_update) {
-                    $old_photo = $user_data['foto_profil'] ?? '';
                     if ($stmt_update->execute()) {
-                        if (!empty($old_photo) && $old_photo !== $foto_profil && !str_starts_with($old_photo, 'http')) {
-                            $old_path = '../assets/images/profil/' . $old_photo;
-                            if (file_exists($old_path) && is_file($old_path)) {
-                                @unlink($old_path);
-                            }
-                        }
-                        // Sync email_pembeli di tabel tickets jika email akun diubah
-                        if (!empty($user_data['email']) && $user_data['email'] !== $email) {
-                            $old_email = $user_data['email'];
-                            $stmt_sync = $conn->prepare("UPDATE tickets SET email_pembeli = ? WHERE email_pembeli = ?");
-                            if ($stmt_sync) {
-                                $stmt_sync->bind_param("ss", $email, $old_email);
-                                $stmt_sync->execute();
-                                $stmt_sync->close();
-                            }
-                        }
-
                         $_SESSION['nama_lengkap'] = $nama_lengkap;
                         $_SESSION['foto_profil'] = $foto_profil;
-                        $_SESSION['email'] = $email;
-                        $success_msg = "Profil berhasil diperbarui.";
                         $user_data['nama_lengkap'] = $nama_lengkap;
-                        $user_data['email'] = $email;
                         $user_data['foto_profil'] = $foto_profil;
-                        
-                        if (function_exists('logActivity')) {
-                            logActivity($conn, $user_id, 'Update Profile', 'Panitia memperbarui data profil akunnya.');
+
+                        if ($is_email_changed) {
+                            // GENERATE & KIRIM KODE OTP KE EMAIL BARU
+                            $otp = sprintf("%06d", mt_rand(100000, 999999));
+                            $_SESSION['pending_change_email'] = $email_baru;
+                            $_SESSION['change_email_otp'] = $otp;
+                            $_SESSION['change_email_otp_expires'] = time() + 300;
+
+                            $to = $email_baru;
+                            $subject = "[$otp] Kode OTP Verifikasi Ubah Email Login Panitia - HaloTiket";
+                            $message = "
+                            <!DOCTYPE html>
+                            <html lang='id'>
+                            <head><meta charset='UTF-8'></head>
+                            <body style='font-family: Arial, sans-serif; background-color: #f8fafc; padding: 30px; margin: 0;'>
+                                <div style='max-width: 520px; margin: 0 auto; background: #ffffff; border-radius: 20px; border: 1px solid #e2e8f0; overflow: hidden;'>
+                                    <div style='background: #003846; color: #ffffff; padding: 25px; text-align: center;'>
+                                        <h1 style='margin: 0; font-size: 22px;'>HaloTiket Panitia</h1>
+                                        <p style='margin: 5px 0 0 0; font-size: 12px; color: #94a3b8;'>Verifikasi Perubahan Email Akun Login</p>
+                                    </div>
+                                    <div style='padding: 30px; text-align: center;'>
+                                        <h3 style='margin-top: 0; color: #0f172a;'>Kode Verifikasi OTP Anda</h3>
+                                        <p style='font-size: 14px; color: #64748b;'>Anda mengajukan perubahan email login Panitia ke: <strong>$email_baru</strong>.</p>
+                                        <div style='background: #f1f5f9; border: 2px dashed #00c2cb; padding: 18px; text-align: center; border-radius: 14px; font-size: 32px; font-weight: 800; letter-spacing: 8px; color: #008b94; margin: 20px auto; max-width: 280px;'>
+                                            $otp
+                                        </div>
+                                        <p style='font-size: 12px; color: #94a3b8;'>Kode ini dikirimkan ke <strong>$email_baru</strong> dan hanya berlaku selama <strong>5 menit</strong>.</p>
+                                    </div>
+                                </div>
+                            </body>
+                            </html>";
+
+                            $headers = "MIME-Version: 1.0\r\nContent-type:text/html;charset=UTF-8\r\nFrom: HaloTiket <no-reply@halotiket.com>\r\n";
+                            @mail($to, $subject, $message, $headers);
+
+                            $show_otp_modal = true;
+                            $success_msg = "Kode OTP telah dikirimkan ke email baru Anda: " . htmlspecialchars($email_baru) . ". Silakan masukkan kode OTP untuk memverifikasi.";
+                        } else {
+                            $success_msg = "Profil berhasil diperbarui.";
                         }
                     } else {
                         $error_msg = "Terjadi kesalahan saat menyimpan data.";
@@ -315,8 +379,8 @@ try {
                 <!-- Section 1: Profil Panitia -->
                 <div>
                     <div class="mb-6">
-                        <h1 class="text-2xl md:text-3xl font-extrabold text-slate-900 tracking-tight">Profil Saya</h1>
-                        <p class="text-slate-500 mt-1 font-medium text-sm">Kelola informasi data diri dan kata sandi akun Anda.</p>
+                        <h1 class="text-2xl md:text-3xl font-extrabold text-slate-900 tracking-tight">Profil Panitia</h1>
+                        <p class="text-slate-500 mt-1 font-medium text-sm">Kelola informasi data diri, email login, dan kata sandi akun Panitia Anda.</p>
                     </div>
 
                     <?php if($success_msg): ?>
@@ -353,11 +417,14 @@ try {
                             <form method="POST" action="" enctype="multipart/form-data" class="space-y-5">
                                 <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
                                     <div class="space-y-4">
-                                        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider">Nama Lengkap</label>
+                                        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider">Nama Lengkap Panitia</label>
                                         <input type="text" name="nama_lengkap" value="<?= htmlspecialchars($user_data['nama_lengkap'] ?? '') ?>" required class="w-full bg-slate-50 border border-slate-200 text-slate-800 text-sm rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary block px-4 py-2.5 transition-colors font-medium">
                                     </div>
                                     <div class="space-y-4">
-                                        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider">Alamat Email</label>
+                                        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider">
+                                            Alamat Email Login Panitia
+                                            <span class="text-primary font-normal text-[10px] ml-1">(Diverifikasi via OTP jika diubah)</span>
+                                        </label>
                                         <input type="email" name="email" value="<?= htmlspecialchars($user_data['email'] ?? '') ?>" required class="w-full bg-slate-50 border border-slate-200 text-slate-800 text-sm rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary block px-4 py-2.5 transition-colors font-medium">
                                     </div>
                                 </div>
@@ -586,6 +653,37 @@ try {
     </div>
 </div>
 
+<!-- Modal OTP Verifikasi Ubah Email Panitia -->
+<div id="emailOtpModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 <?= $show_otp_modal ? '' : 'hidden' ?> flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl shadow-2xl border border-slate-200 w-full max-w-md overflow-hidden transform transition-all duration-300">
+        <form method="POST" action="">
+            <input type="hidden" name="verify_email_otp" value="1">
+            <div class="px-6 py-4 border-b border-slate-100 bg-slate-900 text-white flex justify-between items-center">
+                <h3 class="font-extrabold text-base flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
+                    Verifikasi Email Baru Panitia
+                </h3>
+                <button type="button" onclick="closeEmailOtpModal()" class="text-slate-400 hover:text-white text-2xl font-bold">&times;</button>
+            </div>
+            <div class="p-6 text-center space-y-4">
+                <p class="text-xs text-slate-500 font-medium leading-relaxed">
+                    Kode verifikasi OTP 6-digit telah dikirimkan ke email baru Anda: <br>
+                    <strong class="text-slate-900 font-mono text-sm bg-blue-50 border border-blue-200 px-3 py-1 rounded-lg inline-block mt-2"><?= htmlspecialchars($_SESSION['pending_change_email'] ?? '') ?></strong>
+                </p>
+
+                <div class="space-y-2">
+                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider">Masukkan 6-Digit Kode OTP</label>
+                    <input type="text" name="otp_code" maxlength="6" required placeholder="123456" class="w-full text-center tracking-[0.5em] text-2xl font-extrabold font-mono bg-slate-50 border-2 border-slate-200 rounded-2xl focus:border-primary focus:bg-white p-3 outline-none transition-all">
+                </div>
+            </div>
+            <div class="px-6 py-4 border-t border-slate-100 bg-slate-50 flex justify-end gap-3">
+                <button type="button" onclick="closeEmailOtpModal()" class="px-4 py-2 text-sm font-bold text-slate-500 hover:text-slate-700 bg-slate-200 rounded-xl">Batal</button>
+                <button type="submit" class="px-6 py-2 text-sm font-bold text-white bg-primary hover:bg-primary/90 rounded-xl shadow-md transition-all">Verifikasi & Simpan Email</button>
+            </div>
+        </form>
+    </div>
+</div>
+
 <!-- Modal Request Withdrawal -->
 <div id="withdrawModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
     <div class="bg-white rounded-3xl shadow-xl w-full max-w-md overflow-hidden transform scale-95 opacity-0 transition-all duration-300" id="withdrawModalContent">
@@ -630,6 +728,11 @@ try {
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.js"></script>
 <script>
+    function closeEmailOtpModal() {
+        const modal = document.getElementById('emailOtpModal');
+        if (modal) modal.classList.add('hidden');
+    }
+
     function openWithdrawModal() {
         const modal = document.getElementById('withdrawModal');
         const content = document.getElementById('withdrawModalContent');
