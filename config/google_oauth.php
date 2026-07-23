@@ -15,7 +15,14 @@ if (empty($g_client_secret)) {
 if (!defined('GOOGLE_CLIENT_ID')) define('GOOGLE_CLIENT_ID', $g_client_id);
 if (!defined('GOOGLE_CLIENT_SECRET')) define('GOOGLE_CLIENT_SECRET', $g_client_secret);
 
-$redirect_uri = (defined('BASE_URL') ? BASE_URL : 'https://halotiket.com/') . 'auth/google_callback.php';
+// Custom atau Auto Redirect URI
+$g_custom_redirect = trim($global_settings['google_redirect_uri'] ?? '');
+if (!empty($g_custom_redirect)) {
+    $redirect_uri = $g_custom_redirect;
+} else {
+    $redirect_uri = (defined('BASE_URL') ? BASE_URL : 'https://halotiket.com/') . 'auth/google_callback.php';
+}
+
 if (!defined('GOOGLE_REDIRECT_URI')) define('GOOGLE_REDIRECT_URI', $redirect_uri);
 
 if (file_exists(__DIR__ . '/../vendor/autoload.php')) {

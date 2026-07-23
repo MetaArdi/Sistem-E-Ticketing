@@ -119,7 +119,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     }
 
     // Proses Text Settings
-    $text_settings = ['contact_address', 'contact_cs', 'link_ig', 'link_tiktok', 'admin_markup_type', 'admin_markup_value', 'maintenance_mode', 'midtrans_merchant_id', 'midtrans_server_key', 'midtrans_client_key', 'midtrans_is_production', 'google_client_id', 'google_client_secret'];
+    $text_settings = ['contact_address', 'contact_cs', 'link_ig', 'link_tiktok', 'admin_markup_type', 'admin_markup_value', 'maintenance_mode', 'midtrans_merchant_id', 'midtrans_server_key', 'midtrans_client_key', 'midtrans_is_production', 'google_client_id', 'google_client_secret', 'google_redirect_uri'];
     $stmt = $conn->prepare("INSERT INTO settings (setting_key, setting_value) VALUES (?, ?) ON DUPLICATE KEY UPDATE setting_value = ?");
     foreach ($text_settings as $key) {
         if (isset($_POST[$key])) {
@@ -149,7 +149,7 @@ if ($slider_query && $slider_query->num_rows > 0) {
     $current_sliders = json_decode($slider_query->fetch_assoc()['setting_value'], true) ?: [];
 }
 
-$text_settings_keys = ['contact_address', 'contact_cs', 'link_ig', 'link_tiktok', 'admin_markup_type', 'admin_markup_value', 'maintenance_mode', 'midtrans_merchant_id', 'midtrans_server_key', 'midtrans_client_key', 'midtrans_is_production', 'google_client_id', 'google_client_secret'];
+$text_settings_keys = ['contact_address', 'contact_cs', 'link_ig', 'link_tiktok', 'admin_markup_type', 'admin_markup_value', 'maintenance_mode', 'midtrans_merchant_id', 'midtrans_server_key', 'midtrans_client_key', 'midtrans_is_production', 'google_client_id', 'google_client_secret', 'google_redirect_uri'];
 $current_text_settings = [];
 foreach($text_settings_keys as $k) {
     $q = $conn->query("SELECT setting_value FROM settings WHERE setting_key = '$k'");
@@ -158,6 +158,7 @@ foreach($text_settings_keys as $k) {
 
 $google_client_id_val = $current_text_settings['google_client_id'] ?? '';
 $google_client_secret_val = $current_text_settings['google_client_secret'] ?? '';
+$google_redirect_uri_val = $current_text_settings['google_redirect_uri'] ?? '';
 
 $addr_val = $current_text_settings['contact_address'] ?: "Garung Lor,Kec. Kaliwungu, Kabupaten Kudus, Jawa Tengah";
 $cs_val = $current_text_settings['contact_cs'] ?: "6281234567890";
@@ -568,9 +569,14 @@ $midtrans_is_production_val = $current_text_settings['midtrans_is_production'] ?
                                                 <input type="text" name="google_client_secret" value="<?= htmlspecialchars($google_client_secret_val) ?>" placeholder="GOCSPX-..." class="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-sm font-medium outline-none">
                                             </div>
                                         </div>
-                                        <p class="text-xs text-slate-500">
-                                            Set Redirect URI di Google Cloud Console ke: <code class="bg-white border px-2 py-0.5 rounded text-primary font-mono font-bold"><?= (defined('BASE_URL') ? BASE_URL : 'https://halotiket.com/') ?>auth/google_callback.php</code>
-                                        </p>
+
+                                        <div>
+                                            <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Authorized Redirect URI (Diinput di Google Cloud Console)</label>
+                                            <input type="text" name="google_redirect_uri" value="<?= htmlspecialchars(!empty($google_redirect_uri_val) ? $google_redirect_uri_val : (defined('BASE_URL') ? BASE_URL : 'https://halotiket.com/') . 'auth/google_callback.php') ?>" class="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-sm font-mono font-bold text-primary outline-none">
+                                            <p class="text-xs text-slate-500 mt-1.5">
+                                                ⚠️ <strong>PENTING:</strong> String URL di atas HARUS dicopy persis sama tanpa beda 1 karakter pun ke <strong>Authorized redirect URIs</strong> di Google Cloud Console untuk menghindari <code>redirect_uri_mismatch</code>.
+                                            </p>
+                                        </div>
                                     </div>
                                 </div>
 
