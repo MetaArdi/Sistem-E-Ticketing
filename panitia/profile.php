@@ -8,7 +8,12 @@ require_once '../config/koneksi.php';
 
 $success_msg = '';
 $error_msg = '';
-$user_id = (int)$_SESSION['user_id'];
+$user_id = (int)($_SESSION['user_id'] ?? 0);
+
+if ($user_id <= 0) {
+    header("Location: ../auth/login.php");
+    exit;
+}
 
 // Get current user info (including bank details)
 $stmt = $conn->prepare("SELECT email, nama_lengkap, foto_profil, nama_bank, no_rekening, nama_rekening FROM users WHERE id = ?");
@@ -16,6 +21,17 @@ $stmt->bind_param("i", $user_id);
 $stmt->execute();
 $user_data = $stmt->get_result()->fetch_assoc();
 $stmt->close();
+
+if (!$user_data) {
+    $user_data = [
+        'nama_lengkap' => $_SESSION['nama_lengkap'] ?? 'Panitia Event',
+        'email' => $_SESSION['email'] ?? '',
+        'foto_profil' => $_SESSION['foto_profil'] ?? '',
+        'nama_bank' => '',
+        'no_rekening' => '',
+        'nama_rekening' => ''
+    ];
+}
 
 // Update Profile Logic
 if ($_SERVER['REQUEST_METHOD'] == 'POST' && !isset($_POST['withdraw_form']) && !isset($_POST['bank_form'])) {
@@ -219,10 +235,10 @@ $withdraw_history = $stmt_history->get_result();
                         <img src="../assets/images/profil/<?= htmlspecialchars($_SESSION['foto_profil']) ?>" class="w-8 h-8 rounded-full object-cover shadow-sm">
                     <?php else: ?>
                         <div class="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-secondary text-white flex items-center justify-center font-bold text-sm shadow-sm group-hover:shadow transition-all">
-                            <?= strtoupper(substr($_SESSION['nama_lengkap'], 0, 1)) ?>
+                            <?= strtoupper(substr($_SESSION['nama_lengkap'] ?? 'P', 0, 1)) ?>
                         </div>
                     <?php endif; ?>
-                    <span class="text-sm font-bold text-slate-700 pr-2 group-hover:text-primary transition-colors"><?= htmlspecialchars($_SESSION['nama_lengkap']) ?></span>
+                    <span class="text-sm font-bold text-slate-700 pr-2 group-hover:text-primary transition-colors"><?= htmlspecialchars($_SESSION['nama_lengkap'] ?? 'Panitia') ?></span>
                 </a>
             </div>
         </header>
@@ -258,11 +274,11 @@ $withdraw_history = $stmt_history->get_result();
                                     <img id="profile-avatar-img" src="../assets/images/profil/<?= htmlspecialchars($user_data['foto_profil']) ?>" class="w-16 h-16 rounded-2xl object-cover shadow-md">
                                 <?php else: ?>
                                     <div id="profile-avatar-placeholder" class="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary to-secondary text-white flex items-center justify-center font-bold text-2xl shadow-md">
-                                        <?= strtoupper(substr($user_data['nama_lengkap'], 0, 1)) ?>
+                                        <?= strtoupper(substr($user_data['nama_lengkap'] ?? 'P', 0, 1)) ?>
                                     </div>
                                 <?php endif; ?>
                                 <div>
-                                    <h3 class="font-extrabold text-slate-900 text-lg"><?= htmlspecialchars($user_data['nama_lengkap']) ?></h3>
+                                    <h3 class="font-extrabold text-slate-900 text-lg"><?= htmlspecialchars($user_data['nama_lengkap'] ?? 'Panitia Event') ?></h3>
                                     <p class="text-sm font-bold text-primary uppercase tracking-wider">Panitia Event</p>
                                 </div>
                             </div>
