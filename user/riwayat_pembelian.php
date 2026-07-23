@@ -2,40 +2,55 @@
 session_start();
 require_once '../config/koneksi.php';
 
-// 1. Cek Metode POST
-if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !isset($_POST['email'])) {
+// 1. Ambil Parameter Pencarian / Pembayaran (Support POST, GET & Sesi OTP Verifikasi)
+$search_input = '';
+
+if (!empty($_GET['email'])) {
+    $search_input = trim($_GET['email']);
+} elseif (!empty($_POST['email'])) {
+    $search_input = trim($_POST['email']);
+} elseif (!empty($_GET['order_id'])) {
+    $search_input = trim($_GET['order_id']);
+} elseif (!empty($_SESSION['verified_ticket_email'])) {
+    $search_input = trim($_SESSION['verified_ticket_email']);
+} elseif (!empty($_SESSION['last_order_id'])) {
+    $search_input = trim($_SESSION['last_order_id']);
+}
+
+if (empty($search_input)) {
     header("Location: cek_tiket.php");
     exit;
 }
 
-// 2. Cek Honeypot (Bot Trap)
-if (!empty($_POST['website_url'])) {
-    // Bot terdeteksi mengisi field tersembunyi
+// 2. Cek Honeypot (Bot Trap untuk Form POST)
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['website_url'])) {
     header("Location: cek_tiket.php");
     exit;
 }
 
-// 3. Rate Limiting (Mencegah brute force scraping via session)
+// 3. Rate Limiting
 if (!isset($_SESSION['search_history_count'])) {
     $_SESSION['search_history_count'] = 1;
     $_SESSION['search_history_time'] = time();
 } else {
-    // Jika lebih dari 10 kali dalam 1 menit
     if (time() - $_SESSION['search_history_time'] < 60) {
-        if ($_SESSION['search_history_count'] > 10) {
+        if ($_SESSION['search_history_count'] > 15) {
             die("Terlalu banyak permintaan. Silakan coba lagi nanti.");
         }
         $_SESSION['search_history_count']++;
     } else {
-        // Reset limit setelah 1 menit
         $_SESSION['search_history_count'] = 1;
         $_SESSION['search_history_time'] = time();
     }
 }
 
-$email = $_POST['email'];
-$stmt = $conn->prepare("SELECT t.*, e.judul, e.tanggal, e.waktu, e.lokasi, e.banner_image FROM tickets t JOIN events e ON t.id_event = e.id WHERE t.email_pembeli = ? ORDER BY t.created_at DESC");
-$stmt->bind_param("s", $email);
+$stmt = $conn->prepare("SELECT t.*, e.judul, e.tanggal, e.waktu, e.lokasi, e.banner_image, v.nama_varian, v.harga 
+                        FROM tickets t 
+                        JOIN events e ON t.id_event = e.id 
+                        LEFT JOIN event_ticket_variants v ON t.id_ticket_variant = v.id
+                        WHERE t.email_pembeli = ? OR t.order_id = ? 
+                        ORDER BY t.created_at DESC");
+$stmt->bind_param("ss", $search_input, $search_input);
 $stmt->execute();
 $result = $stmt->get_result();
 ?>
@@ -131,77 +146,193 @@ $result = $stmt->get_result();
     </header>
 
     <main class="flex-grow max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-12 w-full">
+        <?php if (isset($_GET['payment_success'])): ?>
+            <div class="bg-gradient-to-r from-emerald-600 to-teal-700 text-white rounded-3xl p-6 sm:p-8 mb-10 shadow-xl shadow-emerald-500/20 flex flex-col sm:flex-row items-center justify-between gap-6 border border-emerald-500/30">
+                <div class="flex items-center gap-5">
+                    <div class="w-16 h-16 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center text-white shrink-0 border border-white/30">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-9 w-9" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                        </svg>
+                    </div>
+                    <div>
+                        <span class="inline-block bg-white/20 text-white text-[11px] font-extrabold uppercase px-3 py-1 rounded-full mb-1 tracking-wider">Transaksi Berhasil</span>
+                        <h2 class="text-2xl font-extrabold tracking-tight">Pembayaran Selesai! 🎉</h2>
+                        <p class="text-emerald-100 text-sm font-medium mt-1">Selamat! E-Ticket Anda di bawah ini sudah resmi terbit, terverifikasi, dan siap digunakan atau dicetak langsung.</p>
+                    </div>
+                </div>
+            </div>
+        <?php endif; ?>
+
         <div class="mb-10 text-center sm:text-left flex flex-col sm:flex-row items-center justify-between gap-4">
             <div>
-                <h1 class="text-3xl font-extrabold text-slate-900 tracking-tight mb-2">Tiket Anda</h1>
-                <p class="text-slate-500 font-medium">Riwayat pembelian untuk: <span class="font-bold text-slate-700 bg-slate-200 px-2 py-0.5 rounded-md ml-1"><?= htmlspecialchars($email) ?></span></p>
+                <h1 class="text-3xl font-extrabold text-slate-900 tracking-tight mb-2">E-Ticket & Riwayat Tiket</h1>
+                <p class="text-slate-500 font-medium text-sm">Menampilkan Tiket Untuk: <span class="font-bold text-slate-800 bg-blue-50 border border-blue-200 px-2.5 py-1 rounded-lg ml-1 font-mono"><?= htmlspecialchars($search_input) ?></span></p>
             </div>
-            <div class="bg-indigo-50 text-primary px-4 py-2 rounded-xl font-bold text-sm border border-indigo-100">
+            <div class="bg-primary/10 text-primary px-4 py-2 rounded-xl font-extrabold text-sm border border-primary/20 flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z" /></svg>
                 <?= $result->num_rows ?> Tiket Ditemukan
             </div>
         </div>
 
-        <div class="space-y-6">
+        <div class="space-y-8">
             <?php if($result->num_rows > 0): ?>
-                <?php while($row = $result->fetch_assoc()): ?>
-                <div class="bg-white rounded-3xl p-6 sm:p-8 shadow-xl shadow-slate-200/40 border border-slate-100 flex flex-col sm:flex-row gap-8 items-center sm:items-stretch transition-transform hover:-translate-y-1 duration-300">
-                    
-                    <!-- Left: QR Code / Banner Placeholder -->
-                    <div class="w-full sm:w-48 shrink-0 flex flex-col justify-center items-center bg-slate-50 rounded-2xl border border-slate-100 p-4 relative overflow-hidden group">
-                        <?php if($row['banner_image']): ?>
-                            <img src="<?= BASE_URL ?>assets/images/events/<?= $row['banner_image'] ?>" alt="Event Banner" class="absolute inset-0 w-full h-full object-cover opacity-20 group-hover:opacity-30 transition-opacity">
-                        <?php endif; ?>
-                        
-                        <div class="relative z-10 flex flex-col items-center text-center">
-                            <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Order ID</p>
-                            <p class="font-mono font-bold text-sm text-slate-900 bg-white px-2 py-1 rounded shadow-sm"><?= htmlspecialchars($row['order_id']) ?></p>
-                        </div>
-                    </div>
+                <?php while($row = $result->fetch_assoc()): 
+                    // Auto-Check & Sync Midtrans Payment Status jika status masih 'pending'
+                    if ($row['status'] == 'pending' && !empty($row['order_id'])) {
+                        try {
+                            $serverKey = defined('MIDTRANS_SERVER_KEY') ? trim(MIDTRANS_SERVER_KEY) : '';
+                            if (!empty($serverKey)) {
+                                if (file_exists(__DIR__ . '/../vendor/autoload.php')) {
+                                    require_once __DIR__ . '/../vendor/autoload.php';
+                                }
+                                \Midtrans\Config::$serverKey = $serverKey;
+                                \Midtrans\Config::$isProduction = defined('MIDTRANS_IS_PRODUCTION') ? MIDTRANS_IS_PRODUCTION : false;
 
-                    <!-- Middle: Details -->
-                    <div class="flex-grow flex flex-col justify-center text-center sm:text-left w-full">
-                        <div class="mb-4">
-                            <div class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider mb-2 
+                                $statusRes = \Midtrans\Transaction::status($row['order_id']);
+                                if ($statusRes) {
+                                    $tr_status = $statusRes->transaction_status ?? '';
+                                    $fr_status = $statusRes->fraud_status ?? '';
+                                    
+                                    $isSuccess = false;
+                                    if ($tr_status == 'capture') {
+                                        if ($fr_status == 'accept') {
+                                            $isSuccess = true;
+                                        }
+                                    } elseif ($tr_status == 'settlement') {
+                                        $isSuccess = true;
+                                    }
+
+                                    if ($isSuccess) {
+                                        $ticket_id = (int)$row['id'];
+                                        $conn->query("UPDATE tickets SET status = 'lunas' WHERE id = $ticket_id");
+                                        $row['status'] = 'lunas';
+                                    }
+                                }
+                            }
+                        } catch (\Throwable $e) {
+                            // Abaikan jika order belum terdaftar di Midtrans
+                        }
+                    }
+                ?>
+                <div class="bg-white rounded-[2rem] shadow-xl shadow-slate-200/50 border border-slate-200 overflow-hidden transition-all duration-300 hover:shadow-2xl">
+                    
+                    <!-- Ticket Header Ribbon -->
+                    <div class="bg-gradient-to-r from-slate-900 via-slate-800 to-indigo-950 px-6 py-4 text-white flex flex-wrap items-center justify-between gap-3">
+                        <div class="flex items-center gap-3">
+                            <span class="px-3 py-1 rounded-full text-[11px] font-extrabold uppercase tracking-wider 
                                 <?php
-                                    if($row['status'] == 'lunas') echo 'bg-emerald-50 text-emerald-600';
-                                    elseif($row['status'] == 'scanned') echo 'bg-blue-50 text-blue-600';
-                                    else echo 'bg-orange-50 text-orange-600';
+                                    if($row['status'] == 'lunas') echo 'bg-emerald-500 text-white shadow-sm';
+                                    elseif($row['status'] == 'scanned') echo 'bg-blue-500 text-white shadow-sm';
+                                    else echo 'bg-amber-500 text-white shadow-sm';
                                 ?>">
                                 <?php
-                                    if($row['status'] == 'lunas') echo 'LUNAS (SIAP DIGUNAKAN)';
-                                    elseif($row['status'] == 'scanned') echo 'TELAH DIGUNAKAN';
-                                    else echo 'PENDING / BELUM DIBAYAR';
+                                    if($row['status'] == 'lunas') echo '✓ LUNAS (SIAP DIGUNAKAN)';
+                                    elseif($row['status'] == 'scanned') echo '✓ TELAH DIGUNAKAN';
+                                    else echo '⏳ MENUNGGU PEMBAYARAN';
                                 ?>
-                            </div>
-                            <h3 class="text-xl font-bold text-slate-900 leading-tight mb-1"><?= htmlspecialchars($row['judul']) ?></h3>
-                            <p class="text-sm font-medium text-slate-500 line-clamp-1"><?= htmlspecialchars($row['lokasi']) ?></p>
+                            </span>
+                            <span class="text-xs text-slate-300 font-medium hidden sm:inline">Order ID: <strong class="text-white font-mono"><?= htmlspecialchars($row['order_id']) ?></strong></span>
                         </div>
-                        
-                        <div class="flex flex-wrap items-center justify-center sm:justify-start gap-4 text-sm font-medium text-slate-600">
-                            <div class="flex items-center gap-1.5">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
-                                <?= date('d M Y', strtotime($row['tanggal'])) ?>
-                            </div>
-                            <div class="flex items-center gap-1.5">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                                <?= $row['waktu'] ?> WIB
-                            </div>
-                        </div>
+                        <span class="text-xs font-mono bg-white/10 px-3 py-1 rounded-lg border border-white/10 text-indigo-200">
+                            <?= !empty($row['nama_varian']) ? htmlspecialchars($row['nama_varian']) : 'Tiket Event' ?>
+                        </span>
                     </div>
 
-                    <!-- Right: Action -->
-                    <div class="w-full sm:w-auto shrink-0 flex flex-col justify-center border-t sm:border-t-0 sm:border-l border-slate-100 pt-6 sm:pt-0 sm:pl-8">
-                        <?php if($row['status'] == 'lunas' || $row['status'] == 'scanned'): ?>
-                            <a href="download_tiket.php?token=<?= $row['token_qr'] ?>" target="_blank" class="block w-full sm:w-auto text-center bg-slate-900 hover:bg-primary text-white font-bold py-3 px-6 rounded-xl transition-all shadow-md hover:shadow-indigo-500/25 flex items-center justify-center gap-2">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
-                                Unduh E-Ticket
-                            </a>
-                        <?php elseif($row['status'] == 'pending'): ?>
-                            <div class="text-center sm:text-right">
-                                <p class="text-xs font-bold text-slate-400 uppercase mb-2">Menunggu Pembayaran</p>
-                                <p class="text-sm text-slate-500">Cek email Anda untuk instruksi pembayaran Midtrans.</p>
+                    <?php 
+                        $cardBannerUrl = '';
+                        if (!empty($row['banner_image']) && file_exists(__DIR__ . '/../assets/images/events/' . $row['banner_image'])) {
+                            $cardBannerUrl = BASE_URL . 'assets/images/events/' . $row['banner_image'];
+                        }
+                    ?>
+                    <?php if ($cardBannerUrl): ?>
+                        <!-- Event Image Header Banner -->
+                        <div class="w-full h-44 sm:h-52 bg-slate-900 overflow-hidden relative border-b border-slate-200">
+                            <img src="<?= $cardBannerUrl ?>" alt="Event Image" class="w-full h-full object-cover">
+                            <div class="absolute inset-0 bg-gradient-to-t from-slate-950/85 via-slate-950/30 to-transparent"></div>
+                            <div class="absolute bottom-4 left-6 right-6 text-white">
+                                <h3 class="text-xl sm:text-2xl font-extrabold drop-shadow-md tracking-tight"><?= htmlspecialchars($row['judul']) ?></h3>
+                                <p class="text-xs text-slate-200 font-medium flex items-center gap-1 mt-1">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-primary shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path stroke-linecap="round" stroke-linejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                                    <?= htmlspecialchars($row['lokasi']) ?>
+                                </p>
                             </div>
-                        <?php endif; ?>
+                        </div>
+                    <?php endif; ?>
+
+                    <!-- Ticket Main Stub -->
+                    <div class="p-6 sm:p-8 flex flex-col md:flex-row gap-8 items-center md:items-stretch relative">
+                        
+                        <!-- Left Barcode & QR Code Section -->
+                        <div class="w-full md:w-60 shrink-0 flex flex-col items-center justify-center p-4 bg-slate-50 rounded-2xl border border-slate-200 text-center relative overflow-hidden group">
+                            <?php if($row['status'] == 'lunas' || $row['status'] == 'scanned'): ?>
+                                <img src="https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=<?= urlencode($row['token_qr']) ?>" alt="QR Code" class="w-40 h-40 object-contain rounded-xl bg-white p-2 border border-slate-200 shadow-sm group-hover:scale-105 transition-transform duration-300">
+                                <p class="text-[10px] font-mono text-slate-500 mt-2 truncate w-full tracking-wider font-bold">TOKEN: <?= substr($row['token_qr'], 0, 12) ?>...</p>
+                            <?php else: ?>
+                                <div class="w-40 h-40 rounded-xl bg-slate-200/70 border border-slate-300 border-dashed flex flex-col items-center justify-center text-slate-400 p-2">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
+                                    <span class="text-[10px] font-bold uppercase">QR Code Terkunci</span>
+                                </div>
+                            <?php endif; ?>
+                        </div>
+
+                        <!-- Middle Details Section -->
+                        <div class="flex-grow flex flex-col justify-between w-full space-y-4">
+                            <?php if (!$cardBannerUrl): ?>
+                                <div>
+                                    <h3 class="text-2xl font-extrabold text-slate-900 leading-tight mb-2 group-hover:text-primary transition-colors">
+                                        <?= htmlspecialchars($row['judul']) ?>
+                                    </h3>
+                                    <p class="text-slate-600 text-sm font-medium flex items-center gap-1.5 mb-3">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-primary shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path stroke-linecap="round" stroke-linejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                                        <?= htmlspecialchars($row['lokasi']) ?>
+                                    </p>
+                                </div>
+                            <?php endif; ?>
+
+                            <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 bg-slate-50 p-4 rounded-xl border border-slate-100 text-xs font-semibold text-slate-700">
+                                <div>
+                                    <span class="block text-[10px] text-slate-400 font-bold uppercase">Tanggal</span>
+                                    <span class="text-slate-900 font-bold"><?= date('d M Y', strtotime($row['tanggal'])) ?></span>
+                                </div>
+                                <div>
+                                    <span class="block text-[10px] text-slate-400 font-bold uppercase">Waktu</span>
+                                    <span class="text-slate-900 font-bold"><?= htmlspecialchars($row['waktu']) ?> WIB</span>
+                                </div>
+                                <div class="col-span-2 sm:col-span-1">
+                                    <span class="block text-[10px] text-slate-400 font-bold uppercase">Pemegang Tiket</span>
+                                    <span class="text-slate-900 font-bold truncate block"><?= htmlspecialchars($row['nama_pembeli']) ?></span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Right Actions Section -->
+                        <div class="w-full md:w-auto shrink-0 flex flex-col justify-center gap-3 border-t md:border-t-0 md:border-l border-slate-100 pt-6 md:pt-0 md:pl-6">
+                            <?php if($row['status'] == 'lunas' || $row['status'] == 'scanned'): ?>
+                                <a href="download_tiket.php?token=<?= urlencode($row['token_qr']) ?>" target="_blank" class="w-full md:w-48 bg-slate-900 hover:bg-primary text-white font-bold py-3.5 px-5 rounded-xl transition-all shadow-md hover:shadow-lg text-xs flex items-center justify-center gap-2">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+                                    Unduh PDF E-Ticket
+                                </a>
+
+                                <button type="button" onclick="printTicketWindow('<?= htmlspecialchars($row['order_id']) ?>', '<?= htmlspecialchars(addslashes($row['judul'])) ?>', '<?= htmlspecialchars(addslashes($row['nama_pembeli'])) ?>', '<?= htmlspecialchars(addslashes($row['lokasi'])) ?>', '<?= date('d M Y', strtotime($row['tanggal'])) ?>', '<?= htmlspecialchars($row['waktu']) ?>', '<?= urlencode($row['token_qr']) ?>')" class="w-full md:w-48 bg-white hover:bg-slate-50 text-slate-800 font-bold py-3.5 px-5 rounded-xl border border-slate-300 transition-all shadow-sm text-xs flex items-center justify-center gap-2">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" /></svg>
+                                    Cetak Tiket Langsung
+                                </button>
+                            <?php elseif($row['status'] == 'pending'): ?>
+                                <div class="text-center md:text-right space-y-2">
+                                    <span class="inline-block bg-amber-50 text-amber-700 border border-amber-200 px-3 py-1.5 rounded-lg text-xs font-bold">
+                                        Perlu Pembayaran
+                                    </span>
+                                    <?php if (defined('MIDTRANS_IS_PRODUCTION') && !MIDTRANS_IS_PRODUCTION): ?>
+                                        <div>
+                                            <a href="https://simulator.sandbox.midtrans.com/" target="_blank" class="inline-flex items-center gap-1 text-[11px] font-bold text-blue-600 bg-blue-50 border border-blue-200 px-3 py-1.5 rounded-lg hover:bg-blue-100 transition-colors">
+                                                <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
+                                                Midtrans Simulator
+                                            </a>
+                                        </div>
+                                    <?php endif; ?>
+                                </div>
+                            <?php endif; ?>
+                        </div>
                     </div>
                 </div>
                 <?php endwhile; ?>
@@ -382,6 +513,91 @@ $result = $stmt->get_result();
                 overlay.addEventListener('click', closeSidebar);
             }
         });
+
+        function printTicketWindow(orderId, judul, nama, lokasi, tanggal, waktu, tokenQr) {
+            const qrUrl = "https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=" + tokenQr;
+            const printWin = window.open('', '_blank', 'width=800,height=900');
+            
+            const htmlContent = `
+            <!DOCTYPE html>
+            <html lang="id">
+            <head>
+                <meta charset="UTF-8">
+                <title>Cetak E-Ticket - ${orderId}</title>
+                <style>
+                    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding: 20px; background: #f8fafc; color: #1e293b; }
+                    .ticket-card { max-width: 650px; margin: 0 auto; background: #ffffff; border-radius: 20px; border: 2px solid #e2e8f0; overflow: hidden; box-shadow: 0 10px 25px rgba(0,0,0,0.05); }
+                    .header { background: #0f172a; color: #ffffff; padding: 25px; text-align: center; border-bottom: 4px solid #00c2cb; }
+                    .header h1 { margin: 0 0 5px 0; font-size: 24px; letter-spacing: -0.5px; }
+                    .header p { margin: 0; font-size: 13px; color: #94a3b8; }
+                    .body { padding: 30px; }
+                    .event-title { font-size: 22px; font-weight: 800; margin: 0 0 10px 0; color: #0f172a; }
+                    .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin: 20px 0; background: #f1f5f9; padding: 15px; border-radius: 12px; font-size: 13px; }
+                    .info-label { color: #64748b; font-size: 11px; text-transform: uppercase; font-weight: bold; margin-bottom: 3px; }
+                    .info-val { font-weight: 700; color: #0f172a; }
+                    .qr-section { text-align: center; margin-top: 25px; padding-top: 20px; border-top: 2px dashed #e2e8f0; }
+                    .qr-image { width: 180px; height: 180px; padding: 10px; background: #ffffff; border: 1px solid #cbd5e1; border-radius: 12px; }
+                    .notice { font-size: 11px; color: #64748b; text-align: center; margin-top: 20px; font-style: italic; }
+                    @media print {
+                        body { background: #ffffff; padding: 0; }
+                        .ticket-card { border: 1px solid #000000; box-shadow: none; }
+                    }
+                </style>
+            </head>
+            <body>
+                <div class="ticket-card">
+                    <div class="header">
+                        <h1>HALOTIKET E-TICKET</h1>
+                        <p>Order ID: ${orderId}</p>
+                    </div>
+                    <div class="body">
+                        <div class="event-title">${judul}</div>
+                        <div style="font-size: 13px; color: #475569; margin-bottom: 15px;">📍 ${lokasi}</div>
+                        
+                        <div class="info-grid">
+                            <div>
+                                <div class="info-label">Pemegang Tiket</div>
+                                <div class="info-val">${nama}</div>
+                            </div>
+                            <div>
+                                <div class="info-label">Tanggal Event</div>
+                                <div class="info-val">${tanggal}</div>
+                            </div>
+                            <div>
+                                <div class="info-label">Waktu WIB</div>
+                                <div class="info-val">${waktu} WIB</div>
+                            </div>
+                            <div>
+                                <div class="info-label">Status Tiket</div>
+                                <div class="info-val" style="color: #059669;">✓ LUNAS & VERIFIKASI</div>
+                            </div>
+                        </div>
+
+                        <div class="qr-section">
+                            <img src="${qrUrl}" class="qr-image" alt="QR Code">
+                            <div style="font-family: monospace; font-size: 11px; margin-top: 8px; font-weight: bold; color: #334155;">VALIDATOR SCAN CODE</div>
+                        </div>
+                        
+                        <div class="notice">
+                            * Tunjukkan QR Code ini pada pintu masuk event untuk diverifikasi oleh petugas validator.
+                        </div>
+                    </div>
+                </div>
+                <script>
+                    window.onload = function() {
+                        setTimeout(function() {
+                            window.print();
+                        }, 500);
+                    };
+                <\/script>
+            </body>
+            </html>
+            `;
+
+            printWin.document.open();
+            printWin.document.write(htmlContent);
+            printWin.document.close();
+        }
     </script>
 </body>
 

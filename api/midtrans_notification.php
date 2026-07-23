@@ -1,9 +1,13 @@
 <?php
-require_once '../config/koneksi.php';
-require_once '../vendor/autoload.php';
+require_once __DIR__ . '/../config/koneksi.php';
+$autoloadPath = __DIR__ . '/../vendor/autoload.php';
+if (file_exists($autoloadPath)) {
+    require_once $autoloadPath;
+}
 
-\Midtrans\Config::$serverKey = MIDTRANS_SERVER_KEY;
-\Midtrans\Config::$isProduction = MIDTRANS_IS_PRODUCTION;
+$serverKey = defined('MIDTRANS_SERVER_KEY') ? trim(MIDTRANS_SERVER_KEY) : '';
+\Midtrans\Config::$serverKey = $serverKey;
+\Midtrans\Config::$isProduction = defined('MIDTRANS_IS_PRODUCTION') ? MIDTRANS_IS_PRODUCTION : false;
 
 try {
     $notif = new \Midtrans\Notification();

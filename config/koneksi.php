@@ -1,31 +1,31 @@
 <?php
 $host = "localhost";
-$user = "root";
-$pass = "";
-$db   = "halotiket_db";
+$user = "jrooeerg_tikethalo";
+$pass = 'p%~1wi9nzZ,-U;ai';
+$db   = "jrooeerg_halotiket_db";
 
-$conn = new mysqli($host, $user, $pass, $db);
+// Nonaktifkan exception otomatis MySQLi agar tidak menyebabkan HTTP 500 saat koneksi gagal
+mysqli_report(MYSQLI_REPORT_OFF);
+
+$conn = @new mysqli($host, $user, $pass, $db);
 
 if ($conn->connect_error) {
-    die("Koneksi Database Gagal: " . $conn->connect_error);
+    die("Koneksi Database Gagal: " . $conn->connect_error . "<br><br><small>Silakan periksa hak akses user di cPanel <b>MySQL Databases</b>.</small>");
 }
 
-// Midtrans API keys will be populated dynamically from database
-
-
-// Global Settings Configuration (Dynamic BASE_URL)
+// Global Settings Configuration (Dynamic BASE_URL dengan support HTTPS)
 if (!defined('BASE_URL')) {
     $protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off' || ($_SERVER['SERVER_PORT'] ?? 80) == 443) ? "https://" : "http://";
-    $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
+    $host_name = $_SERVER['HTTP_HOST'] ?? 'localhost';
     
     if (isset($_SERVER['SCRIPT_NAME']) && PHP_SAPI !== 'cli') {
         $dir = str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME']));
         $dir = preg_replace('#/(admin|panitia|validator|user|auth|api|actions)$#i', '', $dir);
         $dir = rtrim($dir, '/') . '/';
     } else {
-        $dir = '/Helo Tiket/';
+        $dir = '/Halo_Tiket/';
     }
-    define('BASE_URL', $protocol . $host . $dir);
+    define('BASE_URL', $protocol . $host_name . $dir);
 }
 
 $global_site_logo = null;
@@ -50,19 +50,22 @@ if ($settings_query) {
     $global_link_ig = $global_settings['link_ig'] ?? "https://instagram.com";
     $global_link_tiktok = $global_settings['link_tiktok'] ?? "https://tiktok.com";
 
-    // Midtrans Configuration
-    define('MIDTRANS_MERCHANT_ID', $global_settings['midtrans_merchant_id'] ?? '');
-    define('MIDTRANS_SERVER_KEY', $global_settings['midtrans_server_key'] ?? '');
-    define('MIDTRANS_CLIENT_KEY', $global_settings['midtrans_client_key'] ?? '');
-    define('MIDTRANS_IS_PRODUCTION', (isset($global_settings['midtrans_is_production']) && $global_settings['midtrans_is_production'] == '1'));
+    // Midtrans Configuration & Environment Detection
+    $m_server_key  = trim($global_settings['midtrans_server_key'] ?? '');
+    $m_client_key  = trim($global_settings['midtrans_client_key'] ?? '');
+    $m_merchant_id = trim($global_settings['midtrans_merchant_id'] ?? '');
+    $m_is_production = (isset($global_settings['midtrans_is_production']) && $global_settings['midtrans_is_production'] == '1');
+
+    define('MIDTRANS_MERCHANT_ID', $m_merchant_id);
+    define('MIDTRANS_SERVER_KEY', $m_server_key);
+    define('MIDTRANS_CLIENT_KEY', $m_client_key);
+    define('MIDTRANS_IS_PRODUCTION', $m_is_production);
     define('MIDTRANS_SNAP_URL', MIDTRANS_IS_PRODUCTION ? 'https://app.midtrans.com/snap/snap.js' : 'https://app.sandbox.midtrans.com/snap/snap.js');
     
     // Maintenance Mode Check
     $is_maintenance = (isset($global_settings['maintenance_mode']) && $global_settings['maintenance_mode'] == '1');
     if ($is_maintenance) {
         $uri = $_SERVER['REQUEST_URI'];
-        // Jika sedang maintenance, HANYA admin, auth, dan assets yang boleh diakses. 
-        // Panitia & Validator akan diblokir.
         if (strpos($uri, '/admin/') === false && 
             strpos($uri, '/auth/') === false && 
             strpos($uri, '/assets/') === false && 

@@ -296,7 +296,14 @@ if (!$event || !$variant || strtotime($event['tanggal']) < strtotime(date('Y-m-d
                 },
                 body: formData
             })
-            .then(response => response.json())
+            .then(async response => {
+                const text = await response.text();
+                try {
+                    return JSON.parse(text);
+                } catch (e) {
+                    throw new Error(text.replace(/<[^>]*>?/gm, '').trim() || 'Respon server tidak valid (' + response.status + ')');
+                }
+            })
             .then(data => {
                 closeConfirmModal();
                 btn.innerHTML = 'Ya, Lanjut Bayar';
@@ -307,17 +314,23 @@ if (!$event || !$variant || strtotime($event['tanggal']) < strtotime(date('Y-m-d
                     if (typeof snap !== 'undefined' && data.snap_token) {
                         snap.pay(data.snap_token, {
                             onSuccess: function(result) {
-                                window.location.href = 'user/riwayat_pembelian.php';
+                                const orderId = (result && result.order_id) ? result.order_id : data.order_id;
+                                window.location.href = 'user/riwayat_pembelian.php?order_id=' + encodeURIComponent(orderId) + '&payment_success=1';
                             },
                             onPending: function(result) {
-                                window.location.href = 'user/riwayat_pembelian.php';
+                                const orderId = (result && result.order_id) ? result.order_id : data.order_id;
+                                window.location.href = 'user/riwayat_pembelian.php?order_id=' + encodeURIComponent(orderId) + '&payment_pending=1';
                             },
                             onError: function(result) {
                                 alert('Pembayaran gagal atau dibatalkan.');
                                 window.location.reload();
                             },
                             onClose: function() {
-                                window.location.href = 'user/riwayat_pembelian.php';
+                                if (data.order_id) {
+                                    window.location.href = 'user/riwayat_pembelian.php?order_id=' + encodeURIComponent(data.order_id) + '&payment_pending=1';
+                                } else {
+                                    window.location.href = 'user/riwayat_pembelian.php';
+                                }
                             }
                         });
                     } else if (data.redirect_url) {
@@ -328,8 +341,11 @@ if (!$event || !$variant || strtotime($event['tanggal']) < strtotime(date('Y-m-d
                 }
             })
             .catch(err => {
-                // Fallback standard form submit jika AJAX terhambat
-                form.submit();
+                closeConfirmModal();
+                btn.innerHTML = 'Ya, Lanjut Bayar';
+                btn.disabled = false;
+                btn.classList.remove('opacity-75', 'cursor-not-allowed');
+                alert('Gagal memproses pembayaran: ' + (err.message || 'Terjadi kesalahan server.'));
             });
         }
     </script>

@@ -1,6 +1,6 @@
 <?php
 session_start();
-require_once __DIR__ . '/config/koneksi.php';
+require_once __DIR__ . '/../config/koneksi.php';
 
 ?>
 <!DOCTYPE html>
@@ -54,7 +54,7 @@ require_once __DIR__ . '/config/koneksi.php';
                 </div>
 
                 <div class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
-                    <a href="index.php" class="flex items-center gap-2 group">
+                    <a href="<?= BASE_URL ?>index.php" class="flex items-center gap-2 group">
                         <?php if (isset($global_site_logo) && $global_site_logo): ?>
                             <img src="<?= $global_site_logo ?>" alt="Logo" class="w-40 md:w-48 lg:w-56 h-auto object-contain group-hover:scale-105 transition-transform duration-300">
                         <?php else: ?>
@@ -66,7 +66,7 @@ require_once __DIR__ . '/config/koneksi.php';
 
                 <div class="flex items-center shrink-0">
                     <?php if (isset($_SESSION['user_id'])): ?>
-                        <a href="<?= $_SESSION['role'] ?>/index.php" class="bg-primary text-white hover:bg-blue-700 px-6 py-2.5 rounded-full text-sm font-semibold transition-all shadow-md hover:shadow-lg">Dashboard</a>
+                        <a href="<?= BASE_URL ?><?= $_SESSION['role'] ?>/index.php" class="bg-primary text-white hover:bg-blue-700 px-6 py-2.5 rounded-full text-sm font-semibold transition-all shadow-md hover:shadow-lg">Dashboard</a>
                     <?php endif; ?>
                 </div>
             </div>
@@ -186,9 +186,9 @@ require_once __DIR__ . '/config/koneksi.php';
             <div class="grid grid-cols-1 md:grid-cols-3 gap-10 md:gap-8 items-start">
                 <div class="flex flex-col items-start gap-4">
                     <?php if (isset($global_site_logo) && $global_site_logo): ?>
-                        <a href="index.php"><img src="<?= $global_site_logo ?>" alt="Logo" class="w-36 md:w-44 lg:w-52 h-auto object-contain"></a>
+                        <a href="<?= BASE_URL ?>index.php"><img src="<?= $global_site_logo ?>" alt="Logo" class="w-36 md:w-44 lg:w-52 h-auto object-contain"></a>
                     <?php else: ?>
-                        <a href="index.php" class="flex items-center gap-2">
+                        <a href="<?= BASE_URL ?>index.php" class="flex items-center gap-2">
                             <div class="w-8 h-8 rounded-lg bg-primary flex items-center justify-center text-white font-bold text-sm shadow-sm">H</div>
                             <span class="text-xl font-extrabold text-gray-900 tracking-tight">HaloTiket</span>
                         </a>
@@ -226,7 +226,7 @@ require_once __DIR__ . '/config/koneksi.php';
             const formData = new FormData();
             formData.append('input_search', inputVal);
 
-            fetch('actions/kirim_otp_tiket.php', {
+            fetch('<?= BASE_URL ?>actions/kirim_otp_tiket.php', {
                 method: 'POST',
                 body: formData
             })
@@ -262,7 +262,7 @@ require_once __DIR__ . '/config/koneksi.php';
             const formData = new FormData();
             formData.append('input_search', currentSearchInput);
 
-            fetch('actions/kirim_otp_tiket.php', {
+            fetch('<?= BASE_URL ?>actions/kirim_otp_tiket.php', {
                 method: 'POST',
                 body: formData
             })
@@ -295,7 +295,7 @@ require_once __DIR__ . '/config/koneksi.php';
             const formData = new FormData();
             formData.append('otp_code', otpVal);
 
-            fetch('actions/verifikasi_otp_tiket.php', {
+            fetch('<?= BASE_URL ?>actions/verifikasi_otp_tiket.php', {
                 method: 'POST',
                 body: formData
             })
