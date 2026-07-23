@@ -121,7 +121,7 @@ unset($_SESSION['error']);
                 <!-- Image Section -->
                 <div class="relative h-64 sm:h-96 lg:h-auto overflow-hidden bg-slate-100">
                     <?php if ($event['banner_image']): ?>
-                        <img src="assets/images/events/<?= $event['banner_image'] ?>"
+                        <img src="<?= BASE_URL ?>assets/images/events/<?= $event['banner_image'] ?>"
                             alt="<?= htmlspecialchars($event['judul']) ?>"
                             class="absolute inset-0 w-full h-full object-cover">
                     <?php else: ?>

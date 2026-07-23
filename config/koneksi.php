@@ -13,10 +13,19 @@ if ($conn->connect_error) {
 // Midtrans API keys will be populated dynamically from database
 
 
-// Global Settings Configuration
-$base_url = "http://" . $_SERVER['HTTP_HOST'] . "/Halo_Tiket/";
+// Global Settings Configuration (Dynamic BASE_URL)
 if (!defined('BASE_URL')) {
-    define('BASE_URL', $base_url);
+    $protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off' || ($_SERVER['SERVER_PORT'] ?? 80) == 443) ? "https://" : "http://";
+    $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
+    
+    if (isset($_SERVER['SCRIPT_NAME']) && PHP_SAPI !== 'cli') {
+        $dir = str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME']));
+        $dir = preg_replace('#/(admin|panitia|validator|user|auth|api|actions)$#i', '', $dir);
+        $dir = rtrim($dir, '/') . '/';
+    } else {
+        $dir = '/Helo Tiket/';
+    }
+    define('BASE_URL', $protocol . $host . $dir);
 }
 
 $global_site_logo = null;
@@ -36,15 +45,17 @@ if ($settings_query) {
     }
     
     // Informasi Kontak & Sosial Media (dengan fallback bawaan)
-    $global_contact_address = $global_settings['contact_address'] ?? "HaloTiket Tower Lt. 5\nJl. Jend. Sudirman No. 123, Senayan\nJakarta Selatan, DKI Jakarta 12190";
+    $global_contact_address = $global_settings['contact_address'] ?? "Garung Lor,Kec. Kaliwungu, Kabupaten Kudus, Jawa Tengah";
     $global_contact_cs = $global_settings['contact_cs'] ?? "6281234567890";
     $global_link_ig = $global_settings['link_ig'] ?? "https://instagram.com";
     $global_link_tiktok = $global_settings['link_tiktok'] ?? "https://tiktok.com";
 
     // Midtrans Configuration
+    define('MIDTRANS_MERCHANT_ID', $global_settings['midtrans_merchant_id'] ?? '');
     define('MIDTRANS_SERVER_KEY', $global_settings['midtrans_server_key'] ?? '');
     define('MIDTRANS_CLIENT_KEY', $global_settings['midtrans_client_key'] ?? '');
-    define('MIDTRANS_IS_PRODUCTION', (isset($global_settings['midtrans_is_production']) && $global_settings['midtrans_is_production'] == '1') ? true : false);
+    define('MIDTRANS_IS_PRODUCTION', (isset($global_settings['midtrans_is_production']) && $global_settings['midtrans_is_production'] == '1'));
+    define('MIDTRANS_SNAP_URL', MIDTRANS_IS_PRODUCTION ? 'https://app.midtrans.com/snap/snap.js' : 'https://app.sandbox.midtrans.com/snap/snap.js');
     
     // Maintenance Mode Check
     $is_maintenance = (isset($global_settings['maintenance_mode']) && $global_settings['maintenance_mode'] == '1');

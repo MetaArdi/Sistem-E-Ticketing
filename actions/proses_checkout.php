@@ -115,8 +115,21 @@ $params = [
 ];
 
 try {
-    // Dapatkan URL Snap Midtrans dan langsung Redirect
-    $paymentUrl = \Midtrans\Snap::createTransaction($params)->redirect_url;
+    $snapRes = \Midtrans\Snap::createTransaction($params);
+    $snapToken = $snapRes->token;
+    $paymentUrl = $snapRes->redirect_url;
+
+    if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest') {
+        header('Content-Type: application/json');
+        echo json_encode([
+            'status' => 'success',
+            'order_id' => $order_id,
+            'snap_token' => $snapToken,
+            'redirect_url' => $paymentUrl
+        ]);
+        exit;
+    }
+
     header("Location: " . $paymentUrl);
     exit;
 } catch (Exception $e) {
@@ -124,8 +137,18 @@ try {
     $conn->query("UPDATE event_ticket_variants SET sisa_stok = sisa_stok + 1 WHERE id = $id_ticket_variant");
     $conn->query("UPDATE events SET stok = stok + 1 WHERE id = $id_event");
     $conn->query("DELETE FROM tickets WHERE order_id = '$order_id'");
+    
+    if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest') {
+        header('Content-Type: application/json');
+        echo json_encode([
+            'status' => 'error',
+            'message' => 'Layanan pembayaran sedang gangguan: ' . $e->getMessage()
+        ]);
+        exit;
+    }
+
     $_SESSION['error'] = "Layanan pembayaran sedang gangguan. Coba lagi nanti.";
-    header("Location: checkout.php?id=" . $id_event);
+    header("Location: ../checkout.php?id=" . $id_event);
     exit;
 }
 ?>

@@ -14,6 +14,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $settings_to_update = [
         'google_client_id' => $_POST['google_client_id'] ?? '',
         'google_client_secret' => $_POST['google_client_secret'] ?? '',
+        'midtrans_merchant_id' => $_POST['midtrans_merchant_id'] ?? '',
         'midtrans_server_key' => $_POST['midtrans_server_key'] ?? '',
         'midtrans_client_key' => $_POST['midtrans_client_key'] ?? '',
         'midtrans_is_production' => isset($_POST['midtrans_is_production']) ? '1' : '0'
@@ -31,7 +32,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 }
 
 // Ambil nilai saat ini
-$api_keys = ['google_client_id', 'google_client_secret', 'midtrans_server_key', 'midtrans_client_key', 'midtrans_is_production'];
+$api_keys = ['google_client_id', 'google_client_secret', 'midtrans_merchant_id', 'midtrans_server_key', 'midtrans_client_key', 'midtrans_is_production'];
 $current_api = [];
 
 $query = "SELECT setting_key, setting_value FROM settings WHERE setting_key IN ('" . implode("','", $api_keys) . "')";
@@ -167,9 +168,13 @@ foreach($api_keys as $key) {
                         </div>
                         <div class="p-6">
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div class="space-y-4 md:col-span-2">
+                                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider">Merchant ID</label>
+                                    <input type="text" name="midtrans_merchant_id" value="<?= htmlspecialchars($current_api['midtrans_merchant_id']) ?>" placeholder="M730438736" class="w-full bg-slate-50 border border-slate-200 text-slate-800 text-sm rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary block px-4 py-2 transition-colors font-medium">
+                                </div>
                                 <div class="space-y-4">
                                     <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider">Server Key</label>
-                                    <input type="text" name="midtrans_server_key" value="<?= htmlspecialchars($current_api['midtrans_server_key']) ?>" placeholder="SB-Mid-server-..." class="w-full bg-slate-50 border border-slate-200 text-slate-800 text-sm rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary block px-4 py-2 transition-colors font-medium">
+                                    <input type="text" name="midtrans_server_key" value="<?= htmlspecialchars($current_api['midtrans_server_key']) ?>" placeholder="Mid-server-..." class="w-full bg-slate-50 border border-slate-200 text-slate-800 text-sm rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary block px-4 py-2 transition-colors font-medium">
                                 </div>
                                 <div class="space-y-4">
                                     <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider">Client Key</label>

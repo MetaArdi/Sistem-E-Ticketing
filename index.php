@@ -391,7 +391,7 @@ if (empty($hero_slides)) {
                         <a href="detail_event.php?id=<?= $event['id'] ?>"
                             class="block relative w-full h-48 md:h-[250px] rounded-[1.5rem] overflow-hidden shadow-md shadow-slate-200/50 group">
                             <?php if ($event['banner_image']): ?>
-                                <img src="assets/images/events/<?= $event['banner_image'] ?>" alt="Event"
+                                <img src="<?= BASE_URL ?>assets/images/events/<?= $event['banner_image'] ?>" alt="Event"
                                     class="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-700">
                             <?php else: ?>
                                 <img src="https://images.unsplash.com/photo-1492684223066-81342ee5ff30?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80"
@@ -460,7 +460,7 @@ if (empty($hero_slides)) {
                             <div
                                 class="w-24 h-24 md:w-full md:h-56 shrink-0 rounded-xl md:rounded-[1.25rem] overflow-hidden bg-slate-100 relative">
                                 <?php if ($event['banner_image']): ?>
-                                    <img src="assets/images/events/<?= $event['banner_image'] ?>" alt="Event"
+                                    <img src="<?= BASE_URL ?>assets/images/events/<?= $event['banner_image'] ?>" alt="Event"
                                         class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500">
                                 <?php else: ?>
                                     <img src="https://images.unsplash.com/photo-1514525253161-7a46d19cd819?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80"

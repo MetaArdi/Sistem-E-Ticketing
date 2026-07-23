@@ -156,7 +156,7 @@ foreach($text_settings_keys as $k) {
     $current_text_settings[$k] = $q->num_rows > 0 ? $q->fetch_assoc()['setting_value'] : '';
 }
 
-$addr_val = $current_text_settings['contact_address'] ?: "HaloTiket Tower Lt. 5\nJl. Jend. Sudirman No. 123, Senayan\nJakarta Selatan, DKI Jakarta 12190";
+$addr_val = $current_text_settings['contact_address'] ?: "Garung Lor,Kec. Kaliwungu, Kabupaten Kudus, Jawa Tengah";
 $cs_val = $current_text_settings['contact_cs'] ?: "6281234567890";
 $ig_val = $current_text_settings['link_ig'] ?: "https://instagram.com";
 $tiktok_val = $current_text_settings['link_tiktok'] ?: "https://tiktok.com";
@@ -262,7 +262,7 @@ $maintenance_mode_val = $current_text_settings['maintenance_mode'] ?? '0';
                                         
                                         <?php if($current_logo): ?>
                                             <div class="mb-4 bg-slate-100 p-4 rounded-xl inline-block border border-slate-200">
-                                                <img src="../assets/images/logo/<?= htmlspecialchars($current_logo) ?>" alt="Current Logo" class="h-16 object-contain">
+                                                <img src="<?= BASE_URL ?>assets/images/logo/<?= htmlspecialchars($current_logo) ?>" alt="Current Logo" class="h-16 object-contain">
                                             </div>
                                         <?php else: ?>
                                             <div class="mb-4 bg-slate-50 p-4 rounded-xl border border-dashed border-slate-300 text-slate-400 text-sm text-center">
@@ -284,7 +284,7 @@ $maintenance_mode_val = $current_text_settings['maintenance_mode'] ?? '0';
                                         
                                         <?php if($current_favicon): ?>
                                             <div class="mb-4 bg-slate-100 p-4 rounded-xl inline-block border border-slate-200">
-                                                <img src="../assets/images/favicon/<?= htmlspecialchars($current_favicon) ?>" alt="Current Favicon" class="h-10 w-10 object-contain">
+                                                <img src="<?= BASE_URL ?>assets/images/favicon/<?= htmlspecialchars($current_favicon) ?>" alt="Current Favicon" class="h-10 w-10 object-contain">
                                             </div>
                                         <?php else: ?>
                                             <div class="mb-4 bg-slate-50 p-4 rounded-xl border border-dashed border-slate-300 text-slate-400 text-sm text-center">
@@ -317,7 +317,7 @@ $maintenance_mode_val = $current_text_settings['maintenance_mode'] ?? '0';
                                                 <div class="relative group bg-slate-50 border border-slate-200 rounded-2xl overflow-hidden shadow-sm p-3 flex flex-col justify-between">
                                                     <div>
                                                         <div class="h-32 w-full rounded-xl overflow-hidden bg-slate-200 relative mb-3">
-                                                            <img src="../assets/images/slider/<?= htmlspecialchars($slide['image']) ?>" class="w-full h-full object-cover">
+                                                            <img src="<?= BASE_URL ?>assets/images/slider/<?= htmlspecialchars($slide['image']) ?>" class="w-full h-full object-cover">
                                                             <span class="absolute top-2 left-2 bg-slate-900/80 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">Slide <?= $idx + 1 ?></span>
                                                         </div>
                                                         <h5 class="text-xs font-bold text-slate-800 truncate"><?= !empty($slide['title']) ? htmlspecialchars($slide['title']) : '(Tanpa Judul)' ?></h5>

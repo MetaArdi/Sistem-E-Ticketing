@@ -149,7 +149,7 @@ $result = $stmt->get_result();
                     <!-- Left: QR Code / Banner Placeholder -->
                     <div class="w-full sm:w-48 shrink-0 flex flex-col justify-center items-center bg-slate-50 rounded-2xl border border-slate-100 p-4 relative overflow-hidden group">
                         <?php if($row['banner_image']): ?>
-                            <img src="../assets/images/events/<?= $row['banner_image'] ?>" alt="Event Banner" class="absolute inset-0 w-full h-full object-cover opacity-20 group-hover:opacity-30 transition-opacity">
+                            <img src="<?= BASE_URL ?>assets/images/events/<?= $row['banner_image'] ?>" alt="Event Banner" class="absolute inset-0 w-full h-full object-cover opacity-20 group-hover:opacity-30 transition-opacity">
                         <?php endif; ?>
                         
                         <div class="relative z-10 flex flex-col items-center text-center">
