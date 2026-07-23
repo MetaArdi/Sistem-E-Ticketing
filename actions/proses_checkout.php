@@ -160,8 +160,18 @@ try {
     ];
 
     $snapRes = \Midtrans\Snap::createTransaction($params);
-    $snapToken = $snapRes->token;
-    $paymentUrl = $snapRes->redirect_url;
+    $snapToken = $snapRes->token ?? '';
+    $paymentUrl = $snapRes->redirect_url ?? '';
+
+    // Update snap token & url ke database
+    $stmtUpd = $conn->prepare("UPDATE tickets SET snap_token = ?, snap_redirect_url = ? WHERE order_id = ?");
+    if ($stmtUpd) {
+        $stmtUpd->bind_param("sss", $snapToken, $paymentUrl, $order_id);
+        $stmtUpd->execute();
+    }
+
+    $_SESSION['last_order_id'] = $order_id;
+    $target_pembayaran_url = (defined('BASE_URL') ? BASE_URL : '../') . 'pembayaran.php?order_id=' . urlencode($order_id);
 
     if ($is_ajax) {
         header('Content-Type: application/json');
@@ -169,12 +179,13 @@ try {
             'status' => 'success',
             'order_id' => $order_id,
             'snap_token' => $snapToken,
-            'redirect_url' => $paymentUrl
+            'payment_url' => $paymentUrl,
+            'redirect_url' => $target_pembayaran_url
         ]);
         exit;
     }
 
-    header("Location: " . $paymentUrl);
+    header("Location: " . $target_pembayaran_url);
     exit;
 
 } catch (\Throwable $e) {

@@ -21,8 +21,8 @@ $stmt_var->bind_param("ii", $id_ticket_variant, $id_event);
 $stmt_var->execute();
 $variant = $stmt_var->get_result()->fetch_assoc();
 
-if (!$event || !$variant || strtotime($event['tanggal']) < strtotime(date('Y-m-d'))) {
-    $_SESSION['error'] = "Tiket tidak tersedia atau event sudah berlalu.";
+if (!$event || !$variant || (int)$variant['sisa_stok'] <= 0 || (int)($event['stok'] ?? 0) <= 0 || strtotime($event['tanggal']) < strtotime(date('Y-m-d'))) {
+    $_SESSION['error'] = "Stok tiket jenis ini telah habis atau event sudah berlalu.";
     header("Location: detail_event.php?id=" . $id_event);
     exit;
 }
@@ -143,34 +143,12 @@ if (!$event || !$variant || strtotime($event['tanggal']) < strtotime(date('Y-m-d
                         <input type="text" name="no_hp" required placeholder="081234567890" class="w-full px-5 py-3.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary focus:bg-white transition-all text-sm">
                     </div>
                     
-                    <div class="space-y-3 pt-4">
-                        <label class="text-sm font-bold text-slate-700">Metode Pembayaran</label>
-                        <div class="grid grid-cols-1 gap-3">
-                            <!-- Midtrans Gateway -->
-                            <label class="relative flex cursor-pointer rounded-xl border bg-blue-50/50 p-4 shadow-sm border-primary ring-1 ring-primary">
-                                <input type="hidden" name="payment_method" value="midtrans">
-                                <div class="flex w-full items-center justify-between">
-                                    <div class="flex items-center gap-3">
-                                        <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-100 text-blue-600">
-                                            <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" /></svg>
-                                        </div>
-                                        <div>
-                                            <p class="text-sm font-bold text-slate-900">Pembayaran Online (Otomatis)</p>
-                                            <p class="text-xs text-slate-500 mt-0.5">Mendukung Transfer Bank, E-Wallet, QRIS, & Kartu Kredit</p>
-                                        </div>
-                                    </div>
-                                    <svg class="h-5 w-5 text-primary" viewBox="0 0 20 20" fill="currentColor">
-                                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
-                                    </svg>
-                                </div>
-                            </label>
-                        </div>
-                    </div>
-                    
-                    <div class="pt-6 mt-8 border-t border-slate-100 flex items-center justify-between">
-                        <div class="w-1/2 pr-4">
-                            <div class="space-y-1 mb-2">
-                                <div class="flex justify-between text-sm text-slate-500">
+                    <input type="hidden" name="payment_method" value="midtrans">
+
+                    <div class="pt-6 mt-6 border-t border-slate-100 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-6">
+                        <div class="w-full sm:w-1/2">
+                            <div class="space-y-1.5 mb-3 bg-slate-50 p-3.5 rounded-xl border border-slate-100">
+                                <div class="flex justify-between text-xs sm:text-sm text-slate-500">
                                     <span>Harga Tiket</span>
                                     <span class="font-bold text-slate-700" id="display_harga_tiket">Rp <?= number_format($variant['harga'], 0, ',', '.') ?></span>
                                 </div>
@@ -178,16 +156,16 @@ if (!$event || !$variant || strtotime($event['tanggal']) < strtotime(date('Y-m-d
                                 $markup_type = $global_settings['admin_markup_type'] ?? 'nominal';
                                 $markup_value = (float)($global_settings['admin_markup_value'] ?? 5000);
                                 ?>
-                                <div class="flex justify-between text-sm text-slate-500">
+                                <div class="flex justify-between text-xs sm:text-sm text-slate-500">
                                     <span>Biaya Layanan</span>
                                     <span class="font-bold text-slate-700" id="display_biaya_layanan">Hitung otomatis...</span>
                                 </div>
                             </div>
-                            <p class="text-xs font-medium text-slate-400 mb-1">Total Pembayaran</p>
+                            <p class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Total Pembayaran</p>
                             <p class="text-2xl sm:text-3xl font-extrabold text-slate-900 leading-none" id="display_total">Rp 0</p>
                         </div>
-                        <button type="submit" class="bg-slate-900 hover:bg-primary text-white font-bold py-4 px-6 sm:px-8 rounded-2xl transition-all duration-300 shadow-xl shadow-slate-900/20 hover:shadow-indigo-500/30 hover:-translate-y-1 text-base sm:text-lg flex items-center justify-center gap-2 w-1/2">
-                            Bayar 
+                        <button type="submit" class="bg-slate-900 hover:bg-primary text-white font-extrabold py-4 px-6 sm:px-8 rounded-2xl transition-all duration-300 shadow-xl shadow-slate-900/20 hover:shadow-indigo-500/30 hover:-translate-y-0.5 text-base sm:text-lg flex items-center justify-center gap-2 w-full sm:w-1/2">
+                            <span>Lanjut Pembayaran</span>
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
                         </button>
                     </div>
@@ -311,33 +289,13 @@ if (!$event || !$variant || strtotime($event['tanggal']) < strtotime(date('Y-m-d
                 btn.classList.remove('opacity-75', 'cursor-not-allowed');
 
                 if (data.status === 'success') {
-                    if (typeof snap !== 'undefined' && data.snap_token) {
-                        snap.pay(data.snap_token, {
-                            onSuccess: function(result) {
-                                const orderId = (result && result.order_id) ? result.order_id : data.order_id;
-                                window.location.href = 'user/riwayat_pembelian.php?order_id=' + encodeURIComponent(orderId) + '&payment_success=1';
-                            },
-                            onPending: function(result) {
-                                const orderId = (result && result.order_id) ? result.order_id : data.order_id;
-                                window.location.href = 'user/riwayat_pembelian.php?order_id=' + encodeURIComponent(orderId) + '&payment_pending=1';
-                            },
-                            onError: function(result) {
-                                alert('Pembayaran gagal atau dibatalkan.');
-                                window.location.reload();
-                            },
-                            onClose: function() {
-                                if (data.order_id) {
-                                    window.location.href = 'user/riwayat_pembelian.php?order_id=' + encodeURIComponent(data.order_id) + '&payment_pending=1';
-                                } else {
-                                    window.location.href = 'user/riwayat_pembelian.php';
-                                }
-                            }
-                        });
-                    } else if (data.redirect_url) {
+                    if (data.redirect_url) {
                         window.location.href = data.redirect_url;
+                    } else if (data.order_id) {
+                        window.location.href = 'pembayaran.php?order_id=' + encodeURIComponent(data.order_id);
                     }
                 } else {
-                    alert(data.message || 'Terjadi kesalahan saat memproses pembayaran.');
+                    alert(data.message || 'Terjadi kesalahan saat memproses pesanan.');
                 }
             })
             .catch(err => {

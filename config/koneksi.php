@@ -13,6 +13,16 @@ if ($conn->connect_error) {
     die("Koneksi Database Gagal: " . $conn->connect_error . "<br><br><small>Silakan periksa hak akses user di cPanel <b>MySQL Databases</b>.</small>");
 }
 
+// Auto Migration: Pastikan kolom snap_token & snap_redirect_url ada di tabel tickets
+$checkCol1 = $conn->query("SHOW COLUMNS FROM tickets LIKE 'snap_token'");
+if ($checkCol1 && $checkCol1->num_rows === 0) {
+    @$conn->query("ALTER TABLE tickets ADD COLUMN snap_token VARCHAR(255) NULL AFTER order_id");
+}
+$checkCol2 = $conn->query("SHOW COLUMNS FROM tickets LIKE 'snap_redirect_url'");
+if ($checkCol2 && $checkCol2->num_rows === 0) {
+    @$conn->query("ALTER TABLE tickets ADD COLUMN snap_redirect_url TEXT NULL AFTER snap_token");
+}
+
 // Global Settings Configuration (Dynamic BASE_URL dengan support HTTPS)
 if (!defined('BASE_URL')) {
     $protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off' || ($_SERVER['SERVER_PORT'] ?? 80) == 443) ? "https://" : "http://";

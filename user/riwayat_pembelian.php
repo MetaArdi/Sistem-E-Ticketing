@@ -319,12 +319,16 @@ $result = $stmt->get_result();
                                 </button>
                             <?php elseif($row['status'] == 'pending'): ?>
                                 <div class="text-center md:text-right space-y-2">
-                                    <span class="inline-block bg-amber-50 text-amber-700 border border-amber-200 px-3 py-1.5 rounded-lg text-xs font-bold">
+                                    <span class="inline-block bg-amber-50 text-amber-700 border border-amber-200 px-3 py-1.5 rounded-lg text-xs font-bold block mb-2">
                                         Perlu Pembayaran
                                     </span>
+                                    <a href="../pembayaran.php?order_id=<?= urlencode($row['order_id']) ?>" class="w-full md:w-48 bg-primary hover:bg-blue-600 text-white font-extrabold py-3 px-5 rounded-xl transition-all shadow-md hover:shadow-lg text-xs flex items-center justify-center gap-2">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a1 1 0 11-2 0 1 1 0 012 0z" /></svg>
+                                        Bayar Sekarang
+                                    </a>
                                     <?php if (defined('MIDTRANS_IS_PRODUCTION') && !MIDTRANS_IS_PRODUCTION): ?>
-                                        <div>
-                                            <a href="https://simulator.sandbox.midtrans.com/" target="_blank" class="inline-flex items-center gap-1 text-[11px] font-bold text-blue-600 bg-blue-50 border border-blue-200 px-3 py-1.5 rounded-lg hover:bg-blue-100 transition-colors">
+                                        <div class="pt-1">
+                                            <a href="https://simulator.sandbox.midtrans.com/" target="_blank" class="inline-flex items-center gap-1 text-[11px] font-bold text-blue-600 hover:underline">
                                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
                                                 Midtrans Simulator
                                             </a>
