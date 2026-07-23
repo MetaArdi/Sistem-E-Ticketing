@@ -1,10 +1,39 @@
 <?php
 session_start();
+
 if (!isset($_SESSION['user_id']) || $_SESSION['role'] != 'panitia') {
     header("Location: ../auth/login.php");
     exit;
 }
+
 require_once '../config/koneksi.php';
+
+// Pastikan tabel withdrawals & kolom bank di tabel users tersedia
+try {
+    $conn->query("
+        CREATE TABLE IF NOT EXISTS withdrawals (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            user_id INT NOT NULL,
+            amount DECIMAL(15,2) NOT NULL,
+            bank_name VARCHAR(100) NOT NULL,
+            account_number VARCHAR(50) NOT NULL,
+            account_name VARCHAR(100) NOT NULL,
+            status ENUM('pending', 'approved', 'rejected') DEFAULT 'pending',
+            admin_note TEXT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+    ");
+
+    $cols = $conn->query("SHOW COLUMNS FROM users LIKE 'nama_bank'");
+    if ($cols && $cols->num_rows == 0) {
+        @$conn->query("ALTER TABLE users ADD COLUMN nama_bank VARCHAR(100) NULL");
+        @$conn->query("ALTER TABLE users ADD COLUMN no_rekening VARCHAR(50) NULL");
+        @$conn->query("ALTER TABLE users ADD COLUMN nama_rekening VARCHAR(100) NULL");
+    }
+} catch (\Throwable $e) {
+    // Abaikan jika tabel/kolom sudah ada
+}
 
 $success_msg = '';
 $error_msg = '';
@@ -16,45 +45,49 @@ if ($user_id <= 0) {
 }
 
 // Get current user info (including bank details)
-$stmt = $conn->prepare("SELECT email, nama_lengkap, foto_profil, nama_bank, no_rekening, nama_rekening FROM users WHERE id = ?");
-$stmt->bind_param("i", $user_id);
-$stmt->execute();
-$user_data = $stmt->get_result()->fetch_assoc();
-$stmt->close();
+$user_data = [
+    'nama_lengkap' => $_SESSION['nama_lengkap'] ?? 'Panitia Event',
+    'email' => $_SESSION['email'] ?? '',
+    'foto_profil' => $_SESSION['foto_profil'] ?? '',
+    'nama_bank' => '',
+    'no_rekening' => '',
+    'nama_rekening' => ''
+];
 
-if (!$user_data) {
-    $user_data = [
-        'nama_lengkap' => $_SESSION['nama_lengkap'] ?? 'Panitia Event',
-        'email' => $_SESSION['email'] ?? '',
-        'foto_profil' => $_SESSION['foto_profil'] ?? '',
-        'nama_bank' => '',
-        'no_rekening' => '',
-        'nama_rekening' => ''
-    ];
+$stmt = $conn->prepare("SELECT email, nama_lengkap, foto_profil, nama_bank, no_rekening, nama_rekening FROM users WHERE id = ?");
+if ($stmt) {
+    $stmt->bind_param("i", $user_id);
+    $stmt->execute();
+    $db_user = $stmt->get_result()->fetch_assoc();
+    if ($db_user) {
+        $user_data = array_merge($user_data, $db_user);
+    }
+    $stmt->close();
 }
 
 // Update Profile Logic
 if ($_SERVER['REQUEST_METHOD'] == 'POST' && !isset($_POST['withdraw_form']) && !isset($_POST['bank_form'])) {
-    $nama_lengkap = trim($_POST['nama_lengkap']);
-    $email = trim($_POST['email']);
-    $password = $_POST['password'];
-    $password_confirm = $_POST['password_confirm'];
+    $nama_lengkap = trim($_POST['nama_lengkap'] ?? '');
+    $email = trim($_POST['email'] ?? '');
+    $password = $_POST['password'] ?? '';
+    $password_confirm = $_POST['password_confirm'] ?? '';
 
     if (empty($nama_lengkap) || empty($email)) {
         $error_msg = "Nama Lengkap dan Email tidak boleh kosong.";
     } else {
         // Cek apakah email sudah dipakai user lain
         $stmt = $conn->prepare("SELECT id FROM users WHERE email = ? AND id != ?");
-        $stmt->bind_param("si", $email, $user_id);
-        $stmt->execute();
-        if ($stmt->get_result()->num_rows > 0) {
-            $error_msg = "Email tersebut sudah terdaftar pada akun lain.";
+        if ($stmt) {
+            $stmt->bind_param("si", $email, $user_id);
+            $stmt->execute();
+            if ($stmt->get_result()->num_rows > 0) {
+                $error_msg = "Email tersebut sudah terdaftar pada akun lain.";
+            }
+            $stmt->close();
         }
-        $stmt->close();
 
         if (empty($error_msg)) {
-            // Handle foto profil upload
-            $foto_profil = $user_data['foto_profil'];
+            $foto_profil = $user_data['foto_profil'] ?? '';
             
             // Check if there is a cropped image from the modal (Base64)
             if (isset($_POST['cropped_image']) && !empty($_POST['cropped_image'])) {
@@ -68,10 +101,10 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && !isset($_POST['withdraw_form']) && !
                             $new_filename = uniqid('profil_') . '.' . $ext;
                             $upload_dir = '../assets/images/profil/';
                             if (!is_dir($upload_dir)) {
-                                mkdir($upload_dir, 0755, true);
+                                @mkdir($upload_dir, 0755, true);
                             }
                             $upload_path = $upload_dir . $new_filename;
-                            if (file_put_contents($upload_path, $img_data)) {
+                            if (@file_put_contents($upload_path, $img_data)) {
                                 $foto_profil = $new_filename;
                             } else {
                                 $error_msg = "Gagal mengunggah foto profil.";
@@ -97,10 +130,10 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && !isset($_POST['withdraw_form']) && !
                     $new_filename = uniqid('profil_') . '.' . $ext;
                     $upload_dir = '../assets/images/profil/';
                     if (!is_dir($upload_dir)) {
-                        mkdir($upload_dir, 0755, true);
+                        @mkdir($upload_dir, 0755, true);
                     }
                     $upload_path = $upload_dir . $new_filename;
-                    if (move_uploaded_file($_FILES['foto_profil']['tmp_name'], $upload_path)) {
+                    if (@move_uploaded_file($_FILES['foto_profil']['tmp_name'], $upload_path)) {
                         $foto_profil = $new_filename;
                     } else {
                         $error_msg = "Gagal mengunggah foto profil.";
@@ -115,16 +148,16 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && !isset($_POST['withdraw_form']) && !
                     } else {
                         $hashed_password = password_hash($password, PASSWORD_DEFAULT);
                         $stmt = $conn->prepare("UPDATE users SET nama_lengkap = ?, email = ?, password = ?, foto_profil = ? WHERE id = ?");
-                        $stmt->bind_param("ssssi", $nama_lengkap, $email, $hashed_password, $foto_profil, $user_id);
+                        if ($stmt) $stmt->bind_param("ssssi", $nama_lengkap, $email, $hashed_password, $foto_profil, $user_id);
                     }
                 } else {
                     $stmt = $conn->prepare("UPDATE users SET nama_lengkap = ?, email = ?, foto_profil = ? WHERE id = ?");
-                    $stmt->bind_param("sssi", $nama_lengkap, $email, $foto_profil, $user_id);
+                    if ($stmt) $stmt->bind_param("sssi", $nama_lengkap, $email, $foto_profil, $user_id);
                 }
             }
 
-            if (empty($error_msg) && isset($stmt)) {
-                $old_photo = $user_data['foto_profil'];
+            if (empty($error_msg) && isset($stmt) && $stmt) {
+                $old_photo = $user_data['foto_profil'] ?? '';
                 if ($stmt->execute()) {
                     if (!empty($old_photo) && $old_photo !== $foto_profil && !str_starts_with($old_photo, 'http')) {
                         $old_path = '../assets/images/profil/' . $old_photo;
@@ -139,7 +172,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && !isset($_POST['withdraw_form']) && !
                     $user_data['email'] = $email;
                     $user_data['foto_profil'] = $foto_profil;
                     
-                    logActivity($conn, $user_id, 'Update Profile', 'Panitia memperbarui data profil akunnya.');
+                    if (function_exists('logActivity')) {
+                        logActivity($conn, $user_id, 'Update Profile', 'Panitia memperbarui data profil akunnya.');
+                    }
                 } else {
                     $error_msg = "Terjadi kesalahan saat menyimpan data.";
                 }
@@ -154,7 +189,8 @@ $success_withdraw = $_SESSION['success_withdraw'] ?? '';
 $error_withdraw = $_SESSION['error_withdraw'] ?? '';
 unset($_SESSION['success_withdraw'], $_SESSION['error_withdraw']);
 
-// Calculation for Vendor Saldo & Withdrawals
+// Calculation for Vendor Saldo & Withdrawals safely
+$total_earnings = 0;
 $stmt_rev = $conn->prepare("
     SELECT SUM(COALESCE(v.harga, e.harga)) as total_earnings
     FROM tickets t
@@ -162,30 +198,56 @@ $stmt_rev = $conn->prepare("
     LEFT JOIN event_ticket_variants v ON t.id_ticket_variant = v.id
     WHERE e.id_panitia = ? AND t.status IN ('lunas', 'scanned')
 ");
-$stmt_rev->bind_param("i", $user_id);
-$stmt_rev->execute();
-$total_earnings = (float)($stmt_rev->get_result()->fetch_assoc()['total_earnings'] ?? 0);
-$stmt_rev->close();
+if ($stmt_rev) {
+    $stmt_rev->bind_param("i", $user_id);
+    $stmt_rev->execute();
+    $res = $stmt_rev->get_result();
+    if ($res) {
+        $total_earnings = (float)($res->fetch_assoc()['total_earnings'] ?? 0);
+    }
+    $stmt_rev->close();
+}
 
+$total_approved_withdraw = 0;
 $stmt_wd_approved = $conn->prepare("SELECT SUM(amount) as total_approved FROM withdrawals WHERE user_id = ? AND status = 'approved'");
-$stmt_wd_approved->bind_param("i", $user_id);
-$stmt_wd_approved->execute();
-$total_approved_withdraw = (float)($stmt_wd_approved->get_result()->fetch_assoc()['total_approved'] ?? 0);
-$stmt_wd_approved->close();
+if ($stmt_wd_approved) {
+    $stmt_wd_approved->bind_param("i", $user_id);
+    $stmt_wd_approved->execute();
+    $res = $stmt_wd_approved->get_result();
+    if ($res) {
+        $total_approved_withdraw = (float)($res->fetch_assoc()['total_approved'] ?? 0);
+    }
+    $stmt_wd_approved->close();
+}
 
+$total_pending_withdraw = 0;
 $stmt_wd_pending = $conn->prepare("SELECT SUM(amount) as total_pending FROM withdrawals WHERE user_id = ? AND status = 'pending'");
-$stmt_wd_pending->bind_param("i", $user_id);
-$stmt_wd_pending->execute();
-$total_pending_withdraw = (float)($stmt_wd_pending->get_result()->fetch_assoc()['total_pending'] ?? 0);
-$stmt_wd_pending->close();
+if ($stmt_wd_pending) {
+    $stmt_wd_pending->bind_param("i", $user_id);
+    $stmt_wd_pending->execute();
+    $res = $stmt_wd_pending->get_result();
+    if ($res) {
+        $total_pending_withdraw = (float)($res->fetch_assoc()['total_pending'] ?? 0);
+    }
+    $stmt_wd_pending->close();
+}
 
 $available_balance = $total_earnings - ($total_approved_withdraw + $total_pending_withdraw);
 
-// Fetch withdrawal history
+// Fetch withdrawal history safely
+$withdraw_history_data = [];
 $stmt_history = $conn->prepare("SELECT * FROM withdrawals WHERE user_id = ? ORDER BY created_at DESC");
-$stmt_history->bind_param("i", $user_id);
-$stmt_history->execute();
-$withdraw_history = $stmt_history->get_result();
+if ($stmt_history) {
+    $stmt_history->bind_param("i", $user_id);
+    $stmt_history->execute();
+    $res = $stmt_history->get_result();
+    if ($res) {
+        while ($row = $res->fetch_assoc()) {
+            $withdraw_history_data[] = $row;
+        }
+    }
+    $stmt_history->close();
+}
 ?>
 <!DOCTYPE html>
 <html lang="id">
@@ -288,11 +350,11 @@ $withdraw_history = $stmt_history->get_result();
                                 <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
                                     <div class="space-y-4">
                                         <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider">Nama Lengkap</label>
-                                        <input type="text" name="nama_lengkap" value="<?= htmlspecialchars($user_data['nama_lengkap']) ?>" required class="w-full bg-slate-50 border border-slate-200 text-slate-800 text-sm rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary block px-4 py-2.5 transition-colors font-medium">
+                                        <input type="text" name="nama_lengkap" value="<?= htmlspecialchars($user_data['nama_lengkap'] ?? '') ?>" required class="w-full bg-slate-50 border border-slate-200 text-slate-800 text-sm rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary block px-4 py-2.5 transition-colors font-medium">
                                     </div>
                                     <div class="space-y-4">
                                         <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider">Alamat Email</label>
-                                        <input type="email" name="email" value="<?= htmlspecialchars($user_data['email']) ?>" required class="w-full bg-slate-50 border border-slate-200 text-slate-800 text-sm rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary block px-4 py-2.5 transition-colors font-medium">
+                                        <input type="email" name="email" value="<?= htmlspecialchars($user_data['email'] ?? '') ?>" required class="w-full bg-slate-50 border border-slate-200 text-slate-800 text-sm rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary block px-4 py-2.5 transition-colors font-medium">
                                     </div>
                                 </div>
                                 
@@ -459,7 +521,7 @@ $withdraw_history = $stmt_history->get_result();
                     <div class="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden">
                         <div class="px-6 py-4 border-b border-slate-100 bg-slate-50/50 flex justify-between items-center">
                             <h3 class="font-extrabold text-slate-900 text-sm">Riwayat Penarikan Dana</h3>
-                            <span class="bg-primary/10 text-primary text-xs font-bold px-3 py-1 rounded-full">Total: <?= $withdraw_history->num_rows ?> Transaksi</span>
+                            <span class="bg-primary/10 text-primary text-xs font-bold px-3 py-1 rounded-full">Total: <?= count($withdraw_history_data) ?> Transaksi</span>
                         </div>
                         <div class="overflow-x-auto">
                             <table class="min-w-full divide-y divide-slate-100">
@@ -473,35 +535,35 @@ $withdraw_history = $stmt_history->get_result();
                                     </tr>
                                 </thead>
                                 <tbody class="bg-white divide-y divide-slate-50">
-                                    <?php if($withdraw_history->num_rows > 0): ?>
-                                        <?php while($wh = $withdraw_history->fetch_assoc()): ?>
+                                    <?php if(count($withdraw_history_data) > 0): ?>
+                                        <?php foreach($withdraw_history_data as $wh): ?>
                                         <tr class="hover:bg-slate-50/80 transition-colors">
                                             <td class="px-6 py-4 whitespace-nowrap">
                                                 <div class="text-xs font-bold text-slate-900">#WD-<?= $wh['id'] ?></div>
                                                 <div class="text-[11px] font-medium text-slate-400 mt-1"><?= date('d M Y, H:i', strtotime($wh['created_at'])) ?></div>
                                             </td>
                                             <td class="px-6 py-4 whitespace-nowrap">
-                                                <div class="text-sm font-bold text-slate-800"><?= htmlspecialchars($wh['bank_name']) ?></div>
-                                                <div class="text-xs font-mono text-slate-600"><?= htmlspecialchars($wh['account_number']) ?></div>
-                                                <div class="text-[11px] text-slate-400">a.n <?= htmlspecialchars($wh['account_name']) ?></div>
+                                                <div class="text-sm font-bold text-slate-800"><?= htmlspecialchars($wh['bank_name'] ?? '') ?></div>
+                                                <div class="text-xs font-mono text-slate-600"><?= htmlspecialchars($wh['account_number'] ?? '') ?></div>
+                                                <div class="text-[11px] text-slate-400">a.n <?= htmlspecialchars($wh['account_name'] ?? '') ?></div>
                                             </td>
                                             <td class="px-6 py-4 whitespace-nowrap">
-                                                <div class="text-sm font-extrabold font-mono text-slate-900">Rp <?= number_format($wh['amount'], 0, ',', '.') ?></div>
+                                                <div class="text-sm font-extrabold font-mono text-slate-900">Rp <?= number_format($wh['amount'] ?? 0, 0, ',', '.') ?></div>
                                             </td>
                                             <td class="px-6 py-4 whitespace-nowrap">
-                                                <?php if($wh['status'] == 'approved'): ?>
+                                                <?php if(($wh['status'] ?? '') == 'approved'): ?>
                                                     <span class="px-2.5 py-1 rounded-md text-[11px] font-bold uppercase tracking-wider bg-emerald-100 text-emerald-700">Disetujui</span>
-                                                <?php elseif($wh['status'] == 'rejected'): ?>
+                                                <?php elseif(($wh['status'] ?? '') == 'rejected'): ?>
                                                     <span class="px-2.5 py-1 rounded-md text-[11px] font-bold uppercase tracking-wider bg-red-100 text-red-700">Ditolak</span>
                                                 <?php else: ?>
-                                                    <span class="px-2.5 py-1 rounded-md text-[11px] font-bold uppercase tracking-wider bg-amber-100 text-amber-700 animate-pulse">Menunggu Verification</span>
+                                                    <span class="px-2.5 py-1 rounded-md text-[11px] font-bold uppercase tracking-wider bg-amber-100 text-amber-700 animate-pulse">Menunggu Verifikasi</span>
                                                 <?php endif; ?>
                                             </td>
                                             <td class="px-6 py-4 text-xs font-medium text-slate-500">
                                                 <?= !empty($wh['admin_note']) ? htmlspecialchars($wh['admin_note']) : '-' ?>
                                             </td>
                                         </tr>
-                                        <?php endwhile; ?>
+                                        <?php endforeach; ?>
                                     <?php else: ?>
                                         <tr>
                                             <td colspan="5" class="px-6 py-8 text-center text-slate-400 font-medium">
@@ -629,153 +691,6 @@ $withdraw_history = $stmt_history->get_result();
             eye.classList.remove('hidden');
             eyeOff.classList.add('hidden');
         }
-    }
-</script>
-
-<!-- Modal Cropper Foto Profil -->
-<div id="cropperModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
-    <div class="bg-white rounded-3xl shadow-xl border border-slate-200 w-full max-w-lg overflow-hidden flex flex-col transform transition-all duration-300 scale-95 opacity-0" id="cropperModalContent">
-        <div class="px-6 py-4 border-b border-slate-100 bg-slate-50 flex items-center justify-between">
-            <h3 class="font-extrabold text-slate-900 text-base">Sesuaikan Foto Profil</h3>
-            <button type="button" id="closeCropperBtn" class="text-slate-400 hover:text-slate-650 font-bold text-2xl leading-none">&times;</button>
-        </div>
-        <div class="p-6 flex flex-col items-center gap-4 bg-white">
-            <div class="w-full max-h-[350px] overflow-hidden rounded-2xl bg-slate-100 flex items-center justify-center border border-slate-200 relative">
-                <img id="cropperSourceImage" src="" alt="Source Image" class="max-w-full max-h-[350px]">
-            </div>
-            <div class="w-full space-y-3 mt-2">
-                <div class="flex items-center gap-3">
-                    <span class="text-xs font-bold text-slate-500 uppercase tracking-wider shrink-0">Perbesar/Kecil</span>
-                    <input type="range" id="cropperZoomRange" min="0.1" max="3" step="0.01" value="1" class="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-primary">
-                </div>
-                <div class="flex justify-center gap-4">
-                    <button type="button" id="cropperRotateLeft" class="px-3 py-1.5 bg-slate-100 text-slate-700 rounded-lg text-xs font-bold hover:bg-slate-200 transition-colors flex items-center gap-1">
-                        Putar Kiri
-                    </button>
-                    <button type="button" id="cropperRotateRight" class="px-3 py-1.5 bg-slate-100 text-slate-700 rounded-lg text-xs font-bold hover:bg-slate-200 transition-colors flex items-center gap-1">
-                        Putar Kanan
-                    </button>
-                </div>
-            </div>
-        </div>
-        <div class="px-6 py-4 border-t border-slate-100 bg-slate-50 flex items-center justify-end gap-3">
-            <button type="button" id="cancelCropperBtn" class="px-5 py-2 text-sm font-bold text-slate-500 hover:text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-xl transition-colors">Batal</button>
-            <button type="button" id="saveCropperBtn" class="px-6 py-2 text-sm font-bold text-white bg-primary hover:opacity-90 rounded-xl shadow-md transition-opacity">Simpan</button>
-        </div>
-    </div>
-</div>
-
-<script>
-    let cropper = null;
-    const fileInput = document.getElementById('foto_profil_input');
-    const cropperModal = document.getElementById('cropperModal');
-    const cropperModalContent = document.getElementById('cropperModalContent');
-    const cropperSourceImage = document.getElementById('cropperSourceImage');
-    const cropperZoomRange = document.getElementById('cropperZoomRange');
-
-    if (fileInput) {
-        fileInput.addEventListener('change', function(e) {
-            const files = e.target.files;
-            if (files && files.length > 0) {
-                const file = files[0];
-                const allowedTypes = ['image/jpeg', 'image/png', 'image/jpg'];
-                if (!allowedTypes.includes(file.type)) {
-                    alert('Format file tidak didukung. Hanya JPG, JPEG, dan PNG.');
-                    fileInput.value = '';
-                    return;
-                }
-                if (file.size > 2 * 1024 * 1024) {
-                    alert('Ukuran file maksimal 2MB.');
-                    fileInput.value = '';
-                    return;
-                }
-
-                const reader = new FileReader();
-                reader.onload = function(event) {
-                    cropperSourceImage.src = event.target.result;
-                    cropperModal.classList.remove('hidden');
-                    setTimeout(() => {
-                        cropperModalContent.classList.remove('scale-95', 'opacity-0');
-                        cropperModalContent.classList.add('scale-100', 'opacity-100');
-                    }, 50);
-
-                    if (cropper) { cropper.destroy(); }
-                    cropper = new Cropper(cropperSourceImage, {
-                        aspectRatio: 1, viewMode: 1, dragMode: 'move', autoCropArea: 0.8,
-                        restore: false, guides: false, center: false, highlight: false,
-                        cropBoxMovable: true, cropBoxResizable: true, toggleDragModeOnDblclick: false,
-                        ready: function() {
-                            const imageData = cropper.getImageData();
-                            cropperZoomRange.min = imageData.width / imageData.naturalWidth * 0.5;
-                            cropperZoomRange.max = cropperZoomRange.min * 10;
-                            cropperZoomRange.value = cropper.getData().scaleX || 1;
-                        }
-                    });
-                };
-                reader.readAsDataURL(file);
-            }
-        });
-    }
-
-    if (cropperZoomRange) {
-        cropperZoomRange.addEventListener('input', function() {
-            if (cropper) { cropper.zoomTo(parseFloat(this.value)); }
-        });
-    }
-
-    const rotateLeft = document.getElementById('cropperRotateLeft');
-    if (rotateLeft) { rotateLeft.addEventListener('click', function() { if (cropper) cropper.rotate(-45); }); }
-    const rotateRight = document.getElementById('cropperRotateRight');
-    if (rotateRight) { rotateRight.addEventListener('click', function() { if (cropper) cropper.rotate(45); }); }
-
-    function closeCropperModal() {
-        if (cropperModalContent) {
-            cropperModalContent.classList.remove('scale-100', 'opacity-100');
-            cropperModalContent.classList.add('scale-95', 'opacity-0');
-        }
-        setTimeout(() => {
-            if (cropperModal) cropperModal.classList.add('hidden');
-            if (cropper) { cropper.destroy(); cropper = null; }
-            if (fileInput) fileInput.value = '';
-        }, 300);
-    }
-
-    const cancelCropper = document.getElementById('cancelCropperBtn');
-    if (cancelCropper) cancelCropper.addEventListener('click', closeCropperModal);
-    const closeCropper = document.getElementById('closeCropperBtn');
-    if (closeCropper) closeCropper.addEventListener('click', closeCropperModal);
-
-    const saveCropper = document.getElementById('saveCropperBtn');
-    if (saveCropper) {
-        saveCropper.addEventListener('click', function() {
-            if (cropper) {
-                const canvas = cropper.getCroppedCanvas({ width: 400, height: 400, imageSmoothingEnabled: true, imageSmoothingQuality: 'high' });
-                const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
-                const croppedInput = document.getElementById('cropped_image_input');
-                if (croppedInput) croppedInput.value = dataUrl;
-                
-                const profileAvatarImg = document.getElementById('profile-avatar-img');
-                const profileAvatarPlaceholder = document.getElementById('profile-avatar-placeholder');
-                if (profileAvatarImg) {
-                    profileAvatarImg.src = dataUrl;
-                } else if (profileAvatarPlaceholder) {
-                    const newImg = document.createElement('img');
-                    newImg.id = 'profile-avatar-img';
-                    newImg.src = dataUrl;
-                    newImg.className = 'w-16 h-16 rounded-2xl object-cover shadow-md';
-                    profileAvatarPlaceholder.replaceWith(newImg);
-                }
-
-                if (cropperModalContent) {
-                    cropperModalContent.classList.remove('scale-100', 'opacity-100');
-                    cropperModalContent.classList.add('scale-95', 'opacity-0');
-                }
-                setTimeout(() => {
-                    if (cropperModal) cropperModal.classList.add('hidden');
-                    if (cropper) { cropper.destroy(); cropper = null; }
-                }, 300);
-            }
-        });
     }
 </script>
 </body>
