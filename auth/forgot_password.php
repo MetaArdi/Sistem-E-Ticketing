@@ -69,14 +69,20 @@ if (isset($_SESSION['reset_otp_verified']) && $_SESSION['reset_otp_verified'] ==
     <div class="w-full max-w-md bg-white rounded-3xl shadow-xl shadow-slate-200/50 p-8 sm:p-12 relative z-10 border border-slate-100">
 
         <?php if($step == 1): ?>
-            <a href="login.php" class="absolute top-6 left-6 text-slate-400 hover:text-primary flex items-center gap-2 text-xs font-bold transition-colors bg-slate-50 px-3 py-1.5 rounded-full border border-slate-200">
-                &larr; Kembali ke Login
+            <a href="login.php" class="absolute top-6 left-6 inline-flex items-center gap-2 text-xs font-bold text-slate-500 hover:text-primary transition-all bg-slate-100/80 hover:bg-slate-100 px-3.5 py-1.5 rounded-full border border-slate-200/60 group">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5 group-hover:-translate-x-0.5 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                </svg>
+                <span>Kembali ke Login</span>
             </a>
         <?php else: ?>
             <form action="proses_forgot_password.php" method="POST" class="inline">
                 <input type="hidden" name="action" value="cancel_reset">
-                <button type="submit" class="absolute top-6 left-6 text-slate-400 hover:text-red-500 flex items-center gap-2 text-xs font-bold transition-colors bg-slate-50 px-3 py-1.5 rounded-full border border-slate-200">
-                    &larr; Batal
+                <button type="submit" class="absolute top-6 left-6 inline-flex items-center gap-2 text-xs font-bold text-slate-500 hover:text-red-500 transition-all bg-slate-100/80 hover:bg-red-50 px-3.5 py-1.5 rounded-full border border-slate-200/60 group cursor-pointer">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5 group-hover:-translate-x-0.5 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                    </svg>
+                    <span>Batal</span>
                 </button>
             </form>
         <?php endif; ?>
