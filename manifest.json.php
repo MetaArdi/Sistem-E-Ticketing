@@ -1,23 +1,16 @@
 <?php
 header('Content-Type: application/manifest+json; charset=utf-8');
-require_once 'config/koneksi.php';
 
-$app_name = $global_settings['site_name'] ?? 'HaloTiket';
-$app_short_name = 'HaloTiket';
-$base_url = BASE_URL;
-
-$icon_192 = file_exists(__DIR__ . '/assets/images/pwa/icon-192.png') 
-    ? $base_url . 'assets/images/pwa/icon-192.png' 
-    : (file_exists(__DIR__ . '/assets/images/icon-192.png') ? $base_url . 'assets/images/icon-192.png' : $base_url . 'assets/images/logo/1783841669_Logo_HaloTiket_nobg.png');
-
-$icon_512 = file_exists(__DIR__ . '/assets/images/pwa/icon-512.png') 
-    ? $base_url . 'assets/images/pwa/icon-512.png' 
-    : (file_exists(__DIR__ . '/assets/images/icon-512.png') ? $base_url . 'assets/images/icon-512.png' : $base_url . 'assets/images/logo/1783841669_Logo_HaloTiket_nobg.png');
+$protocol = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on') || (isset($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https') ? 'https://' : 'http://';
+$host = $_SERVER['HTTP_HOST'] ?? 'localhost';
+$script_name = $_SERVER['SCRIPT_NAME'] ?? '/index.php';
+$dir = str_replace('\\', '/', dirname($script_name));
+$base_url = $protocol . $host . ($dir === '/' ? '/' : $dir . '/');
 
 $manifest = [
     "id" => "halotiket-app",
-    "name" => $app_name . " - Platform E-Ticketing Event",
-    "short_name" => $app_short_name,
+    "name" => "HaloTiket - Platform E-Ticketing Event",
+    "short_name" => "HaloTiket",
     "description" => "Platform E-Ticketing Konser, Seminar, Festival & Event Resmi",
     "start_url" => $base_url,
     "scope" => $base_url,
@@ -30,13 +23,13 @@ $manifest = [
     "prefer_related_applications" => false,
     "icons" => [
         [
-            "src" => $icon_192,
+            "src" => $base_url . "assets/images/icon-192.png",
             "sizes" => "192x192",
             "type" => "image/png",
             "purpose" => "any maskable"
         ],
         [
-            "src" => $icon_512,
+            "src" => $base_url . "assets/images/icon-512.png",
             "sizes" => "512x512",
             "type" => "image/png",
             "purpose" => "any maskable"
@@ -44,5 +37,5 @@ $manifest = [
     ]
 ];
 
-echo json_encode($manifest, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+echo json_encode($manifest, JSON_UNESCAPED_SLASHES);
 exit;

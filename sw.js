@@ -1,13 +1,10 @@
-const CACHE_NAME = 'halotiket-pwa-v3';
+const CACHE_NAME = 'halotiket-pwa-v4';
 const ASSETS_TO_CACHE = [
   './',
   'index.php',
-  'manifest.json',
-  'assets/css/style.css',
-  'assets/images/pwa/icon-192.png',
-  'assets/images/pwa/icon-512.png',
-  'https://cdn.tailwindcss.com',
-  'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap'
+  'manifest.json.php',
+  'assets/images/icon-192.png',
+  'assets/images/icon-512.png'
 ];
 
 // Install Event
@@ -41,14 +38,18 @@ self.addEventListener('activate', (event) => {
   );
 });
 
-// Fetch Event (Network First with Cache Fallback)
+// Fetch Event (Network First, graceful fallback)
 self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return;
+  const url = new URL(event.request.url);
+
+  // Skip proxying external CDNs to prevent load bottlenecks
+  if (url.origin !== location.origin) return;
 
   event.respondWith(
     fetch(event.request)
       .then((networkResponse) => {
-        if (networkResponse && networkResponse.status === 200) {
+        if (networkResponse && networkResponse.status === 200 && event.request.url.match(/\.(png|jpg|jpeg|svg|css|js|json)$/)) {
           const responseToCache = networkResponse.clone();
           caches.open(CACHE_NAME).then((cache) => {
             cache.put(event.request, responseToCache);
@@ -56,15 +57,6 @@ self.addEventListener('fetch', (event) => {
         }
         return networkResponse;
       })
-      .catch(() => {
-        return caches.match(event.request).then((cachedResponse) => {
-          if (cachedResponse) {
-            return cachedResponse;
-          }
-          if (event.request.headers && event.request.headers.get('accept') && event.request.headers.get('accept').includes('text/html')) {
-            return caches.match('index.php') || caches.match('./');
-          }
-        });
-      })
+      .catch(() => caches.match(event.request))
   );
 });
