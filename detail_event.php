@@ -51,9 +51,29 @@ unset($_SESSION['error']);
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?= htmlspecialchars($event['judul']) ?> - HaloTiket</title>
+    
+    <!-- PWA Meta Tags & Manifest -->
+    <link rel="manifest" href="<?= BASE_URL ?>manifest.json.php">
+    <meta name="theme-color" content="#0f1c3f">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="HaloTiket">
+    <!-- Icons & PWA Logo -->
     <?php if (isset($global_site_favicon) && $global_site_favicon): ?>
-        <link rel="icon" href="<?= $global_site_favicon ?>" type="image/x-icon">
+        <link rel="shortcut icon" href="<?= $global_site_favicon ?>">
     <?php endif; ?>
+    <link rel="icon" type="image/png" sizes="192x192" href="<?= BASE_URL ?>assets/images/pwa/icon-192.png">
+    <link rel="icon" type="image/png" sizes="512x512" href="<?= BASE_URL ?>assets/images/pwa/icon-512.png">
+    <link rel="apple-touch-icon" sizes="192x192" href="<?= BASE_URL ?>assets/images/pwa/icon-192.png">
+
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', function() {
+                navigator.serviceWorker.register('<?= BASE_URL ?>sw.js');
+            });
+        }
+    </script>
 
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap"

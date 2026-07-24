@@ -9,6 +9,25 @@ require_once __DIR__ . '/config/koneksi.php';
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Cek Tiket & OTP - HaloTiket</title>
+    <!-- PWA Meta Tags & Manifest -->
+    <link rel="manifest" href="<?= BASE_URL ?>manifest.json.php">
+    <meta name="theme-color" content="#0f1c3f">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="HaloTiket">
+    <link rel="icon" type="image/png" sizes="192x192" href="<?= BASE_URL ?>assets/images/pwa/icon-192.png">
+    <link rel="shortcut icon" href="<?= BASE_URL ?>assets/images/pwa/icon-192.png">
+    <link rel="apple-touch-icon" href="<?= BASE_URL ?>assets/images/pwa/icon-192.png">
+
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', function() {
+                navigator.serviceWorker.register('<?= BASE_URL ?>sw.js');
+            });
+        }
+    </script>
+
     <?php if (isset($global_site_favicon) && $global_site_favicon): ?>
         <link rel="icon" href="<?= $global_site_favicon ?>">
         <link rel="shortcut icon" href="<?= $global_site_favicon ?>">

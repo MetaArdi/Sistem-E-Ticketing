@@ -115,9 +115,14 @@ if (empty($hero_slides)) {
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="HaloTiket">
-    <link rel="icon" type="image/png" href="<?= BASE_URL ?>assets/images/pwa/icon-192.png">
-    <link rel="shortcut icon" href="<?= BASE_URL ?>assets/images/pwa/icon-192.png">
-    <link rel="apple-touch-icon" href="<?= BASE_URL ?>assets/images/pwa/icon-192.png">
+    
+    <!-- Icons & PWA Logo -->
+    <?php if (isset($global_site_favicon) && $global_site_favicon): ?>
+        <link rel="shortcut icon" href="<?= $global_site_favicon ?>">
+    <?php endif; ?>
+    <link rel="icon" type="image/png" sizes="192x192" href="<?= BASE_URL ?>assets/images/pwa/icon-192.png">
+    <link rel="icon" type="image/png" sizes="512x512" href="<?= BASE_URL ?>assets/images/pwa/icon-512.png">
+    <link rel="apple-touch-icon" sizes="192x192" href="<?= BASE_URL ?>assets/images/pwa/icon-192.png">
 
     <!-- Early PWA Core Script & SW Registration -->
     <script>
@@ -157,8 +162,39 @@ if (empty($hero_slides)) {
                     dismissPwaBanner();
                 } catch (err) {
                     console.error('Prompt error:', err);
+                    openPwaGuideModal();
                 }
+            } else {
+                openPwaGuideModal();
             }
+        }
+
+        function openPwaGuideModal() {
+            const m = document.getElementById('pwa-guide-modal');
+            const o = document.getElementById('pwa-guide-modal-overlay');
+            if (!m || !o) return;
+            o.classList.remove('hidden');
+            m.classList.remove('hidden');
+            setTimeout(() => {
+                o.classList.remove('opacity-0');
+                o.classList.add('opacity-100');
+                m.classList.remove('opacity-0', 'scale-95');
+                m.classList.add('opacity-100', 'scale-100');
+            }, 10);
+        }
+
+        function closePwaGuideModal() {
+            const m = document.getElementById('pwa-guide-modal');
+            const o = document.getElementById('pwa-guide-modal-overlay');
+            if (!m || !o) return;
+            o.classList.remove('opacity-100');
+            o.classList.add('opacity-0');
+            m.classList.remove('opacity-100', 'scale-100');
+            m.classList.add('opacity-0', 'scale-95');
+            setTimeout(() => {
+                o.classList.add('hidden');
+                m.classList.add('hidden');
+            }, 300);
         }
 
         window.addEventListener('beforeinstallprompt', (e) => {
@@ -183,16 +219,19 @@ if (empty($hero_slides)) {
             dismissPwaBanner();
             console.log('HaloTiket PWA installed!');
         });
+
+        // Show banner after 2s if not already running in standalone mode
+        document.addEventListener('DOMContentLoaded', () => {
+            const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
+            if (!isStandalone) {
+                setTimeout(() => {
+                    showPwaBanner();
+                }, 1500);
+            }
+        });
     </script>
 
-    <?php if (isset($global_site_favicon) && $global_site_favicon): ?>
-        <link rel="icon" href="<?= $global_site_favicon ?>">
-        <link rel="shortcut icon" href="<?= $global_site_favicon ?>">
-        <link rel="apple-touch-icon" href="<?= $global_site_favicon ?>">
-    <?php elseif (isset($global_site_logo) && $global_site_logo): ?>
-        <link rel="icon" href="<?= $global_site_logo ?>">
-        <link rel="apple-touch-icon" href="<?= $global_site_logo ?>">
-    <?php endif; ?>
+
 
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -254,7 +293,14 @@ if (empty($hero_slides)) {
                 </div>
 
                 <!-- Desktop Actions & Logo -->
-                <div class="flex items-center space-x-6 shrink-0">
+                <div class="flex items-center space-x-4 shrink-0">
+                    <button type="button" onclick="installPwaApp()" class="inline-flex items-center gap-1.5 bg-slate-100 hover:bg-slate-200 text-slate-800 px-4 py-2.5 rounded-full text-xs font-bold transition-all shadow-sm cursor-pointer">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                        </svg>
+                        <span>Install App</span>
+                    </button>
+
                     <?php if (isset($_SESSION['user_id'])): ?>
                         <a href="<?= $_SESSION['role'] ?>/index.php"
                             class="bg-primary text-white hover:bg-blue-700 px-6 py-2.5 rounded-full text-sm font-semibold transition-all shadow-md hover:shadow-lg">Dashboard</a>
@@ -733,7 +779,14 @@ if (empty($hero_slides)) {
                 Riwayat Tiket
             </a>
 
-            <div class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 mt-6 px-2">Bantuan</div>
+            <div class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 mt-6 px-2">Bantuan & Aplikasi</div>
+            <button onclick="installPwaApp()"
+                class="w-full flex items-center gap-3 px-4 py-3.5 rounded-xl bg-emerald-50 text-emerald-700 font-bold hover:bg-emerald-100 transition-colors text-left cursor-pointer mb-1">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                </svg>
+                Install Aplikasi PWA
+            </button>
             <button onclick="openCsModal()"
                 class="w-full flex items-center gap-3 px-4 py-3.5 rounded-xl text-slate-600 hover:bg-slate-50 font-semibold transition-colors text-left cursor-pointer">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
@@ -1082,6 +1135,62 @@ if (empty($hero_slides)) {
         });
     </script>
 
+    <!-- POP-UP MODAL PETUNJUK INSTALL PWA -->
+    <div id="pwa-guide-modal-overlay" onclick="closePwaGuideModal()" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden opacity-0 transition-opacity duration-300"></div>
+    <div id="pwa-guide-modal" class="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[92%] max-w-md bg-white rounded-[2rem] shadow-2xl border border-slate-100 z-50 hidden opacity-0 scale-95 transition-all duration-300 p-6 sm:p-7">
+        <div class="flex items-center justify-between pb-4 border-b border-slate-100 mb-4">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-2xl bg-primary/10 text-primary flex items-center justify-center font-bold">
+                    📲
+                </div>
+                <div>
+                    <h3 class="text-base font-extrabold text-slate-900">Cara Install HaloTiket</h3>
+                    <p class="text-[11px] font-semibold text-slate-500">Petunjuk Pemasangan Aplikasi (PWA)</p>
+                </div>
+            </div>
+            <button onclick="closePwaGuideModal()" class="text-slate-400 hover:text-slate-700 bg-slate-100 hover:bg-slate-200 p-2 rounded-full transition-colors cursor-pointer">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+            </button>
+        </div>
+
+        <div class="space-y-3.5 text-xs text-slate-600">
+            <div class="bg-slate-50 p-3.5 rounded-2xl border border-slate-100">
+                <h4 class="font-bold text-slate-900 mb-1.5 flex items-center gap-1.5">
+                    <span>📱 Android (Chrome)</span>
+                </h4>
+                <ol class="list-decimal list-inside space-y-1 text-slate-600">
+                    <li>Ketuk ikon titik tiga <strong>(⋮)</strong> di sudut kanan atas browser.</li>
+                    <li>Pilih menu <strong>"Tambahkan ke Layar Utama"</strong> atau <strong>"Install Aplikasi"</strong>.</li>
+                    <li>Tekan tombol <strong>Install</strong>.</li>
+                </ol>
+            </div>
+
+            <div class="bg-slate-50 p-3.5 rounded-2xl border border-slate-100">
+                <h4 class="font-bold text-slate-900 mb-1.5 flex items-center gap-1.5">
+                    <span>🍏 iPhone / iOS (Safari)</span>
+                </h4>
+                <ol class="list-decimal list-inside space-y-1 text-slate-600">
+                    <li>Ketuk tombol <strong>Bagikan (Share ⎘)</strong> di bagian bawah Safari.</li>
+                    <li>Pilih <strong>"Tambah ke Layar Utama" (Add to Home Screen)</strong>.</li>
+                    <li>Tekan <strong>Tambah</strong> di pojok kanan atas.</li>
+                </ol>
+            </div>
+
+            <div class="bg-slate-50 p-3.5 rounded-2xl border border-slate-100">
+                <h4 class="font-bold text-slate-900 mb-1 flex items-center gap-1.5">
+                    <span>💻 Laptop / PC (Chrome & Edge)</span>
+                </h4>
+                <p>Klik ikon <strong>Install / ⊕</strong> yang muncul di ujung kanan bilah alamat (URL bar) browser Anda.</p>
+            </div>
+        </div>
+
+        <div class="pt-4 border-t border-slate-100 mt-4 text-right">
+            <button onclick="closePwaGuideModal()" class="w-full bg-slate-900 hover:bg-primary text-white font-bold py-3 rounded-xl text-xs transition-colors cursor-pointer shadow-md">
+                Saya Mengerti
+            </button>
+        </div>
+    </div>
+
     <!-- PWA INSTALLATION FLOATING BOTTOM BANNER -->
     <div id="pwaInstallBanner" class="fixed bottom-4 left-1/2 -translate-x-1/2 z-[999] max-w-md w-[92%] sm:w-auto bg-slate-900/95 text-white p-3 px-4 rounded-2xl shadow-2xl backdrop-blur-xl border border-slate-700/80 transform translate-y-32 opacity-0 transition-all duration-500 hidden flex items-center justify-between gap-4">
         <div class="flex items-center gap-3 min-w-0">
@@ -1105,7 +1214,11 @@ if (empty($hero_slides)) {
             <button type="button" id="btnInstallPwa" onclick="installPwaApp()" class="px-4 py-1.5 rounded-lg font-bold text-xs text-white bg-emerald-600 hover:bg-emerald-500 active:scale-95 transition-all shadow-md">
                 Install
             </button>
-            <button type="button" onclick="dismissPwaBanner()" class="text-slate-400 hover:text-white p-1 text-lg leading-none font-bold">
+            <button type="button" onclick="dismissPwaBanner()" class="text-slate-400 hover:text-white p-1 text-lg leading-none font-bold cursor-pointer" aria-label="Close Banner">
+                &times;
+            </button>
+        </div>
+    </div>
 </body>
 
 </html>

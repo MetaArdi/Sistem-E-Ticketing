@@ -1,8 +1,12 @@
-const CACHE_NAME = 'halotiket-pwa-v4';
+const CACHE_NAME = 'halotiket-pwa-v5';
 const ASSETS_TO_CACHE = [
   './',
   'index.php',
   'manifest.json.php',
+  'manifest.json',
+  'assets/css/style.css',
+  'assets/images/pwa/icon-192.png',
+  'assets/images/pwa/icon-512.png',
   'assets/images/icon-192.png',
   'assets/images/icon-512.png'
 ];
@@ -38,7 +42,7 @@ self.addEventListener('activate', (event) => {
   );
 });
 
-// Fetch Event (Network First, graceful fallback)
+// Fetch Event (Network First, with Cache Fallback)
 self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return;
   const url = new URL(event.request.url);
@@ -49,7 +53,7 @@ self.addEventListener('fetch', (event) => {
   event.respondWith(
     fetch(event.request)
       .then((networkResponse) => {
-        if (networkResponse && networkResponse.status === 200 && event.request.url.match(/\.(png|jpg|jpeg|svg|css|js|json)$/)) {
+        if (networkResponse && networkResponse.status === 200 && event.request.url.match(/\.(png|jpg|jpeg|svg|css|js|json|php)$/)) {
           const responseToCache = networkResponse.clone();
           caches.open(CACHE_NAME).then((cache) => {
             cache.put(event.request, responseToCache);
@@ -57,6 +61,14 @@ self.addEventListener('fetch', (event) => {
         }
         return networkResponse;
       })
-      .catch(() => caches.match(event.request))
+      .catch(() => {
+        return caches.match(event.request).then((cachedResponse) => {
+          if (cachedResponse) return cachedResponse;
+          if (event.request.headers.get('accept')?.includes('text/html')) {
+            return caches.match('./') || caches.match('index.php');
+          }
+        });
+      })
   );
 });
+
