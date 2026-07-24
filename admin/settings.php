@@ -119,7 +119,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     }
 
     // Proses Text Settings
-    $text_settings = ['contact_address', 'contact_cs', 'link_ig', 'link_tiktok', 'admin_markup_type', 'admin_markup_value', 'maintenance_mode', 'midtrans_merchant_id', 'midtrans_server_key', 'midtrans_client_key', 'midtrans_is_production', 'google_client_id', 'google_client_secret', 'google_redirect_uri'];
+    $text_settings = ['contact_address', 'contact_cs', 'link_ig', 'link_tiktok', 'admin_markup_type', 'admin_markup_value', 'maintenance_mode'];
     $stmt = $conn->prepare("INSERT INTO settings (setting_key, setting_value) VALUES (?, ?) ON DUPLICATE KEY UPDATE setting_value = ?");
     foreach ($text_settings as $key) {
         if (isset($_POST[$key])) {
@@ -129,7 +129,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         }
     }
 
-    logActivity($conn, $_SESSION['user_id'], 'Update Settings', 'Admin mengubah pengaturan sistem (Tampilan, Midtrans, Google OAuth & Kontak).');
+    logActivity($conn, $_SESSION['user_id'], 'Update Settings', 'Admin mengubah pengaturan sistem (Tampilan, Biaya Layanan, Kontak & Maintenance).');
 
     if (!isset($success_msg)) {
         $success_msg = "Pengaturan berhasil disimpan.";
@@ -149,16 +149,12 @@ if ($slider_query && $slider_query->num_rows > 0) {
     $current_sliders = json_decode($slider_query->fetch_assoc()['setting_value'], true) ?: [];
 }
 
-$text_settings_keys = ['contact_address', 'contact_cs', 'link_ig', 'link_tiktok', 'admin_markup_type', 'admin_markup_value', 'maintenance_mode', 'midtrans_merchant_id', 'midtrans_server_key', 'midtrans_client_key', 'midtrans_is_production', 'google_client_id', 'google_client_secret', 'google_redirect_uri'];
+$text_settings_keys = ['contact_address', 'contact_cs', 'link_ig', 'link_tiktok', 'admin_markup_type', 'admin_markup_value', 'maintenance_mode'];
 $current_text_settings = [];
 foreach($text_settings_keys as $k) {
     $q = $conn->query("SELECT setting_value FROM settings WHERE setting_key = '$k'");
     $current_text_settings[$k] = ($q && $q->num_rows > 0) ? $q->fetch_assoc()['setting_value'] : '';
 }
-
-$google_client_id_val = $current_text_settings['google_client_id'] ?? '';
-$google_client_secret_val = $current_text_settings['google_client_secret'] ?? '';
-$google_redirect_uri_val = $current_text_settings['google_redirect_uri'] ?? '';
 
 $addr_val = $current_text_settings['contact_address'] ?: "Garung Lor,Kec. Kaliwungu, Kabupaten Kudus, Jawa Tengah";
 $cs_val = $current_text_settings['contact_cs'] ?: "6281234567890";
@@ -167,10 +163,6 @@ $tiktok_val = $current_text_settings['link_tiktok'] ?: "https://tiktok.com";
 $markup_type_val = $current_text_settings['admin_markup_type'] ?: "nominal";
 $markup_value_val = $current_text_settings['admin_markup_value'] ?: "5000";
 $maintenance_mode_val = $current_text_settings['maintenance_mode'] ?? '0';
-$midtrans_merchant_id_val = $current_text_settings['midtrans_merchant_id'] ?? '';
-$midtrans_server_key_val = $current_text_settings['midtrans_server_key'] ?? '';
-$midtrans_client_key_val = $current_text_settings['midtrans_client_key'] ?? '';
-$midtrans_is_production_val = $current_text_settings['midtrans_is_production'] ?? '0';
 ?>
 <!DOCTYPE html>
 <html lang="id">
@@ -451,131 +443,6 @@ $midtrans_is_production_val = $current_text_settings['midtrans_is_production'] ?
                                             <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Besaran Biaya Layanan</label>
                                             <input type="number" name="admin_markup_value" value="<?= htmlspecialchars($markup_value_val) ?>" min="0" class="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-sm font-medium outline-none">
                                             <p class="text-[10px] text-slate-400 mt-1">Jika memilih persentase, isi dengan angka persen (misal: 10 untuk 10%). Jika nominal, isi dengan harga flat (misal: 5000).</p>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <hr class="border-slate-100">
-
-                                <div>
-                                    <h4 class="text-sm font-bold text-slate-800 mb-4 flex items-center gap-2">
-                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" /></svg>
-                                        Pengaturan Midtrans Payment Gateway
-                                    </h4>
-                                    
-                                    <div class="bg-blue-50/50 p-6 rounded-2xl border border-blue-100 space-y-6">
-                                        <div>
-                                            <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Environment Pembayaran</label>
-                                            <select name="midtrans_is_production" class="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-sm font-bold outline-none text-slate-700">
-                                                <option value="0" <?= $midtrans_is_production_val == '0' ? 'selected' : '' ?>>Sandbox (Mode Testing / Uji Coba)</option>
-                                                <option value="1" <?= $midtrans_is_production_val == '1' ? 'selected' : '' ?>>Production (Mode Live / Transaksi Asli)</option>
-                                            </select>
-                                            <p class="text-[10px] text-slate-400 mt-1">Pastikan kunci yang dimasukkan di bawah sesuai dengan environment yang dipilih.</p>
-                                        </div>
-
-                                        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                                            <div>
-                                                <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Merchant ID</label>
-                                                <input type="text" name="midtrans_merchant_id" value="<?= htmlspecialchars($midtrans_merchant_id_val) ?>" placeholder="Contoh: G123456789" class="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-sm font-medium outline-none">
-                                            </div>
-
-                                            <div>
-                                                <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Client Key</label>
-                                                <input type="text" name="midtrans_client_key" value="<?= htmlspecialchars($midtrans_client_key_val) ?>" placeholder="SB-Mid-client-..." class="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-sm font-medium outline-none">
-                                                <p class="text-[10px] text-slate-400 mt-1">Sandbox: diawali <code>SB-Mid-client-</code></p>
-                                            </div>
-
-                                            <div>
-                                                <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Server Key</label>
-                                                <input type="text" name="midtrans_server_key" value="<?= htmlspecialchars($midtrans_server_key_val) ?>" placeholder="SB-Mid-server-..." class="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-sm font-medium outline-none">
-                                                <p class="text-[10px] text-slate-400 mt-1">Sandbox: diawali <code>SB-Mid-server-</code></p>
-                                            </div>
-                                        </div>
-
-                                        <!-- Panduan Simulator Sandbox Midtrans -->
-                                        <div class="mt-4 pt-4 border-t border-blue-200/60">
-                                            <details class="group">
-                                                <summary class="flex items-center justify-between cursor-pointer font-bold text-xs text-blue-700 hover:text-blue-900 transition-colors">
-                                                    <span class="flex items-center gap-1.5">
-                                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                                                        Panduan & Kredensial Uji Coba Pembayaran (Sandbox Simulator)
-                                                    </span>
-                                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 group-open:rotate-180 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
-                                                </summary>
-                                                <div class="mt-3 text-xs text-slate-600 space-y-3 bg-white p-4 rounded-xl border border-blue-100 shadow-sm">
-                                                    <div>
-                                                        <p class="font-bold text-slate-800 mb-1">💳 Kartu Kredit / Debit (Test Cards):</p>
-                                                        <ul class="list-disc list-inside space-y-0.5 text-slate-600">
-                                                            <li><b>VISA (Accept 3DS):</b> <code>4811 1111 1111 1114</code> | Exp: Bulan/Tahun Bebas | CVV: <code>123</code> | OTP: <code>112233</code></li>
-                                                            <li><b>Mastercard (Accept 3DS):</b> <code>5211 1111 1111 1117</code> | CVV: <code>123</code> | OTP: <code>112233</code></li>
-                                                            <li><b>VISA Denied by Bank:</b> <code>4911 1111 1111 1113</code></li>
-                                                        </ul>
-                                                    </div>
-
-                                                    <div>
-                                                        <p class="font-bold text-slate-800 mb-1">🏦 Simulator Virtual Account (Bank Transfer):</p>
-                                                        <div class="flex flex-wrap gap-2 mt-1">
-                                                            <a href="https://simulator.sandbox.midtrans.com/bca/va/index" target="_blank" class="px-2 py-1 bg-blue-50 text-blue-700 rounded border border-blue-200 hover:bg-blue-100 font-semibold">Simulator BCA VA</a>
-                                                            <a href="https://simulator.sandbox.midtrans.com/bni/va/index" target="_blank" class="px-2 py-1 bg-orange-50 text-orange-700 rounded border border-orange-200 hover:bg-orange-100 font-semibold">Simulator BNI VA</a>
-                                                            <a href="https://simulator.sandbox.midtrans.com/openapi/va/index?bank=bri" target="_blank" class="px-2 py-1 bg-blue-50 text-blue-700 rounded border border-blue-200 hover:bg-blue-100 font-semibold">Simulator BRI VA</a>
-                                                            <a href="https://simulator.sandbox.midtrans.com/openapi/va/index?bank=mandiri" target="_blank" class="px-2 py-1 bg-amber-50 text-amber-700 rounded border border-amber-200 hover:bg-amber-100 font-semibold">Simulator Mandiri Bill</a>
-                                                            <a href="https://simulator.sandbox.midtrans.com/openapi/va/index?bank=permata" target="_blank" class="px-2 py-1 bg-emerald-50 text-emerald-700 rounded border border-emerald-200 hover:bg-emerald-100 font-semibold">Simulator Permata VA</a>
-                                                        </div>
-                                                    </div>
-
-                                                    <div>
-                                                        <p class="font-bold text-slate-800 mb-1">📱 E-Wallet & QRIS:</p>
-                                                        <ul class="list-disc list-inside space-y-0.5 text-slate-600">
-                                                            <li><b>QRIS Simulator:</b> <a href="https://simulator.sandbox.midtrans.com/v2/qris/index" target="_blank" class="text-blue-600 underline font-semibold">Link QRIS Simulator</a> (Paste URL Gambar QRIS)</li>
-                                                            <li><b>GoPay / ShopeePay / DANA:</b> Gunakan PIN <code>123456</code> pada simulator.</li>
-                                                        </ul>
-                                                    </div>
-
-                                                    <div>
-                                                        <p class="font-bold text-slate-800 mb-1">🏪 Gerai Ritel (Convenience Store):</p>
-                                                        <div class="flex flex-wrap gap-2 mt-1">
-                                                            <a href="https://simulator.sandbox.midtrans.com/indomaret/phoenix/index" target="_blank" class="px-2 py-1 bg-red-50 text-red-700 rounded border border-red-200 hover:bg-red-100 font-semibold">Simulator Indomaret</a>
-                                                            <a href="https://simulator.sandbox.midtrans.com/alfamart/index" target="_blank" class="px-2 py-1 bg-red-50 text-red-700 rounded border border-red-200 hover:bg-red-100 font-semibold">Simulator Alfamart</a>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </details>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <hr class="border-slate-100">
-
-                                <div>
-                                    <h4 class="text-sm font-bold text-slate-800 mb-4 flex items-center gap-2">
-                                        <svg class="h-4 w-4" viewBox="0 0 24 24">
-                                            <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-                                            <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-                                            <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
-                                            <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
-                                        </svg>
-                                        Pengaturan Google OAuth 2.0 (Login Google)
-                                    </h4>
-                                    
-                                    <div class="bg-slate-50/70 p-6 rounded-2xl border border-slate-200 space-y-4">
-                                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                            <div>
-                                                <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Google Client ID</label>
-                                                <input type="text" name="google_client_id" value="<?= htmlspecialchars($google_client_id_val) ?>" placeholder="Contoh: 123456789-abc.apps.googleusercontent.com" class="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-sm font-medium outline-none">
-                                            </div>
-
-                                            <div>
-                                                <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Google Client Secret</label>
-                                                <input type="text" name="google_client_secret" value="<?= htmlspecialchars($google_client_secret_val) ?>" placeholder="GOCSPX-..." class="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-sm font-medium outline-none">
-                                            </div>
-                                        </div>
-
-                                        <div>
-                                            <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Authorized Redirect URI (Diinput di Google Cloud Console)</label>
-                                            <input type="text" name="google_redirect_uri" value="<?= htmlspecialchars(!empty($google_redirect_uri_val) ? $google_redirect_uri_val : (defined('BASE_URL') ? BASE_URL : 'https://halotiket.com/') . 'auth/google_callback.php') ?>" class="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-sm font-mono font-bold text-primary outline-none">
-                                            <p class="text-xs text-slate-500 mt-1.5">
-                                                ⚠️ <strong>PENTING:</strong> String URL di atas HARUS dicopy persis sama tanpa beda 1 karakter pun ke <strong>Authorized redirect URIs</strong> di Google Cloud Console untuk menghindari <code>redirect_uri_mismatch</code>.
-                                            </p>
                                         </div>
                                     </div>
                                 </div>
