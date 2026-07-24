@@ -25,7 +25,11 @@ if ($checkCol2 && $checkCol2->num_rows === 0) {
 
 // Global Settings Configuration (Dynamic BASE_URL dengan support HTTPS)
 if (!defined('BASE_URL')) {
-    $protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off' || ($_SERVER['SERVER_PORT'] ?? 80) == 443) ? "https://" : "http://";
+    $is_https = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') 
+                || ($_SERVER['SERVER_PORT'] ?? 80) == 443 
+                || (!empty($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https') 
+                || (!empty($_SERVER['HTTP_X_FORWARDED_SSL']) && $_SERVER['HTTP_X_FORWARDED_SSL'] === 'on');
+    $protocol = $is_https ? "https://" : "http://";
     $host_name = $_SERVER['HTTP_HOST'] ?? 'localhost';
     
     if (isset($_SERVER['SCRIPT_NAME']) && PHP_SAPI !== 'cli') {

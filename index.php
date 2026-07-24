@@ -904,19 +904,11 @@ if (empty($hero_slides)) {
                 promptEvent.userChoice.then((choiceResult) => {
                     if (choiceResult.outcome === 'accepted') {
                         console.log('User accepted the PWA install prompt');
-                    } else {
-                        console.log('User dismissed the PWA install prompt');
                     }
                     window.deferredPwaPrompt = null;
                     dismissPwaBanner();
                 });
             } else {
-                const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
-                if (isIOS) {
-                    alert('Untuk menginstall aplikasi HaloTiket di iPhone/iPad:\n\n1. Ketuk ikon Share (Bagikan) di bagian bawah browser Safari.\n2. Gulir ke bawah lalu pilih "Tambahkan ke Layar Utama" (Add to Home Screen).');
-                } else {
-                    alert('Prompt instalasi otomatis belum muncul dari browser.\n\nPetunjuk Instalasi Manual:\n1. Klik menu browser (titik 3 di kanan atas / menu opsi).\n2. Pilih "Install Aplikasi" atau "Tambahkan ke Layar Utama".\n\n(Catatan: Pastikan Anda menggunakan browser Chrome/Edge dan mengakses via localhost / HTTPS).');
-                }
                 dismissPwaBanner();
             }
         }

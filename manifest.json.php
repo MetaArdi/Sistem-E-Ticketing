@@ -5,11 +5,11 @@ require_once 'config/koneksi.php';
 $app_name = $global_settings['site_name'] ?? 'HaloTiket';
 $app_short_name = 'HaloTiket';
 
-$icon_192 = BASE_URL . 'assets/images/pwa/icon-192.png';
-$icon_512 = BASE_URL . 'assets/images/pwa/icon-512.png';
+$icon_192 = 'assets/images/pwa/icon-192.png';
+$icon_512 = 'assets/images/pwa/icon-512.png';
 
 $manifest = [
-    'id' => './index.php',
+    'id' => 'index.php',
     'name' => $app_name . ' - Platform E-Ticketing Event',
     'short_name' => $app_short_name,
     'description' => 'Platform E-Ticketing Konser, Seminar, Festival & Event Resmi',
