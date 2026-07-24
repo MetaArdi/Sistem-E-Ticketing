@@ -358,12 +358,12 @@ $maintenance_mode_val = $current_text_settings['maintenance_mode'] ?? '0';
                                                 <div class="md:col-span-2">
                                                     <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Gambar Slider <span class="text-red-500">*</span></label>
                                                     <input type="file" id="newSliderInput" name="slider_image" accept="image/*" required class="w-full text-sm font-medium file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-bold file:bg-primary/10 file:text-primary hover:file:bg-primary/20 transition-all cursor-pointer">
-                                                    <p class="text-[10px] text-slate-400 mt-1">Rekomendasi rasio 16:9 atau 21:9. Format JPG, PNG, WEBP.</p>
+                                                    <p class="text-[10px] text-slate-400 mt-1">Rekomendasi ukuran banner: Rasio 16:5 / 3.2:1 (Misal: 1200 x 375 px atau 1600 x 500 px). Format JPG, PNG, WEBP.</p>
 
                                                     <!-- Live Preview for Slider Upload -->
                                                     <div id="newSliderPreviewContainer" class="hidden mt-3 p-3 bg-white border border-slate-200 rounded-2xl">
                                                         <p class="text-xs font-bold text-slate-700 mb-2">Pratinjau Gambar Slider Baru</p>
-                                                        <img id="newSliderPreviewImg" class="w-full h-36 object-cover rounded-xl border border-slate-200 shadow-sm">
+                                                        <img id="newSliderPreviewImg" class="w-full aspect-[16/5] object-cover rounded-xl border border-slate-200 shadow-sm">
                                                     </div>
                                                 </div>
 

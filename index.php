@@ -256,34 +256,37 @@ if (empty($hero_slides)) {
 
         <!-- HERO IMAGE SLIDER / CAROUSEL -->
         <div class="mb-10 relative group rounded-3xl overflow-hidden shadow-xl border border-slate-200 bg-slate-900">
-            <div id="heroCarousel" class="relative w-full h-[230px] sm:h-[340px] md:h-[420px] overflow-hidden">
+            <div id="heroCarousel" class="relative w-full aspect-[16/5] min-h-[160px] sm:min-h-[220px] md:min-h-[300px] lg:min-h-[360px] max-h-[440px] overflow-hidden">
                 <?php foreach ($hero_slides as $index => $slide): ?>
                     <div class="hero-slide absolute inset-0 transition-opacity duration-700 ease-in-out opacity-0 z-0 flex items-end <?= $index === 0 ? 'opacity-100 z-10' : '' ?>" data-slide-index="<?= $index ?>">
                         <!-- Slide Background Image -->
-                        <img src="<?= htmlspecialchars($slide['image_url']) ?>" alt="Banner Slide <?= $index + 1 ?>" class="w-full h-full object-cover">
-                        <!-- Dark Overlay Gradient -->
-                        <div class="absolute inset-0 bg-gradient-to-t from-slate-950/90 via-slate-950/40 to-transparent"></div>
+                        <img src="<?= htmlspecialchars($slide['image_url']) ?>" alt="Banner Slide <?= $index + 1 ?>" class="w-full h-full object-cover object-center">
+                        
+                        <?php if (!empty($slide['title']) || !empty($slide['subtitle']) || !empty($slide['link'])): ?>
+                            <!-- Dark Overlay Gradient -->
+                            <div class="absolute inset-0 bg-gradient-to-t from-slate-950/85 via-slate-950/30 to-transparent"></div>
 
-                        <!-- Slide Content Overlay -->
-                        <div class="relative z-10 p-6 md:p-10 max-w-2xl text-white">
-                            <span class="inline-block px-3 py-1 bg-primary/90 text-white text-[10px] md:text-xs font-extrabold uppercase tracking-wider rounded-full mb-3 shadow-sm backdrop-blur-md">HaloTiket Featured</span>
-                            <?php if (!empty($slide['title'])): ?>
-                                <h2 class="text-xl sm:text-3xl md:text-4xl font-extrabold tracking-tight drop-shadow-md leading-tight text-white mb-2">
-                                    <?= htmlspecialchars($slide['title']) ?>
-                                </h2>
-                            <?php endif; ?>
-                            <?php if (!empty($slide['subtitle'])): ?>
-                                <p class="text-xs sm:text-sm md:text-base text-slate-200 font-medium line-clamp-2 mb-4 drop-shadow">
-                                    <?= htmlspecialchars($slide['subtitle']) ?>
-                                </p>
-                            <?php endif; ?>
-                            <?php if (!empty($slide['link'])): ?>
-                                <a href="<?= htmlspecialchars($slide['link']) ?>" class="inline-flex items-center gap-2 bg-primary hover:bg-primary/90 text-white text-xs sm:text-sm font-bold px-5 py-2.5 rounded-full shadow-lg transition-transform duration-300 transform hover:-translate-y-0.5">
-                                    Lihat Detail Event
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
-                                </a>
-                            <?php endif; ?>
-                        </div>
+                            <!-- Slide Content Overlay -->
+                            <div class="relative z-10 p-4 sm:p-6 md:p-8 max-w-2xl text-white">
+                                <span class="inline-block px-3 py-1 bg-primary/90 text-white text-[10px] md:text-xs font-extrabold uppercase tracking-wider rounded-full mb-2 shadow-sm backdrop-blur-md">HaloTiket Featured</span>
+                                <?php if (!empty($slide['title'])): ?>
+                                    <h2 class="text-lg sm:text-2xl md:text-3xl font-extrabold tracking-tight drop-shadow-md leading-tight text-white mb-1">
+                                        <?= htmlspecialchars($slide['title']) ?>
+                                    </h2>
+                                <?php endif; ?>
+                                <?php if (!empty($slide['subtitle'])): ?>
+                                    <p class="text-xs sm:text-sm text-slate-200 font-medium line-clamp-2 mb-3 drop-shadow">
+                                        <?= htmlspecialchars($slide['subtitle']) ?>
+                                    </p>
+                                <?php endif; ?>
+                                <?php if (!empty($slide['link'])): ?>
+                                    <a href="<?= htmlspecialchars($slide['link']) ?>" class="inline-flex items-center gap-2 bg-primary hover:bg-primary/90 text-white text-xs font-bold px-4 py-2 rounded-full shadow-lg transition-transform duration-300 transform hover:-translate-y-0.5">
+                                        Lihat Detail Event
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
+                                    </a>
+                                <?php endif; ?>
+                            </div>
+                        <?php endif; ?>
                     </div>
                 <?php endforeach; ?>
             </div>
