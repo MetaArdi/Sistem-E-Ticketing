@@ -111,7 +111,7 @@ $redirect_uri_val = !empty($current_api['google_redirect_uri']) ? $current_api['
                 </div>
 
                 <?php if($success_msg): ?>
-                <div class="mb-6 bg-emerald-50 text-emerald-700 px-5 py-4 rounded-xl text-sm font-bold flex items-center gap-3 border border-emerald-200">
+                <div class="auto-dismiss-alert mb-6 bg-emerald-50 text-emerald-700 px-5 py-4 rounded-xl text-sm font-bold flex items-center gap-3 border border-emerald-200 transition-all duration-500">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
                     <?= htmlspecialchars($success_msg) ?>
                 </div>
@@ -314,6 +314,16 @@ $redirect_uri_val = !empty($current_api['google_redirect_uri']) ? $current_api['
                 }
             }
         });
+
+        // Auto dismiss alert notifications after 5 seconds
+        setTimeout(() => {
+            const alerts = document.querySelectorAll('.auto-dismiss-alert');
+            alerts.forEach(alert => {
+                alert.style.opacity = '0';
+                alert.style.transform = 'translateY(-10px)';
+                setTimeout(() => alert.remove(), 500);
+            });
+        }, 5000);
     });
 </script>
 </body>

@@ -75,7 +75,12 @@ if (!$event || !$variant || (int)$variant['sisa_stok'] <= 0 || (int)($event['sto
                 <?php endif; ?>
                 </a>
                 <div class="flex items-center space-x-4">
-                    <a href="detail_event.php?id=<?= $id_event ?>" class="text-slate-600 hover:text-primary font-medium transition-colors text-sm">&larr; Batal</a>
+                    <a href="detail_event.php?id=<?= $id_event ?>" class="inline-flex items-center gap-2 text-xs sm:text-sm font-bold text-slate-600 hover:text-red-600 transition-all bg-slate-100/90 hover:bg-red-50 px-4 py-2 rounded-full border border-slate-200 hover:border-red-200 group shadow-sm active:scale-95">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-slate-400 group-hover:text-red-500 group-hover:-translate-x-0.5 transition-all" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                        </svg>
+                        <span>Batal</span>
+                    </a>
                 </div>
             </div>
         </div>
@@ -164,10 +169,16 @@ if (!$event || !$variant || (int)$variant['sisa_stok'] <= 0 || (int)($event['sto
                             <p class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Total Pembayaran</p>
                             <p class="text-2xl sm:text-3xl font-extrabold text-slate-900 leading-none" id="display_total">Rp 0</p>
                         </div>
-                        <button type="submit" class="bg-slate-900 hover:bg-primary text-white font-extrabold py-4 px-6 sm:px-8 rounded-2xl transition-all duration-300 shadow-xl shadow-slate-900/20 hover:shadow-indigo-500/30 hover:-translate-y-0.5 text-base sm:text-lg flex items-center justify-center gap-2 w-full sm:w-1/2">
-                            <span>Lanjut Pembayaran</span>
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
-                        </button>
+                        <div class="w-full sm:w-1/2 flex flex-col gap-2.5">
+                            <button type="submit" class="bg-slate-900 hover:bg-primary text-white font-extrabold py-4 px-6 sm:px-8 rounded-2xl transition-all duration-300 shadow-xl shadow-slate-900/20 hover:shadow-indigo-500/30 hover:-translate-y-0.5 text-base sm:text-lg flex items-center justify-center gap-2 w-full">
+                                <span>Lanjut Pembayaran</span>
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
+                            </button>
+                            <a href="detail_event.php?id=<?= $id_event ?>" class="w-full text-center py-2 text-xs font-bold text-slate-500 hover:text-red-600 transition-colors flex items-center justify-center gap-1.5 group">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5 text-slate-400 group-hover:text-red-500 group-hover:-translate-x-0.5 transition-all" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
+                                <span>Batal & Kembali ke Event</span>
+                            </a>
+                        </div>
                     </div>
                 </form>
             </div>

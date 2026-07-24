@@ -11,23 +11,39 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     
     // Proses Upload Logo
     if (isset($_FILES['logo']) && $_FILES['logo']['error'] == 0) {
+        $upload_dir = "../assets/images/logo/";
+        if (!is_dir($upload_dir)) {
+            @mkdir($upload_dir, 0755, true);
+        }
         $filename = time() . '_' . basename($_FILES['logo']['name']);
-        $target = "../assets/images/logo/" . $filename;
+        $target = $upload_dir . $filename;
         if (move_uploaded_file($_FILES['logo']['tmp_name'], $target)) {
-            $stmt = $conn->prepare("UPDATE settings SET setting_value = ? WHERE setting_key = 'site_logo'");
-            $stmt->bind_param("s", $filename);
+            $stmt = $conn->prepare("INSERT INTO settings (setting_key, setting_value) VALUES ('site_logo', ?) ON DUPLICATE KEY UPDATE setting_value = ?");
+            $stmt->bind_param("ss", $filename, $filename);
             $stmt->execute();
+            $stmt->close();
+            $success_msg = "Logo sistem berhasil diperbarui.";
+        } else {
+            $error_msg = "Gagal mengunggah file logo.";
         }
     }
 
     // Proses Upload Favicon
     if (isset($_FILES['favicon']) && $_FILES['favicon']['error'] == 0) {
+        $upload_dir = "../assets/images/favicon/";
+        if (!is_dir($upload_dir)) {
+            @mkdir($upload_dir, 0755, true);
+        }
         $filename = time() . '_' . basename($_FILES['favicon']['name']);
-        $target = "../assets/images/favicon/" . $filename;
+        $target = $upload_dir . $filename;
         if (move_uploaded_file($_FILES['favicon']['tmp_name'], $target)) {
-            $stmt = $conn->prepare("UPDATE settings SET setting_value = ? WHERE setting_key = 'site_favicon'");
-            $stmt->bind_param("s", $filename);
+            $stmt = $conn->prepare("INSERT INTO settings (setting_key, setting_value) VALUES ('site_favicon', ?) ON DUPLICATE KEY UPDATE setting_value = ?");
+            $stmt->bind_param("ss", $filename, $filename);
             $stmt->execute();
+            $stmt->close();
+            $success_msg = "Favicon sistem berhasil diperbarui.";
+        } else {
+            $error_msg = "Gagal mengunggah file favicon.";
         }
     }
 
@@ -124,14 +140,23 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     foreach ($text_settings as $key) {
         if (isset($_POST[$key])) {
             $val = trim($_POST[$key]);
+            if ($key === 'contact_cs') {
+                $val = preg_replace('/[^0-9]/', '', $val);
+                if (str_starts_with($val, '0')) {
+                    $val = '62' . substr($val, 1);
+                } elseif (!str_starts_with($val, '62') && !empty($val)) {
+                    $val = '62' . $val;
+                }
+            }
             $stmt->bind_param("sss", $key, $val, $val);
             $stmt->execute();
         }
     }
+    $stmt->close();
 
     logActivity($conn, $_SESSION['user_id'], 'Update Settings', 'Admin mengubah pengaturan sistem (Tampilan, Biaya Layanan, Kontak & Maintenance).');
 
-    if (!isset($success_msg)) {
+    if (!isset($success_msg) && !isset($error_msg)) {
         $success_msg = "Pengaturan berhasil disimpan.";
     }
 }
@@ -158,6 +183,7 @@ foreach($text_settings_keys as $k) {
 
 $addr_val = $current_text_settings['contact_address'] ?: "Garung Lor,Kec. Kaliwungu, Kabupaten Kudus, Jawa Tengah";
 $cs_val = $current_text_settings['contact_cs'] ?: "6281234567890";
+$cs_display_val = preg_replace('/^62/', '', preg_replace('/[^0-9]/', '', $cs_val));
 $ig_val = $current_text_settings['link_ig'] ?: "https://instagram.com";
 $tiktok_val = $current_text_settings['link_tiktok'] ?: "https://tiktok.com";
 $markup_type_val = $current_text_settings['admin_markup_type'] ?: "nominal";
@@ -205,7 +231,6 @@ $maintenance_mode_val = $current_text_settings['maintenance_mode'] ?? '0';
         <div class="flex-1 flex flex-col h-screen overflow-hidden bg-slate-50 relative z-10 w-full transition-all duration-300">
             
             <!-- Unified Top Header -->
-                        <!-- Unified Top Header -->
             <header class="h-20 bg-white border-b border-slate-200 flex items-center justify-between px-4 lg:px-8 shrink-0 shadow-sm z-20">
                 <div class="flex items-center gap-4">
                     <button id="hamburgerBtn" class="text-slate-500 hover:text-slate-700 focus:outline-none p-2 rounded-xl hover:bg-slate-100 transition-colors bg-slate-50 border border-slate-200">
@@ -238,9 +263,16 @@ $maintenance_mode_val = $current_text_settings['maintenance_mode'] ?? '0';
                     </div>
 
                     <?php if(isset($success_msg)): ?>
-                        <div class="mb-6 bg-emerald-50 text-emerald-600 px-4 py-4 rounded-xl text-sm font-bold flex items-center border border-emerald-200">
+                        <div class="auto-dismiss-alert mb-6 bg-emerald-50 text-emerald-600 px-4 py-4 rounded-xl text-sm font-bold flex items-center border border-emerald-200 transition-all duration-500">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
-                            <?= $success_msg ?>
+                            <?= htmlspecialchars($success_msg) ?>
+                        </div>
+                    <?php endif; ?>
+
+                    <?php if(isset($error_msg)): ?>
+                        <div class="auto-dismiss-alert mb-6 bg-red-50 text-red-600 px-4 py-4 rounded-xl text-sm font-bold flex items-center border border-red-200 transition-all duration-500">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+                            <?= htmlspecialchars($error_msg) ?>
                         </div>
                     <?php endif; ?>
 
@@ -327,14 +359,10 @@ $maintenance_mode_val = $current_text_settings['maintenance_mode'] ?? '0';
                                                         <?php endif; ?>
                                                     </div>
                                                     <div class="mt-3 pt-3 border-t border-slate-200 flex justify-end">
-                                                        <form method="POST" action="" onsubmit="return confirm('Yakin ingin menghapus slide slider ini?');">
-                                                            <input type="hidden" name="action" value="delete_slider">
-                                                            <input type="hidden" name="slider_id" value="<?= htmlspecialchars($slide['id']) ?>">
-                                                            <button type="submit" class="px-3 py-1.5 bg-red-50 hover:bg-red-100 text-red-600 rounded-xl text-xs font-bold transition-colors flex items-center gap-1">
-                                                                <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                                                                Hapus Slide
-                                                            </button>
-                                                        </form>
+                                                        <button type="submit" name="action" value="delete_slider_btn_<?= htmlspecialchars($slide['id']) ?>" onclick="event.preventDefault(); if(confirm('Yakin ingin menghapus slide slider ini?')) { document.getElementById('delete_slider_id_input').value='<?= htmlspecialchars($slide['id']) ?>'; document.getElementById('delete_slider_form').submit(); }" class="px-3 py-1.5 bg-red-50 hover:bg-red-100 text-red-600 rounded-xl text-xs font-bold transition-colors flex items-center gap-1 cursor-pointer">
+                                                            <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                                                            Hapus Slide
+                                                        </button>
                                                     </div>
                                                 </div>
                                             <?php endforeach; ?>
@@ -345,61 +373,45 @@ $maintenance_mode_val = $current_text_settings['maintenance_mode'] ?? '0';
                                         </div>
                                     <?php endif; ?>
 
-                                    <!-- Form Tambah Slide Baru -->
+                                    <!-- Form / Sub-section Tambah Slide Baru -->
                                     <div class="bg-slate-50/80 border border-slate-200 rounded-2xl p-5">
                                         <h5 class="text-xs font-bold text-slate-700 uppercase tracking-wider mb-4 flex items-center gap-2">
                                             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" /></svg>
                                             Tambah Slide Slider Baru
                                         </h5>
-                                        <form method="POST" action="" enctype="multipart/form-data" class="space-y-4">
-                                            <input type="hidden" name="action" value="add_slider">
-                                            
-                                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                                <div class="md:col-span-2">
-                                                    <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Gambar Slider <span class="text-red-500">*</span></label>
-                                                    <input type="file" id="newSliderInput" name="slider_image" accept="image/*" required class="w-full text-sm font-medium file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-bold file:bg-primary/10 file:text-primary hover:file:bg-primary/20 transition-all cursor-pointer">
-                                                    <p class="text-[10px] text-slate-400 mt-1">Rekomendasi ukuran banner: Rasio 16:5 / 3.2:1 (Misal: 1200 x 375 px atau 1600 x 500 px). Format JPG, PNG, WEBP.</p>
+                                        
+                                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            <div class="md:col-span-2">
+                                                <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Gambar Slider</label>
+                                                <input type="file" id="newSliderInput" name="slider_image" accept="image/*" class="w-full text-sm font-medium file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-bold file:bg-primary/10 file:text-primary hover:file:bg-primary/20 transition-all cursor-pointer">
+                                                <p class="text-[10px] text-slate-400 mt-1">Rekomendasi ukuran banner: Rasio 16:5 / 3.2:1 (Misal: 1200 x 375 px atau 1600 x 500 px). Format JPG, PNG, WEBP.</p>
 
-                                                    <!-- Live Preview for Slider Upload -->
-                                                    <div id="newSliderPreviewContainer" class="hidden mt-3 p-3 bg-white border border-slate-200 rounded-2xl">
-                                                        <p class="text-xs font-bold text-slate-700 mb-2">Pratinjau Gambar Slider Baru</p>
-                                                        <img id="newSliderPreviewImg" class="w-full aspect-[16/5] object-cover rounded-xl border border-slate-200 shadow-sm">
-                                                    </div>
-                                                </div>
-
-                                                <div>
-                                                    <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Judul Banner <span class="text-slate-400 font-normal">(Opsional)</span></label>
-                                                    <input type="text" name="slide_title" placeholder="Contoh: Konser Musik Terbesar 2026" class="w-full px-4 py-2 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-sm font-medium outline-none">
-                                                </div>
-
-                                                <div>
-                                                    <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Subjudul / Deskripsi Singkat <span class="text-slate-400 font-normal">(Opsional)</span></label>
-                                                    <input type="text" name="slide_subtitle" placeholder="Contoh: Beli tiketnya sekarang sebelum kehabisan" class="w-full px-4 py-2 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-sm font-medium outline-none">
-                                                </div>
-
-                                                <div class="md:col-span-2">
-                                                    <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Link Tujuan Button / Banner <span class="text-slate-400 font-normal">(Opsional)</span></label>
-                                                    <input type="url" name="slide_link" placeholder="https://..." class="w-full px-4 py-2 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-sm font-medium outline-none">
+                                                <!-- Live Preview for Slider Upload -->
+                                                <div id="newSliderPreviewContainer" class="hidden mt-3 p-3 bg-white border border-slate-200 rounded-2xl">
+                                                    <p class="text-xs font-bold text-slate-700 mb-2">Pratinjau Gambar Slider Baru</p>
+                                                    <img id="newSliderPreviewImg" class="w-full aspect-[16/5] object-cover rounded-xl border border-slate-200 shadow-sm">
                                                 </div>
                                             </div>
 
-                                            <div class="flex justify-end pt-2">
-                                                <button type="submit" class="bg-primary hover:opacity-90 text-white font-bold py-2.5 px-6 rounded-xl text-xs transition-all shadow-sm flex items-center gap-2">
-                                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" /></svg>
-                                                    Tambah Slide
-                                                </button>
+                                            <div>
+                                                <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Judul Banner <span class="text-slate-400 font-normal">(Opsional)</span></label>
+                                                <input type="text" name="slide_title" placeholder="Contoh: Konser Musik Terbesar 2026" class="w-full px-4 py-2 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-sm font-medium outline-none">
                                             </div>
-                                        </form>
+
+                                            <div>
+                                                <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Subjudul / Deskripsi Singkat <span class="text-slate-400 font-normal">(Opsional)</span></label>
+                                                <input type="text" name="slide_subtitle" placeholder="Contoh: Beli tiketnya sekarang sebelum kehabisan" class="w-full px-4 py-2 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-sm font-medium outline-none">
+                                            </div>
+
+                                            <div class="md:col-span-2">
+                                                <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Link Tujuan Button / Banner <span class="text-slate-400 font-normal">(Opsional)</span></label>
+                                                <input type="url" name="slide_link" placeholder="https://..." class="w-full px-4 py-2 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-sm font-medium outline-none">
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
 
                                 <hr class="border-slate-100">
-
-                                <div>
-                                    <h4 class="text-sm font-bold text-slate-800 mb-4 flex items-center gap-2">
-                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                                        Pengaturan Informasi & Footer
-                                    </h4>
                                     
                                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                                         <div class="col-span-1 md:col-span-2">
@@ -408,8 +420,14 @@ $maintenance_mode_val = $current_text_settings['maintenance_mode'] ?? '0';
                                         </div>
                                         <div class="col-span-1 md:col-span-2">
                                             <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Nomor CS (WhatsApp)</label>
-                                            <input type="text" name="contact_cs" value="<?= htmlspecialchars($cs_val) ?>" placeholder="6281234567890" class="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary focus:bg-white transition-all text-sm font-medium outline-none">
-                                            <p class="text-[10px] text-slate-400 mt-1">Nomor tanpa tanda + atau spasi. Contoh: 6281234567890</p>
+                                            <div class="relative flex items-center shadow-sm rounded-xl">
+                                                <div class="absolute left-0 top-0 bottom-0 px-3.5 bg-slate-100 border-r border-slate-200 text-slate-700 font-extrabold text-sm flex items-center rounded-l-xl select-none gap-1.5 z-10">
+                                                    <span class="text-base">🇮🇩</span>
+                                                    <span>+62</span>
+                                                </div>
+                                                <input type="text" name="contact_cs" value="<?= htmlspecialchars($cs_display_val) ?>" placeholder="81234567890" class="w-full pl-24 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary focus:bg-white transition-all text-sm font-bold text-slate-800 outline-none">
+                                            </div>
+                                            <p class="text-[10px] text-slate-400 mt-1.5">Prefix <code>+62</code> sudah terpasang otomatis. Masukkan nomor setelah +62 (misal: <code>81234567890</code> atau <code>081234567890</code>).</p>
                                         </div>
                                         <div>
                                             <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Link Instagram</label>
@@ -419,7 +437,6 @@ $maintenance_mode_val = $current_text_settings['maintenance_mode'] ?? '0';
                                             <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Link TikTok</label>
                                             <input type="url" name="link_tiktok" value="<?= htmlspecialchars($tiktok_val) ?>" placeholder="https://tiktok.com/@..." class="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary focus:bg-white transition-all text-sm font-medium outline-none">
                                         </div>
-                                    </div>
                                     </div>
                                 </div>
 
@@ -483,7 +500,10 @@ $maintenance_mode_val = $current_text_settings['maintenance_mode'] ?? '0';
                 </div>
             </main>
         </div>
-    </div>
+    <form id="delete_slider_form" method="POST" action="" class="hidden">
+        <input type="hidden" name="action" value="delete_slider">
+        <input type="hidden" name="slider_id" id="delete_slider_id_input" value="">
+    </form>
 
     <!-- Script for Sidebar Toggle -->
     <script>
@@ -559,6 +579,16 @@ $maintenance_mode_val = $current_text_settings['maintenance_mode'] ?? '0';
             setupLivePreview('logoInput', 'logoPreviewContainer', 'logoPreviewImg');
             setupLivePreview('faviconInput', 'faviconPreviewContainer', 'faviconPreviewImg');
             setupLivePreview('newSliderInput', 'newSliderPreviewContainer', 'newSliderPreviewImg');
+
+            // Auto dismiss alert notifications after 5 seconds
+            setTimeout(() => {
+                const alerts = document.querySelectorAll('.auto-dismiss-alert');
+                alerts.forEach(alert => {
+                    alert.style.opacity = '0';
+                    alert.style.transform = 'translateY(-10px)';
+                    setTimeout(() => alert.remove(), 500);
+                });
+            }, 5000);
         });
     </script>
 

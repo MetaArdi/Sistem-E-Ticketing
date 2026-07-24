@@ -61,15 +61,20 @@ $site_favicon = (isset($settings['site_favicon']) && $settings['site_favicon'] !
         <div class="absolute top-[20%] right-[20%] w-[30%] h-[30%] rounded-full bg-emerald-400/5 blur-[80px]"></div>
     </div>
 
-    <div
-        class="w-full max-w-md bg-white rounded-3xl shadow-xl shadow-slate-200/50 p-8 sm:p-12 relative z-10 border border-slate-100">
+    <div class="w-full max-w-md bg-white/90 backdrop-blur-xl rounded-[2.5rem] shadow-2xl shadow-slate-200/60 p-7 sm:p-10 relative z-10 border border-slate-100/80 my-auto transition-all duration-300">
 
-        <a href="../index.php"
-            class="absolute top-6 left-6 text-slate-400 hover:text-primary flex items-center gap-2 text-xs font-bold transition-colors bg-slate-50 px-3 py-1.5 rounded-full border border-slate-200">
-            &larr; Kembali
-        </a>
+        <!-- Top Header Navigation Bar (Kembali) -->
+        <div class="flex items-center justify-between mb-6 pb-4 border-b border-slate-100/80">
+            <a href="../index.php" class="inline-flex items-center gap-2 text-xs font-bold text-slate-500 hover:text-primary transition-all bg-slate-100/80 hover:bg-slate-100 px-3.5 py-1.5 rounded-full border border-slate-200/60 group">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5 group-hover:-translate-x-0.5 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                </svg>
+                <span>Kembali ke Beranda</span>
+            </a>
+            <span class="text-[10px] font-extrabold uppercase tracking-widest text-slate-400">Masuk Akun</span>
+        </div>
 
-        <div class="text-center mb-10 mt-6 flex flex-col items-center">
+        <div class="text-center mb-8 flex flex-col items-center">
             <?php if ($site_logo): ?>
                 <img src="<?= $site_logo ?>" alt="Logo" class="w-48 md:w-56 h-auto object-contain mb-6 mx-auto">
             <?php else: ?>
@@ -140,8 +145,11 @@ $site_favicon = (isset($settings['site_favicon']) && $settings['site_favicon'] !
 
             <div class="space-y-1.5">
                 <div class="flex justify-between items-center">
-                    <label class="text-[11px] font-extrabold text-slate-500 uppercase tracking-widest block">Password</label>
-                    <a href="forgot_password.php" tabindex="4" class="text-[11px] font-bold text-primary hover:text-secondary transition-colors">Lupa Password?</a>
+                    <label
+                        class="text-[11px] font-extrabold text-slate-500 uppercase tracking-widest block">Password</label>
+                    <a href="forgot_password.php" tabindex="4"
+                        class="text-[11px] font-bold text-primary hover:text-secondary transition-colors">Lupa
+                        Password?</a>
                 </div>
                 <div class="relative group">
                     <div
@@ -152,7 +160,8 @@ $site_favicon = (isset($settings['site_favicon']) && $settings['site_favicon'] !
                                 d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
                         </svg>
                     </div>
-                    <input type="password" id="password_input" name="password" required placeholder="••••••••" tabindex="2"
+                    <input type="password" id="password_input" name="password" required placeholder="••••••••"
+                        tabindex="2"
                         class="w-full pl-11 pr-12 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary focus:bg-white transition-all text-sm font-semibold outline-none text-slate-800 placeholder-slate-400">
                     <button type="button" id="toggle_password"
                         class="absolute inset-y-0 right-0 pr-4 flex items-center text-slate-400 hover:text-slate-600 focus:outline-none">

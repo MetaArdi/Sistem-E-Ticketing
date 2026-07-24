@@ -95,9 +95,12 @@ unset($_SESSION['error']);
                     <?php endif; ?>
                 </a>
                 <div class="flex items-center space-x-4">
-                    <a href="index.php"
-                        class="text-slate-600 hover:text-primary font-medium transition-colors text-sm">&larr;
-                        Kembali</a>
+                    <a href="index.php" class="inline-flex items-center gap-2 text-xs sm:text-sm font-bold text-slate-600 hover:text-primary transition-all bg-slate-100/90 hover:bg-slate-200/80 px-4 py-2 rounded-full border border-slate-200 group shadow-sm active:scale-95">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-slate-400 group-hover:text-primary group-hover:-translate-x-0.5 transition-all" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                        </svg>
+                        <span>Kembali</span>
+                    </a>
                 </div>
             </div>
         </div>
