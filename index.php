@@ -109,27 +109,62 @@ if (empty($hero_slides)) {
     <title>HaloTiket - Ciptakan Momen Terbaikmu</title>
     
     <!-- PWA Meta Tags & Manifest -->
-    <link rel="manifest" href="manifest.json.php">
+    <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#0f1c3f">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="HaloTiket">
 
-    <!-- Early PWA Prompt Capture & Auto Trigger Native Install Modal -->
+    <!-- Early PWA Core Script & SW Registration -->
     <script>
         window.deferredPwaPrompt = null;
+
+        function getPwaBanner() {
+            return document.getElementById('pwaInstallBanner');
+        }
+
+        function showPwaBanner() {
+            const banner = getPwaBanner();
+            if (!banner) return;
+            banner.classList.remove('hidden');
+            setTimeout(() => {
+                banner.classList.remove('translate-y-32', 'opacity-0');
+                banner.classList.add('translate-y-0', 'opacity-100');
+            }, 50);
+        }
+
+        function dismissPwaBanner() {
+            const banner = getPwaBanner();
+            if (!banner) return;
+            banner.classList.remove('translate-y-0', 'opacity-100');
+            banner.classList.add('translate-y-32', 'opacity-0');
+            setTimeout(() => {
+                banner.classList.add('hidden');
+            }, 400);
+        }
+
+        async function installPwaApp() {
+            if (window.deferredPwaPrompt) {
+                try {
+                    window.deferredPwaPrompt.prompt();
+                    const choice = await window.deferredPwaPrompt.userChoice;
+                    console.log('PWA Outcome:', choice ? choice.outcome : '');
+                    window.deferredPwaPrompt = null;
+                    dismissPwaBanner();
+                } catch (err) {
+                    console.error('Prompt error:', err);
+                }
+            } else {
+                console.log('PWA prompt is not ready yet');
+            }
+        }
+
         window.addEventListener('beforeinstallprompt', (e) => {
             e.preventDefault();
             window.deferredPwaPrompt = e;
-            console.log('PWA beforeinstallprompt event successfully captured!');
-            
-            // Otomatis picu modal native "Install app" resmi browser (Chrome/Edge/Android)
-            setTimeout(() => {
-                if (window.deferredPwaPrompt) {
-                    window.deferredPwaPrompt.prompt();
-                }
-            }, 600);
+            console.log('PWA prompt captured!');
+            showPwaBanner();
         });
 
         if ('serviceWorker' in navigator) {
@@ -141,6 +176,12 @@ if (empty($hero_slides)) {
                 });
             });
         }
+
+        window.addEventListener('appinstalled', () => {
+            window.deferredPwaPrompt = null;
+            dismissPwaBanner();
+            console.log('HaloTiket PWA installed!');
+        });
     </script>
 
     <?php if (isset($global_site_favicon) && $global_site_favicon): ?>
@@ -831,92 +872,40 @@ if (empty($hero_slides)) {
         });
     </script>
 
-    <!-- PWA INSTALLATION BOTTOM BANNER POPUP -->
-    <div id="pwaInstallBanner" class="fixed bottom-4 left-4 right-4 sm:left-auto sm:right-6 sm:bottom-6 z-[999] max-w-sm sm:max-w-md w-full bg-slate-900/95 text-white p-5 rounded-3xl shadow-2xl backdrop-blur-xl border border-slate-700/60 transform translate-y-32 opacity-0 transition-all duration-500 hidden flex flex-col gap-4">
-        <div class="flex items-start gap-4">
-            <div class="w-12 h-12 rounded-2xl bg-white/10 p-2 flex items-center justify-center shrink-0 border border-white/10 shadow-inner overflow-hidden">
+    <!-- PWA INSTALLATION FLOATING BOTTOM BANNER -->
+    <div id="pwaInstallBanner" class="fixed bottom-4 left-1/2 -translate-x-1/2 z-[999] max-w-md w-[92%] sm:w-auto bg-slate-900/95 text-white p-3 px-4 rounded-2xl shadow-2xl backdrop-blur-xl border border-slate-700/80 transform translate-y-32 opacity-0 transition-all duration-500 hidden flex items-center justify-between gap-4">
+        <div class="flex items-center gap-3 min-w-0">
+            <div class="w-10 h-10 rounded-xl bg-primary/20 p-1.5 flex items-center justify-center shrink-0 border border-primary/30 overflow-hidden">
                 <?php if (isset($global_site_favicon) && $global_site_favicon): ?>
                     <img src="<?= $global_site_favicon ?>" alt="PWA Logo" class="w-full h-full object-contain">
                 <?php elseif (isset($global_site_logo) && $global_site_logo): ?>
                     <img src="<?= $global_site_logo ?>" alt="PWA Logo" class="w-full h-full object-contain">
                 <?php else: ?>
-                    <div class="w-full h-full bg-primary rounded-xl flex items-center justify-center font-extrabold text-white text-lg">H</div>
+                    <div class="w-full h-full bg-primary rounded-lg flex items-center justify-center font-extrabold text-white text-base">H</div>
                 <?php endif; ?>
             </div>
             <div class="flex-grow min-w-0">
-                <div class="flex items-center justify-between gap-2">
-                    <h3 class="font-extrabold text-base text-white tracking-tight">Ingin install sebagai aplikasi?</h3>
-                    <button type="button" onclick="dismissPwaBanner()" class="text-slate-400 hover:text-white text-xl font-bold leading-none p-1">&times;</button>
-                </div>
-                <p class="text-xs text-slate-300 font-medium mt-1 leading-relaxed">
-                    Dapatkan akses cepat, notifikasi tiket, dan kemudahan bertransaksi langsung dari layar HP Anda.
+                <h4 class="font-bold text-xs sm:text-sm text-white tracking-tight leading-tight">Install HaloTiket</h4>
+                <p class="text-[10px] sm:text-xs text-slate-300 font-medium truncate mt-0.5">
+                    Tambahkan ke homescreen untuk akses cepat
                 </p>
             </div>
         </div>
-        <div class="flex items-center gap-2 pt-1 border-t border-white/10">
-            <button type="button" onclick="dismissPwaBanner()" class="flex-1 px-4 py-2.5 rounded-xl font-bold text-xs text-slate-300 hover:text-white bg-white/5 hover:bg-white/10 transition-colors text-center">
-                Nanti Saja
+        <div class="flex items-center gap-2 shrink-0">
+            <button type="button" id="btnInstallPwa" onclick="installPwaApp()" class="px-4 py-1.5 rounded-lg font-bold text-xs text-white bg-emerald-600 hover:bg-emerald-500 active:scale-95 transition-all shadow-md">
+                Install
             </button>
-            <button type="button" id="btnInstallPwa" onclick="installPwaApp()" class="flex-1 px-5 py-2.5 rounded-xl font-extrabold text-xs text-slate-900 bg-primary hover:bg-primary/90 transition-all shadow-md flex items-center justify-center gap-1.5">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
-                <span>Install Aplikasi</span>
+            <button type="button" onclick="dismissPwaBanner()" class="text-slate-400 hover:text-white p-1 text-lg leading-none font-bold">
+                &times;
             </button>
         </div>
     </div>
 
-    <!-- PWA Service Worker & Install Logic -->
     <script>
-        const pwaBanner = document.getElementById('pwaInstallBanner');
-
-        // Tampilkan otomatis banner jika pengguna belum pernah menutup dan belum terpasang
         document.addEventListener('DOMContentLoaded', () => {
             if (!window.matchMedia('(display-mode: standalone)').matches) {
-                const lastDismissed = localStorage.getItem('pwa_banner_dismissed');
-                if (!lastDismissed || window.deferredPwaPrompt) {
-                    setTimeout(showPwaBanner, 1000);
-                }
+                setTimeout(showPwaBanner, 800);
             }
-        });
-
-        function showPwaBanner() {
-            if (!pwaBanner) return;
-            pwaBanner.classList.remove('hidden');
-            setTimeout(() => {
-                pwaBanner.classList.remove('translate-y-32', 'opacity-0');
-                pwaBanner.classList.add('translate-y-0', 'opacity-100');
-            }, 100);
-        }
-
-        function dismissPwaBanner() {
-            if (!pwaBanner) return;
-            pwaBanner.classList.remove('translate-y-0', 'opacity-100');
-            pwaBanner.classList.add('translate-y-32', 'opacity-0');
-            setTimeout(() => {
-                pwaBanner.classList.add('hidden');
-            }, 500);
-            localStorage.setItem('pwa_banner_dismissed', Date.now().toString());
-        }
-
-        function installPwaApp() {
-            const promptEvent = window.deferredPwaPrompt;
-            if (promptEvent) {
-                promptEvent.prompt();
-                promptEvent.userChoice.then((choiceResult) => {
-                    if (choiceResult.outcome === 'accepted') {
-                        console.log('User accepted the PWA install prompt');
-                    }
-                    window.deferredPwaPrompt = null;
-                    dismissPwaBanner();
-                });
-            } else {
-                dismissPwaBanner();
-            }
-        }
-
-        window.addEventListener('appinstalled', () => {
-            window.deferredPwaPrompt = null;
-            if (pwaBanner) pwaBanner.classList.add('hidden');
-            console.log('HaloTiket PWA successfully installed!');
         });
     </script>
 </body>
