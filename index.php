@@ -107,10 +107,22 @@ if (empty($hero_slides)) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>HaloTiket - Ciptakan Momen Terbaikmu</title>
+    
+    <!-- PWA Meta Tags & Manifest -->
+    <link rel="manifest" href="manifest.json.php">
+    <meta name="theme-color" content="#0f1c3f">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="HaloTiket">
+
     <?php if (isset($global_site_favicon) && $global_site_favicon): ?>
         <link rel="icon" href="<?= $global_site_favicon ?>">
         <link rel="shortcut icon" href="<?= $global_site_favicon ?>">
         <link rel="apple-touch-icon" href="<?= $global_site_favicon ?>">
+    <?php elseif (isset($global_site_logo) && $global_site_logo): ?>
+        <link rel="icon" href="<?= $global_site_logo ?>">
+        <link rel="apple-touch-icon" href="<?= $global_site_logo ?>">
     <?php endif; ?>
 
     <script src="https://cdn.tailwindcss.com"></script>
@@ -789,6 +801,116 @@ if (empty($hero_slides)) {
 
                 startAutoPlay();
             }
+        });
+    </script>
+
+    <!-- PWA INSTALLATION BOTTOM BANNER POPUP -->
+    <div id="pwaInstallBanner" class="fixed bottom-4 left-4 right-4 sm:left-auto sm:right-6 sm:bottom-6 z-[999] max-w-sm sm:max-w-md w-full bg-slate-900/95 text-white p-5 rounded-3xl shadow-2xl backdrop-blur-xl border border-slate-700/60 transform translate-y-32 opacity-0 transition-all duration-500 hidden flex flex-col gap-4">
+        <div class="flex items-start gap-4">
+            <div class="w-12 h-12 rounded-2xl bg-white/10 p-2 flex items-center justify-center shrink-0 border border-white/10 shadow-inner overflow-hidden">
+                <?php if (isset($global_site_favicon) && $global_site_favicon): ?>
+                    <img src="<?= $global_site_favicon ?>" alt="PWA Logo" class="w-full h-full object-contain">
+                <?php elseif (isset($global_site_logo) && $global_site_logo): ?>
+                    <img src="<?= $global_site_logo ?>" alt="PWA Logo" class="w-full h-full object-contain">
+                <?php else: ?>
+                    <div class="w-full h-full bg-primary rounded-xl flex items-center justify-center font-extrabold text-white text-lg">H</div>
+                <?php endif; ?>
+            </div>
+            <div class="flex-grow min-w-0">
+                <div class="flex items-center justify-between gap-2">
+                    <h3 class="font-extrabold text-base text-white tracking-tight">Ingin install sebagai aplikasi?</h3>
+                    <button type="button" onclick="dismissPwaBanner()" class="text-slate-400 hover:text-white text-xl font-bold leading-none p-1">&times;</button>
+                </div>
+                <p class="text-xs text-slate-300 font-medium mt-1 leading-relaxed">
+                    Dapatkan akses cepat, notifikasi tiket, dan kemudahan bertransaksi langsung dari layar HP Anda.
+                </p>
+            </div>
+        </div>
+        <div class="flex items-center gap-2 pt-1 border-t border-white/10">
+            <button type="button" onclick="dismissPwaBanner()" class="flex-1 px-4 py-2.5 rounded-xl font-bold text-xs text-slate-300 hover:text-white bg-white/5 hover:bg-white/10 transition-colors text-center">
+                Nanti Saja
+            </button>
+            <button type="button" id="btnInstallPwa" onclick="installPwaApp()" class="flex-1 px-5 py-2.5 rounded-xl font-extrabold text-xs text-slate-900 bg-primary hover:bg-primary/90 transition-all shadow-md flex items-center justify-center gap-1.5">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+                <span>Install Aplikasi</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- PWA Service Worker & Install Logic -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', function() {
+                navigator.serviceWorker.register('sw.js').then(function(reg) {
+                    console.log('PWA ServiceWorker registered:', reg.scope);
+                }).catch(function(err) {
+                    console.log('PWA ServiceWorker registration failed:', err);
+                });
+            });
+        }
+
+        let deferredPwaPrompt = null;
+        const pwaBanner = document.getElementById('pwaInstallBanner');
+
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPwaPrompt = e;
+            
+            const lastDismissed = localStorage.getItem('pwa_banner_dismissed');
+            const now = Date.now();
+            if (!lastDismissed || (now - parseInt(lastDismissed)) > 86400000) {
+                showPwaBanner();
+            }
+        });
+
+        // Tampilkan otomatis banner jika pengguna belum pernah menutup dan belum terpasang
+        document.addEventListener('DOMContentLoaded', () => {
+            if (!window.matchMedia('(display-mode: standalone)').matches) {
+                const lastDismissed = localStorage.getItem('pwa_banner_dismissed');
+                if (!lastDismissed) {
+                    setTimeout(showPwaBanner, 1500);
+                }
+            }
+        });
+
+        function showPwaBanner() {
+            if (!pwaBanner) return;
+            pwaBanner.classList.remove('hidden');
+            setTimeout(() => {
+                pwaBanner.classList.remove('translate-y-32', 'opacity-0');
+                pwaBanner.classList.add('translate-y-0', 'opacity-100');
+            }, 100);
+        }
+
+        function dismissPwaBanner() {
+            if (!pwaBanner) return;
+            pwaBanner.classList.remove('translate-y-0', 'opacity-100');
+            pwaBanner.classList.add('translate-y-32', 'opacity-0');
+            setTimeout(() => {
+                pwaBanner.classList.add('hidden');
+            }, 500);
+            localStorage.setItem('pwa_banner_dismissed', Date.now().toString());
+        }
+
+        function installPwaApp() {
+            if (deferredPwaPrompt) {
+                deferredPwaPrompt.prompt();
+                deferredPwaPrompt.userChoice.then((choiceResult) => {
+                    if (choiceResult.outcome === 'accepted') {
+                        console.log('User installed the PWA app');
+                    }
+                    deferredPwaPrompt = null;
+                    dismissPwaBanner();
+                });
+            } else {
+                alert('Silakan gunakan tombol "Tambahkan ke Layar Utama" / "Install App" pada menu browser Anda.');
+                dismissPwaBanner();
+            }
+        }
+
+        window.addEventListener('appinstalled', () => {
+            deferredPwaPrompt = null;
+            if (pwaBanner) pwaBanner.classList.add('hidden');
         });
     </script>
 </body>
