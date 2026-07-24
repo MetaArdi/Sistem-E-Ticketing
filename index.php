@@ -115,6 +115,9 @@ if (empty($hero_slides)) {
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="HaloTiket">
+    <link rel="icon" type="image/png" href="assets/images/pwa/icon-192.png">
+    <link rel="shortcut icon" href="assets/images/pwa/icon-192.png">
+    <link rel="apple-touch-icon" href="assets/images/pwa/icon-192.png">
 
     <!-- Early PWA Core Script & SW Registration -->
     <script>
