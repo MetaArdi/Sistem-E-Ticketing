@@ -1,12 +1,11 @@
 {
-  "id": "./",
   "name": "HaloTiket - Platform E-Ticketing Event",
   "short_name": "HaloTiket",
   "description": "Platform E-Ticketing Konser, Seminar, Festival & Event Resmi",
-  "start_url": "index.php",
+  "start_url": "./",
   "scope": "./",
   "display": "standalone",
-  "orientation": "portrait",
+  "orientation": "any",
   "background_color": "#ffffff",
   "theme_color": "#0f1c3f",
   "icons": [
