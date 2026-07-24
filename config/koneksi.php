@@ -1,8 +1,8 @@
 <?php
 $host = "localhost";
-$user = "jrooeerg_tikethalo";
-$pass = 'p%~1wi9nzZ,-U;ai';
-$db   = "jrooeerg_halotiket_db";
+$user = "root";
+$pass = '';
+$db   = "halotiket_db";
 
 // Nonaktifkan exception otomatis MySQLi agar tidak menyebabkan HTTP 500 saat koneksi gagal
 mysqli_report(MYSQLI_REPORT_OFF);
