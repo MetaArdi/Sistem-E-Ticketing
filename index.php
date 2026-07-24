@@ -109,15 +109,15 @@ if (empty($hero_slides)) {
     <title>HaloTiket - Ciptakan Momen Terbaikmu</title>
     
     <!-- PWA Meta Tags & Manifest -->
-    <link rel="manifest" href="manifest.json">
+    <link rel="manifest" href="<?= BASE_URL ?>manifest.json.php">
     <meta name="theme-color" content="#0f1c3f">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="HaloTiket">
-    <link rel="icon" type="image/png" href="assets/images/pwa/icon-192.png">
-    <link rel="shortcut icon" href="assets/images/pwa/icon-192.png">
-    <link rel="apple-touch-icon" href="assets/images/pwa/icon-192.png">
+    <link rel="icon" type="image/png" href="<?= BASE_URL ?>assets/images/pwa/icon-192.png">
+    <link rel="shortcut icon" href="<?= BASE_URL ?>assets/images/pwa/icon-192.png">
+    <link rel="apple-touch-icon" href="<?= BASE_URL ?>assets/images/pwa/icon-192.png">
 
     <!-- Early PWA Core Script & SW Registration -->
     <script>
@@ -170,7 +170,7 @@ if (empty($hero_slides)) {
 
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', function() {
-                navigator.serviceWorker.register('sw.js').then(function(reg) {
+                navigator.serviceWorker.register('<?= BASE_URL ?>sw.js').then(function(reg) {
                     console.log('PWA ServiceWorker registered:', reg.scope);
                 }).catch(function(err) {
                     console.log('PWA ServiceWorker registration failed:', err);
