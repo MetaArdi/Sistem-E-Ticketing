@@ -5,15 +5,8 @@ require_once 'config/koneksi.php';
 $app_name = $global_settings['site_name'] ?? 'HaloTiket';
 $app_short_name = 'HaloTiket';
 
-// Get logo URL from database settings or default asset
-$logo_url = '';
-if (!empty($global_site_favicon)) {
-    $logo_url = $global_site_favicon;
-} elseif (!empty($global_site_logo)) {
-    $logo_url = $global_site_logo;
-} else {
-    $logo_url = BASE_URL . 'assets/images/favicon/1783855109_Logo_HaloTiket_favicon.png';
-}
+$icon_192 = BASE_URL . 'assets/images/pwa/icon-192.png';
+$icon_512 = BASE_URL . 'assets/images/pwa/icon-512.png';
 
 $manifest = [
     'id' => './index.php',
@@ -28,25 +21,25 @@ $manifest = [
     'theme_color' => '#0f1c3f',
     'icons' => [
         [
-            'src' => $logo_url,
+            'src' => $icon_192,
             'sizes' => '192x192',
             'type' => 'image/png',
             'purpose' => 'any'
         ],
         [
-            'src' => $logo_url,
+            'src' => $icon_192,
             'sizes' => '192x192',
             'type' => 'image/png',
             'purpose' => 'maskable'
         ],
         [
-            'src' => $logo_url,
+            'src' => $icon_512,
             'sizes' => '512x512',
             'type' => 'image/png',
             'purpose' => 'any'
         ],
         [
-            'src' => $logo_url,
+            'src' => $icon_512,
             'sizes' => '512x512',
             'type' => 'image/png',
             'purpose' => 'maskable'

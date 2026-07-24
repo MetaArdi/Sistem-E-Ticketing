@@ -116,16 +116,20 @@ if (empty($hero_slides)) {
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="HaloTiket">
 
-    <!-- Early PWA Prompt Capture & SW Registration -->
+    <!-- Early PWA Prompt Capture & Auto Trigger Native Install Modal -->
     <script>
         window.deferredPwaPrompt = null;
         window.addEventListener('beforeinstallprompt', (e) => {
             e.preventDefault();
             window.deferredPwaPrompt = e;
             console.log('PWA beforeinstallprompt event successfully captured!');
-            if (typeof showPwaBanner === 'function') {
-                showPwaBanner();
-            }
+            
+            // Otomatis picu modal native "Install app" resmi browser (Chrome/Edge/Android)
+            setTimeout(() => {
+                if (window.deferredPwaPrompt) {
+                    window.deferredPwaPrompt.prompt();
+                }
+            }, 600);
         });
 
         if ('serviceWorker' in navigator) {
