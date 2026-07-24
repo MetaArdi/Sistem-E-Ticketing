@@ -63,6 +63,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && ($_POST['action'] ?? '') == 'create'
     $harga     = (isset($_POST['harga_varian']) && is_array($_POST['harga_varian']) && count($_POST['harga_varian']) > 0) ? min($_POST['harga_varian']) : 0;
     $stok      = (isset($_POST['stok_varian']) && is_array($_POST['stok_varian'])) ? array_sum($_POST['stok_varian']) : 0;
     $nama_vendor = !empty($_POST['nama_vendor']) ? "'" . $conn->real_escape_string(trim($_POST['nama_vendor'])) . "'" : "NULL";
+    $is_war_ticket = isset($_POST['is_war_ticket']) ? 1 : 0;
+    $war_start_time = (!empty($_POST['war_start_time']) && $is_war_ticket) ? "'" . $conn->real_escape_string($_POST['war_start_time']) . "'" : "NULL";
     $id_panitia = (int)$_SESSION['user_id'];
     $images = ["NULL", "NULL", "NULL", "NULL"];
     $allowed_ext = ['jpg', 'jpeg', 'png'];
@@ -101,8 +103,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && ($_POST['action'] ?? '') == 'create'
 
     if (empty($error)) {
         $status_approval = ($_SESSION['role'] == 'admin') ? 'approved' : 'pending';
-        $sql = "INSERT INTO events (id_panitia,judul,kategori,deskripsi,tanggal,waktu,waktu_selesai,lokasi,link_gmaps,harga,stok,banner_image,banner_image2,banner_image3,banner_image4,status_approval,nama_vendor,tiket_header)
-                VALUES ($id_panitia,'$judul','$kategori','$deskripsi','$tanggal','$waktu',$waktu_selesai,'$lokasi',$link_gmaps,$harga,$stok,{$images[0]},{$images[1]},{$images[2]},{$images[3]},'$status_approval',$nama_vendor,$tiket_header_val)";
+        $sql = "INSERT INTO events (id_panitia,judul,kategori,deskripsi,tanggal,waktu,waktu_selesai,lokasi,link_gmaps,harga,stok,banner_image,banner_image2,banner_image3,banner_image4,status_approval,nama_vendor,tiket_header,is_war_ticket,war_start_time)
+                VALUES ($id_panitia,'$judul','$kategori','$deskripsi','$tanggal','$waktu',$waktu_selesai,'$lokasi',$link_gmaps,$harga,$stok,{$images[0]},{$images[1]},{$images[2]},{$images[3]},'$status_approval',$nama_vendor,$tiket_header_val,$is_war_ticket,$war_start_time)";
         if ($conn->query($sql)) {
             $new_event_id = $conn->insert_id;
             
@@ -341,6 +343,24 @@ while ($c = $cat_q->fetch_assoc()) { $cat_list[] = $c['nama']; }
                                     </div>
                                 </div>
                             </div>
+
+                            <!-- Feature War Ticket Toggle & Waktu -->
+                            <div class="md:col-span-2 bg-gradient-to-r from-amber-50 to-orange-50 p-4 rounded-2xl border border-amber-200/80 mb-2">
+                                <div class="flex items-center justify-between">
+                                    <div>
+                                        <label for="is_war_ticket" class="text-sm font-extrabold text-amber-900 flex items-center gap-2 cursor-pointer">
+                                            ⚡ Aktifkan Fitur War Ticket
+                                        </label>
+                                        <p class="text-xs text-amber-700 mt-0.5">Tahan pembelian tiket di landing page hingga waktu hitung mundur (countdown) dimulai.</p>
+                                    </div>
+                                    <input type="checkbox" id="is_war_ticket" name="is_war_ticket" value="1" onchange="document.getElementById('war_time_container').classList.toggle('hidden', !this.checked)" class="w-5 h-5 text-amber-600 rounded border-amber-300 focus:ring-amber-500 cursor-pointer">
+                                </div>
+                                <div id="war_time_container" class="mt-4 hidden">
+                                    <label class="block text-xs font-bold text-amber-800 uppercase tracking-wider mb-2">Waktu Mulai War Ticket</label>
+                                    <input type="datetime-local" name="war_start_time" class="w-full md:w-1/2 px-4 py-2 bg-white border border-amber-200 rounded-xl focus:ring-2 focus:ring-amber-400 focus:border-amber-400 text-sm font-medium outline-none">
+                                </div>
+                            </div>
+
                             <div class="md:col-span-2">
                                 <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Deskripsi</label>
                                 <textarea name="deskripsi" rows="3" placeholder="Deskripsi event..." class="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-sm font-medium outline-none"></textarea>

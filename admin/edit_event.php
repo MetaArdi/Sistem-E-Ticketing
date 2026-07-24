@@ -24,6 +24,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $link_gmaps = !empty($_POST['link_gmaps']) ? $_POST['link_gmaps'] : null;
     $kategori = $_POST['kategori'] ?? 'Music';
     $nama_vendor = !empty($_POST['nama_vendor']) ? $_POST['nama_vendor'] : null;
+    $is_war_ticket = isset($_POST['is_war_ticket']) ? 1 : 0;
+    $war_start_time = (!empty($_POST['war_start_time']) && $is_war_ticket) ? $_POST['war_start_time'] : null;
     
     // Hitung stok & harga dasar dari form
     $harga_dasar = (isset($_POST['harga_varian']) && is_array($_POST['harga_varian']) && count($_POST['harga_varian']) > 0) ? min($_POST['harga_varian']) : 0;
@@ -49,12 +51,10 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         }
     }
 
+    $banner_query .= ", is_war_ticket = " . (int)$is_war_ticket . ", war_start_time = " . ($war_start_time ? "'" . $conn->real_escape_string($war_start_time) . "'" : "NULL");
+
     $stmt_upd = $conn->prepare("UPDATE events SET judul=?, deskripsi=?, tanggal=?, waktu=?, waktu_selesai=?, lokasi=?, link_gmaps=?, kategori=?, nama_vendor=?, harga=?, stok=? $banner_query WHERE id=? ");
-    if ('admin' == 'admin') {
-        $stmt_upd->bind_param("sssssssssdii", $judul, $deskripsi, $tanggal, $waktu, $waktu_selesai, $lokasi, $link_gmaps, $kategori, $nama_vendor, $harga_dasar, $total_stok, $id_event);
-    } else {
-        $stmt_upd->bind_param("sssssssssdiii", $judul, $deskripsi, $tanggal, $waktu, $waktu_selesai, $lokasi, $link_gmaps, $kategori, $nama_vendor, $harga_dasar, $total_stok, $id_event, $id_panitia);
-    }
+    $stmt_upd->bind_param("sssssssssdii", $judul, $deskripsi, $tanggal, $waktu, $waktu_selesai, $lokasi, $link_gmaps, $kategori, $nama_vendor, $harga_dasar, $total_stok, $id_event);
     $stmt_upd->execute();
 
     // Process Variants
@@ -258,6 +258,23 @@ while ($v = $variants_q->fetch_assoc()) {
                         </div>
                     </div>
                     
+                    <!-- Feature War Ticket Toggle & Waktu -->
+                    <div class="md:col-span-2 bg-gradient-to-r from-amber-50 to-orange-50 p-4 rounded-2xl border border-amber-200/80 mb-2">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <label for="is_war_ticket" class="text-sm font-extrabold text-amber-900 flex items-center gap-2 cursor-pointer">
+                                    ⚡ Aktifkan Fitur War Ticket
+                                </label>
+                                <p class="text-xs text-amber-700 mt-0.5">Tahan pembelian tiket di landing page hingga waktu hitung mundur (countdown) dimulai.</p>
+                            </div>
+                            <input type="checkbox" id="is_war_ticket" name="is_war_ticket" value="1" <?= (!empty($event['is_war_ticket']) && $event['is_war_ticket'] == 1) ? 'checked' : '' ?> onchange="document.getElementById('war_time_container').classList.toggle('hidden', !this.checked)" class="w-5 h-5 text-amber-600 rounded border-amber-300 focus:ring-amber-500 cursor-pointer">
+                        </div>
+                        <div id="war_time_container" class="mt-4 <?= (!empty($event['is_war_ticket']) && $event['is_war_ticket'] == 1) ? '' : 'hidden' ?>">
+                            <label class="block text-xs font-bold text-amber-800 uppercase tracking-wider mb-2">Waktu Mulai War Ticket</label>
+                            <input type="datetime-local" name="war_start_time" value="<?= !empty($event['war_start_time']) ? date('Y-m-d\TH:i', strtotime($event['war_start_time'])) : '' ?>" class="w-full md:w-1/2 px-4 py-2 bg-white border border-amber-200 rounded-xl focus:ring-2 focus:ring-amber-400 focus:border-amber-400 text-sm font-medium outline-none">
+                        </div>
+                    </div>
+
                     <div class="md:col-span-2">
                         <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Deskripsi</label>
                         <textarea name="deskripsi" rows="3" class="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary/20 text-sm outline-none"><?= htmlspecialchars($event['deskripsi']) ?></textarea>
