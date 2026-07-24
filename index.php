@@ -116,6 +116,29 @@ if (empty($hero_slides)) {
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="HaloTiket">
 
+    <!-- Early PWA Prompt Capture & SW Registration -->
+    <script>
+        window.deferredPwaPrompt = null;
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            window.deferredPwaPrompt = e;
+            console.log('PWA beforeinstallprompt event successfully captured!');
+            if (typeof showPwaBanner === 'function') {
+                showPwaBanner();
+            }
+        });
+
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', function() {
+                navigator.serviceWorker.register('sw.js').then(function(reg) {
+                    console.log('PWA ServiceWorker registered:', reg.scope);
+                }).catch(function(err) {
+                    console.log('PWA ServiceWorker registration failed:', err);
+                });
+            });
+        }
+    </script>
+
     <?php if (isset($global_site_favicon) && $global_site_favicon): ?>
         <link rel="icon" href="<?= $global_site_favicon ?>">
         <link rel="shortcut icon" href="<?= $global_site_favicon ?>">
@@ -839,36 +862,14 @@ if (empty($hero_slides)) {
 
     <!-- PWA Service Worker & Install Logic -->
     <script>
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', function() {
-                navigator.serviceWorker.register('sw.js').then(function(reg) {
-                    console.log('PWA ServiceWorker registered:', reg.scope);
-                }).catch(function(err) {
-                    console.log('PWA ServiceWorker registration failed:', err);
-                });
-            });
-        }
-
-        let deferredPwaPrompt = null;
         const pwaBanner = document.getElementById('pwaInstallBanner');
-
-        window.addEventListener('beforeinstallprompt', (e) => {
-            e.preventDefault();
-            deferredPwaPrompt = e;
-            
-            const lastDismissed = localStorage.getItem('pwa_banner_dismissed');
-            const now = Date.now();
-            if (!lastDismissed || (now - parseInt(lastDismissed)) > 86400000) {
-                showPwaBanner();
-            }
-        });
 
         // Tampilkan otomatis banner jika pengguna belum pernah menutup dan belum terpasang
         document.addEventListener('DOMContentLoaded', () => {
             if (!window.matchMedia('(display-mode: standalone)').matches) {
                 const lastDismissed = localStorage.getItem('pwa_banner_dismissed');
-                if (!lastDismissed) {
-                    setTimeout(showPwaBanner, 1500);
+                if (!lastDismissed || window.deferredPwaPrompt) {
+                    setTimeout(showPwaBanner, 1000);
                 }
             }
         });
@@ -893,24 +894,33 @@ if (empty($hero_slides)) {
         }
 
         function installPwaApp() {
-            if (deferredPwaPrompt) {
-                deferredPwaPrompt.prompt();
-                deferredPwaPrompt.userChoice.then((choiceResult) => {
+            const promptEvent = window.deferredPwaPrompt;
+            if (promptEvent) {
+                promptEvent.prompt();
+                promptEvent.userChoice.then((choiceResult) => {
                     if (choiceResult.outcome === 'accepted') {
-                        console.log('User installed the PWA app');
+                        console.log('User accepted the PWA install prompt');
+                    } else {
+                        console.log('User dismissed the PWA install prompt');
                     }
-                    deferredPwaPrompt = null;
+                    window.deferredPwaPrompt = null;
                     dismissPwaBanner();
                 });
             } else {
-                alert('Silakan gunakan tombol "Tambahkan ke Layar Utama" / "Install App" pada menu browser Anda.');
+                const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+                if (isIOS) {
+                    alert('Untuk menginstall aplikasi HaloTiket di iPhone/iPad:\n\n1. Ketuk ikon Share (Bagikan) di bagian bawah browser Safari.\n2. Gulir ke bawah lalu pilih "Tambahkan ke Layar Utama" (Add to Home Screen).');
+                } else {
+                    alert('Prompt instalasi otomatis belum muncul dari browser.\n\nPetunjuk Instalasi Manual:\n1. Klik menu browser (titik 3 di kanan atas / menu opsi).\n2. Pilih "Install Aplikasi" atau "Tambahkan ke Layar Utama".\n\n(Catatan: Pastikan Anda menggunakan browser Chrome/Edge dan mengakses via localhost / HTTPS).');
+                }
                 dismissPwaBanner();
             }
         }
 
         window.addEventListener('appinstalled', () => {
-            deferredPwaPrompt = null;
+            window.deferredPwaPrompt = null;
             if (pwaBanner) pwaBanner.classList.add('hidden');
+            console.log('HaloTiket PWA successfully installed!');
         });
     </script>
 </body>

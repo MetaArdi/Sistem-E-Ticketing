@@ -1,19 +1,26 @@
-const CACHE_NAME = 'halotiket-pwa-v1';
+const CACHE_NAME = 'halotiket-pwa-v2';
 const ASSETS_TO_CACHE = [
   './',
-  './index.php',
-  './manifest.json.php',
-  './assets/css/style.css',
+  'index.php',
+  'manifest.json.php',
+  'assets/css/style.css',
   'https://cdn.tailwindcss.com',
-  'https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap'
+  'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap'
 ];
 
 // Install Event
 self.addEventListener('install', (event) => {
+  self.skipWaiting();
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(ASSETS_TO_CACHE);
-    }).then(() => self.skipWaiting())
+      return Promise.allSettled(
+        ASSETS_TO_CACHE.map((url) =>
+          fetch(url).then((response) => {
+            if (response.ok) return cache.put(url, response);
+          }).catch(() => {})
+        )
+      );
+    })
   );
 });
 
@@ -52,8 +59,8 @@ self.addEventListener('fetch', (event) => {
           if (cachedResponse) {
             return cachedResponse;
           }
-          if (event.request.headers.get('accept').includes('text/html')) {
-            return caches.match('./index.php');
+          if (event.request.headers && event.request.headers.get('accept') && event.request.headers.get('accept').includes('text/html')) {
+            return caches.match('index.php') || caches.match('./');
           }
         });
       })

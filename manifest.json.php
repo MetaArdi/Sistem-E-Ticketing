@@ -16,13 +16,14 @@ if (!empty($global_site_favicon)) {
 }
 
 $manifest = [
+    'id' => './index.php',
     'name' => $app_name . ' - Platform E-Ticketing Event',
     'short_name' => $app_short_name,
     'description' => 'Platform E-Ticketing Konser, Seminar, Festival & Event Resmi',
-    'start_url' => './index.php',
+    'start_url' => 'index.php',
     'scope' => './',
     'display' => 'standalone',
-    'orientation' => 'portrait-primary',
+    'orientation' => 'portrait',
     'background_color' => '#ffffff',
     'theme_color' => '#0f1c3f',
     'icons' => [
@@ -30,13 +31,25 @@ $manifest = [
             'src' => $logo_url,
             'sizes' => '192x192',
             'type' => 'image/png',
-            'purpose' => 'any maskable'
+            'purpose' => 'any'
+        ],
+        [
+            'src' => $logo_url,
+            'sizes' => '192x192',
+            'type' => 'image/png',
+            'purpose' => 'maskable'
         ],
         [
             'src' => $logo_url,
             'sizes' => '512x512',
             'type' => 'image/png',
-            'purpose' => 'any maskable'
+            'purpose' => 'any'
+        ],
+        [
+            'src' => $logo_url,
+            'sizes' => '512x512',
+            'type' => 'image/png',
+            'purpose' => 'maskable'
         ]
     ]
 ];
