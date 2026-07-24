@@ -1,9 +1,11 @@
-const CACHE_NAME = 'halotiket-pwa-v2';
+const CACHE_NAME = 'halotiket-pwa-v3';
 const ASSETS_TO_CACHE = [
   './',
   'index.php',
-  'manifest.json.php',
+  'manifest.json',
   'assets/css/style.css',
+  'assets/images/pwa/icon-192.png',
+  'assets/images/pwa/icon-512.png',
   'https://cdn.tailwindcss.com',
   'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap'
 ];

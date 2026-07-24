@@ -144,6 +144,34 @@ if (empty($hero_slides)) {
             }, 400);
         }
 
+        function openPwaInstructionModal() {
+            const m = document.getElementById('pwaInstructionModal');
+            const o = document.getElementById('pwaInstructionModalOverlay');
+            if (!m || !o) return;
+            o.classList.remove('hidden');
+            m.classList.remove('hidden');
+            setTimeout(() => {
+                o.classList.remove('opacity-0');
+                o.classList.add('opacity-100');
+                m.classList.remove('opacity-0', 'scale-95');
+                m.classList.add('opacity-100', 'scale-100');
+            }, 10);
+        }
+
+        function closePwaInstructionModal() {
+            const m = document.getElementById('pwaInstructionModal');
+            const o = document.getElementById('pwaInstructionModalOverlay');
+            if (!m || !o) return;
+            o.classList.remove('opacity-100');
+            o.classList.add('opacity-0');
+            m.classList.remove('opacity-100', 'scale-100');
+            m.classList.add('opacity-0', 'scale-95');
+            setTimeout(() => {
+                o.classList.add('hidden');
+                m.classList.add('hidden');
+            }, 300);
+        }
+
         async function installPwaApp() {
             if (window.deferredPwaPrompt) {
                 try {
@@ -154,9 +182,10 @@ if (empty($hero_slides)) {
                     dismissPwaBanner();
                 } catch (err) {
                     console.error('Prompt error:', err);
+                    openPwaInstructionModal();
                 }
             } else {
-                console.log('PWA prompt is not ready yet');
+                openPwaInstructionModal();
             }
         }
 
@@ -1106,6 +1135,45 @@ if (empty($hero_slides)) {
             </button>
             <button type="button" onclick="dismissPwaBanner()" class="text-slate-400 hover:text-white p-1 text-lg leading-none font-bold">
                 &times;
+            </button>
+        </div>
+    <!-- PWA MANUAL INSTALL INSTRUCTION MODAL -->
+    <div id="pwaInstructionModalOverlay" onclick="closePwaInstructionModal()" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[1000] hidden opacity-0 transition-opacity duration-300"></div>
+    <div id="pwaInstructionModal" class="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[92%] max-w-md bg-white rounded-[2rem] shadow-2xl border border-slate-100 z-[1001] hidden opacity-0 scale-95 transition-all duration-300 p-6 sm:p-7">
+        <div class="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-2xl bg-primary/10 text-primary flex items-center justify-center font-extrabold text-lg border border-primary/20">
+                    H
+                </div>
+                <div>
+                    <h3 class="font-extrabold text-base text-slate-900">Install Aplikasi HaloTiket</h3>
+                    <p class="text-[11px] text-slate-500 font-medium">Panduan Pasang di Layar Utama HP / PC</p>
+                </div>
+            </div>
+            <button type="button" onclick="closePwaInstructionModal()" class="text-slate-400 hover:text-slate-700 bg-slate-100 p-2 rounded-full transition-colors cursor-pointer">&times;</button>
+        </div>
+
+        <div class="space-y-3 text-xs text-slate-600">
+            <div class="p-3 bg-blue-50/80 border border-blue-100 rounded-2xl flex items-start gap-3">
+                <span class="w-6 h-6 rounded-full bg-primary text-white flex items-center justify-center font-bold text-xs shrink-0 mt-0.5">1</span>
+                <div>
+                    <strong class="text-slate-900 font-bold block mb-0.5">Lewat Bilah Alamat (URL Bar) Browser</strong>
+                    <span>Klik ikon <b>Install (⊕ / 📥)</b> di pojok kanan atas bilah alamat browser Chrome/Edge Anda.</span>
+                </div>
+            </div>
+
+            <div class="p-3 bg-slate-50 border border-slate-100 rounded-2xl flex items-start gap-3">
+                <span class="w-6 h-6 rounded-full bg-slate-800 text-white flex items-center justify-center font-bold text-xs shrink-0 mt-0.5">2</span>
+                <div>
+                    <strong class="text-slate-900 font-bold block mb-0.5">Lewat Menu Browser (Titik 3)</strong>
+                    <span>Buka menu browser (titik 3 di kanan atas), lalu pilih <b>"Install Aplikasi HaloTiket"</b> atau <b>"Tambahkan ke Layar Utama"</b>.</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="mt-5 pt-3 border-t border-slate-100 flex justify-end">
+            <button type="button" onclick="closePwaInstructionModal()" class="w-full bg-primary hover:bg-primary/90 text-white font-extrabold py-3 rounded-2xl shadow-md text-xs transition-colors cursor-pointer">
+                Saya Mengerti
             </button>
         </div>
     </div>
