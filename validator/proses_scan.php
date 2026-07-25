@@ -12,7 +12,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['token'])) {
     $token = $_POST['token'];
     
     // Cari tiket
-    $stmt = $conn->prepare("SELECT t.*, e.judul FROM tickets t JOIN events e ON t.id_event = e.id WHERE t.token_qr = ?");
+    $stmt = $conn->prepare("SELECT t.*, e.judul, v.nama_varian, v.harga FROM tickets t JOIN events e ON t.id_event = e.id JOIN event_ticket_variants v ON t.id_ticket_variant = v.id WHERE t.token_qr = ?");
     $stmt->bind_param("s", $token);
     $stmt->execute();
     $result = $stmt->get_result();
@@ -21,9 +21,23 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['token'])) {
         $tiket = $result->fetch_assoc();
         
         if ($tiket['status'] == 'scanned') {
-            echo json_encode(['status' => 'error', 'message' => 'Tiket sudah digunakan sebelumnya!']);
+            echo json_encode([
+                'status' => 'error', 
+                'message' => 'Tiket sudah digunakan sebelumnya!',
+                'data' => [
+                    'nama_pembeli' => $tiket['nama_pembeli'],
+                    'jenis_tiket' => $tiket['nama_varian']
+                ]
+            ]);
         } elseif ($tiket['status'] == 'pending') {
-            echo json_encode(['status' => 'error', 'message' => 'Tiket belum dibayar / lunas!']);
+            echo json_encode([
+                'status' => 'error', 
+                'message' => 'Tiket belum dibayar / lunas!',
+                'data' => [
+                    'nama_pembeli' => $tiket['nama_pembeli'],
+                    'jenis_tiket' => $tiket['nama_varian']
+                ]
+            ]);
         } else {
             // Update status menjadi scanned
             $update = $conn->prepare("UPDATE tickets SET status = 'scanned' WHERE id = ?");
@@ -36,8 +50,12 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['token'])) {
                 'status' => 'success', 
                 'message' => 'Tiket valid',
                 'data' => [
+                    'id_pembeli' => $tiket['order_id'],
                     'nama_pembeli' => $tiket['nama_pembeli'],
-                    'judul' => $tiket['judul']
+                    'jenis_tiket' => $tiket['nama_varian'],
+                    'judul' => $tiket['judul'],
+                    'harga' => $tiket['harga'],
+                    'tanggal_beli' => date('d M Y, H:i', strtotime($tiket['created_at']))
                 ]
             ]);
         }

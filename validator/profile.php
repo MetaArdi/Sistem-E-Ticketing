@@ -1,7 +1,7 @@
 <?php
 session_start();
 
-if (!isset($_SESSION['user_id']) || $_SESSION['role'] != 'panitia') {
+if (!isset($_SESSION['user_id']) || $_SESSION['role'] != 'validator') {
     header("Location: ../auth/login.php");
     exit;
 }
@@ -28,7 +28,7 @@ if ($user_id <= 0) {
 
 // Get current user info safely
 $user_data = [
-    'nama_lengkap' => $_SESSION['nama_lengkap'] ?? 'Panitia Event',
+    'nama_lengkap' => $_SESSION['nama_lengkap'] ?? 'Validator Event',
     'email' => $_SESSION['email'] ?? '',
     'foto_profil' => $_SESSION['foto_profil'] ?? ''
 ];
@@ -72,7 +72,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['request_email_change']
                 $_SESSION['change_email_otp_expires'] = time() + 300; // 5 menit
 
                 $to = $email_baru;
-                $subject = "[$otp] Kode OTP Verifikasi Ubah Email Login Panitia - HaloTiket";
+                $subject = "[$otp] Kode OTP Verifikasi Ubah Email Login Validator - HaloTiket";
                 $message = "
                 <!DOCTYPE html>
                 <html lang='id'>
@@ -80,12 +80,12 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['request_email_change']
                 <body style='font-family: Arial, sans-serif; background-color: #f8fafc; padding: 30px; margin: 0;'>
                     <div style='max-width: 520px; margin: 0 auto; background: #ffffff; border-radius: 20px; border: 1px solid #e2e8f0; overflow: hidden;'>
                         <div style='background: #003846; color: #ffffff; padding: 25px; text-align: center;'>
-                            <h1 style='margin: 0; font-size: 22px;'>HaloTiket Panitia</h1>
+                            <h1 style='margin: 0; font-size: 22px;'>HaloTiket Validator</h1>
                             <p style='margin: 5px 0 0 0; font-size: 12px; color: #94a3b8;'>Verifikasi Perubahan Email Akun Login</p>
                         </div>
                         <div style='padding: 30px; text-align: center;'>
                             <h3 style='margin-top: 0; color: #0f172a;'>Kode Verifikasi OTP Anda</h3>
-                            <p style='font-size: 14px; color: #64748b;'>Anda mengajukan perubahan email login Panitia ke: <strong>$email_baru</strong>.</p>
+                            <p style='font-size: 14px; color: #64748b;'>Anda mengajukan perubahan email login Validator ke: <strong>$email_baru</strong>.</p>
                             <div style='background: #f1f5f9; border: 2px dashed #00c2cb; padding: 18px; text-align: center; border-radius: 14px; font-size: 32px; font-weight: 800; letter-spacing: 8px; color: #008b94; margin: 20px auto; max-width: 280px;'>
                                 $otp
                             </div>
@@ -151,7 +151,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['verify_email_otp'])) {
         $user_data['email'] = $pending_email;
         unset($_SESSION['pending_change_email'], $_SESSION['change_email_otp'], $_SESSION['change_email_otp_expires']);
         
-        $success_msg = "✓ Email login panitia Anda berhasil diubah menjadi: " . htmlspecialchars($pending_email);
+        $success_msg = "✓ Email login validator Anda berhasil diubah menjadi: " . htmlspecialchars($pending_email);
     }
 }
 
@@ -254,7 +254,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && !isset($_POST['verify_email_otp']) &
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Profil Panitia - HaloTiket</title>
+    <title>Profil Validator - HaloTiket</title>
     <?php if (isset($global_site_favicon) && $global_site_favicon): ?>
         <link rel="icon" href="<?= $global_site_favicon ?>">
     <?php endif; ?>
@@ -300,7 +300,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && !isset($_POST['verify_email_otp']) &
                             <?= strtoupper(substr($_SESSION['nama_lengkap'] ?? 'P', 0, 1)) ?>
                         </div>
                     <?php endif; ?>
-                    <span class="text-sm font-bold text-slate-700 pr-2 group-hover:text-primary transition-colors"><?= htmlspecialchars($_SESSION['nama_lengkap'] ?? 'Panitia') ?></span>
+                    <span class="text-sm font-bold text-slate-700 pr-2 group-hover:text-primary transition-colors"><?= htmlspecialchars($_SESSION['nama_lengkap'] ?? 'Validator') ?></span>
                 </a>
             </div>
         </header>
@@ -308,11 +308,11 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && !isset($_POST['verify_email_otp']) &
         <main class="flex-1 overflow-y-auto p-4 md:p-6 lg:p-10">
             <div class="max-w-4xl mx-auto space-y-10">
                 
-                <!-- Section 1: Profil Panitia -->
+                <!-- Section 1: Profil Validator -->
                 <div>
                     <div class="mb-6">
-                        <h1 class="text-2xl md:text-3xl font-extrabold text-slate-900 tracking-tight">Profil Panitia</h1>
-                        <p class="text-slate-500 mt-1 font-medium text-sm">Kelola informasi data diri, foto profil, dan kata sandi akun Panitia Anda.</p>
+                        <h1 class="text-2xl md:text-3xl font-extrabold text-slate-900 tracking-tight">Profil Validator</h1>
+                        <p class="text-slate-500 mt-1 font-medium text-sm">Kelola informasi data diri, foto profil, dan kata sandi akun Validator Anda.</p>
                     </div>
 
                     <?php if($success_msg): ?>
@@ -336,12 +336,12 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && !isset($_POST['verify_email_otp']) &
                                     <img id="profile-avatar-img" src="../assets/images/profil/<?= htmlspecialchars($user_data['foto_profil']) ?>" class="w-16 h-16 rounded-2xl object-cover shadow-md">
                                 <?php else: ?>
                                     <div id="profile-avatar-placeholder" class="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary to-secondary text-white flex items-center justify-center font-bold text-2xl shadow-md">
-                                        <?= strtoupper(substr($user_data['nama_lengkap'] ?? 'P', 0, 1)) ?>
+                                        <?= strtoupper(substr($user_data['nama_lengkap'] ?? 'V', 0, 1)) ?>
                                     </div>
                                 <?php endif; ?>
                                 <div>
-                                    <h3 class="font-extrabold text-slate-900 text-lg"><?= htmlspecialchars($user_data['nama_lengkap'] ?? 'Panitia Event') ?></h3>
-                                    <p class="text-sm font-bold text-primary uppercase tracking-wider">Panitia Event</p>
+                                    <h3 class="font-extrabold text-slate-900 text-lg"><?= htmlspecialchars($user_data['nama_lengkap'] ?? 'Validator Event') ?></h3>
+                                    <p class="text-sm font-bold text-primary uppercase tracking-wider">Validator Event</p>
                                 </div>
                             </div>
                         </div>
@@ -349,13 +349,13 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && !isset($_POST['verify_email_otp']) &
                             <form method="POST" action="" enctype="multipart/form-data" class="space-y-5">
                                 <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
                                     <div class="space-y-2">
-                                        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider">Nama Lengkap Panitia</label>
+                                        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider">Nama Lengkap Validator</label>
                                         <input type="text" name="nama_lengkap" value="<?= htmlspecialchars($user_data['nama_lengkap'] ?? '') ?>" required class="w-full bg-slate-50 border border-slate-200 text-slate-800 text-sm rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary block px-4 py-2.5 transition-colors font-medium">
                                     </div>
 
                                     <div class="space-y-2">
                                         <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider">
-                                            Alamat Email Login Panitia
+                                            Alamat Email Login Validator
                                         </label>
                                         <div class="flex items-center gap-2">
                                             <div class="relative w-full">
@@ -431,7 +431,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && !isset($_POST['verify_email_otp']) &
             <div class="px-6 py-4 border-b border-slate-100 bg-slate-900 text-white flex justify-between items-center">
                 <h3 class="font-extrabold text-base flex items-center gap-2">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
-                    Ubah Alamat Email Login Panitia
+                    Ubah Alamat Email Login Validator
                 </h3>
                 <button type="button" onclick="closeRequestEmailModal()" class="text-slate-400 hover:text-white text-2xl font-bold">&times;</button>
             </div>
@@ -455,7 +455,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && !isset($_POST['verify_email_otp']) &
     </div>
 </div>
 
-<!-- Modal OTP Verifikasi Ubah Email Panitia -->
+<!-- Modal OTP Verifikasi Ubah Email Validator -->
 <div id="emailOtpModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 <?= $show_otp_modal ? '' : 'hidden' ?> flex items-center justify-center p-4">
     <div class="bg-white rounded-3xl shadow-2xl border border-slate-200 w-full max-w-md overflow-hidden transform transition-all duration-300">
         <form method="POST" action="">

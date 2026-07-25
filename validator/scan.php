@@ -60,7 +60,7 @@ $active_menu = 'scan';
                 </div>
                 
                 <div class="flex items-center gap-4">
-                    <div class="hidden md:flex items-center gap-3 mr-2 px-3 py-1.5 rounded-full border border-slate-100 bg-slate-50 hover:bg-slate-100 hover:border-slate-200 transition-colors group cursor-pointer">
+                    <a href="profile.php" class="flex items-center gap-3 mr-2 px-3 py-1.5 rounded-full border border-slate-100 bg-slate-50 hover:bg-slate-100 hover:border-slate-200 transition-colors group cursor-pointer">
                         <?php if (isset($_SESSION['foto_profil']) && !empty($_SESSION['foto_profil']) && file_exists('../assets/images/profil/'.$_SESSION['foto_profil'])): ?>
                             <img src="../assets/images/profil/<?= htmlspecialchars($_SESSION['foto_profil']) ?>" class="w-8 h-8 rounded-full object-cover shadow-sm">
                         <?php else: ?>
@@ -69,7 +69,7 @@ $active_menu = 'scan';
                             </div>
                         <?php endif; ?>
                         <span class="text-sm font-bold text-slate-700 pr-2 group-hover:text-primary transition-colors"><?= htmlspecialchars($_SESSION['nama_lengkap']) ?></span>
-                    </div>
+                    </a>
                 </div>
             </header>
 
@@ -109,8 +109,8 @@ $active_menu = 'scan';
                                 </div>
                             </div>
                             
-                            <!-- Result Box -->
-                            <div id="scan-result" class="mt-8 p-6 rounded-2xl text-center hidden border-2 transition-all duration-300 transform scale-95 opacity-0">
+                            <!-- Result Box (Modal Overlay) -->
+                            <div id="scan-result" style="display: none;" class="fixed inset-0 z-[100] items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 transition-all duration-300 opacity-0">
                                 <!-- Result akan dimuat via JS -->
                             </div>
                         </div>
@@ -164,71 +164,179 @@ $active_menu = 'scan';
         });
     </script>
 
-    <script src="../assets/js/html5-qrcode.min.js"></script>
+    <script src="<?= BASE_URL ?>assets/js/html5-qrcode.min.js"></script>
     <script>
         let isScanning = false;
         let isProcessing = false;
-        let currentFacingMode = "environment"; // "user" for front, "environment" for back
         let html5QrCode;
+        let cameras = [];
+        let currentCameraIndex = 0;
+        let scanTimeout = null;
         
-        document.addEventListener('DOMContentLoaded', () => {
-            html5QrCode = new Html5Qrcode("reader");
-        });
+        // Fungsi inisialisasi Html5Qrcode secara aman
+        function initScanner() {
+            if (typeof Html5Qrcode === "undefined") {
+                alert("Error: Library QR Code Scanner (html5-qrcode.min.js) gagal dimuat! Periksa lokasi file di assets/js/html5-qrcode.min.js");
+                return;
+            }
+            if (!html5QrCode) {
+                try {
+                    html5QrCode = new Html5Qrcode("reader");
+                } catch (e) {
+                    console.error("Gagal menginisialisasi Html5Qrcode:", e);
+                }
+            }
+        }
+
+        // Fungsi untuk menutup hasil scan secara instan
+        function dismissResult() {
+            if (scanTimeout) {
+                clearTimeout(scanTimeout);
+                scanTimeout = null;
+            }
+            const resultBox = document.getElementById('scan-result');
+            if (resultBox) {
+                resultBox.style.display = 'none';
+                resultBox.className = 'fixed inset-0 z-[100] items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 transition-all duration-300 opacity-0';
+                resultBox.innerHTML = '';
+            }
+            isProcessing = false;
+            if (html5QrCode && isScanning) {
+                try {
+                    html5QrCode.resume();
+                } catch (e) {
+                    console.error("Gagal melanjutkan scan:", e);
+                }
+            }
+        }
+
+        // Coba inisialisasi langsung jika DOM sudah siap, atau tunggu DOMContentLoaded
+        if (document.readyState === "complete" || document.readyState === "interactive") {
+            initScanner();
+        } else {
+            document.addEventListener('DOMContentLoaded', initScanner);
+        }
 
         function updateUI() {
             const btnToggle = document.getElementById("btn-toggle-camera");
             const textToggle = document.getElementById("text-toggle-camera");
             const placeholder = document.getElementById("reader-placeholder");
+            const readerContainer = document.getElementById("reader");
             
             if (isScanning) {
                 textToggle.innerText = "Matikan Kamera";
                 btnToggle.classList.replace("bg-primary", "bg-rose-500");
                 btnToggle.classList.replace("hover:bg-teal-600", "hover:bg-rose-600");
                 if (placeholder) placeholder.style.display = 'none';
+                if (readerContainer) {
+                    readerContainer.classList.remove("flex", "items-center", "justify-center");
+                }
             } else {
                 textToggle.innerText = "Mulai Kamera";
                 btnToggle.classList.replace("bg-rose-500", "bg-primary");
                 btnToggle.classList.replace("hover:bg-rose-600", "hover:bg-teal-600");
                 if (placeholder) placeholder.style.display = 'flex';
+                if (readerContainer) {
+                    readerContainer.classList.add("flex", "items-center", "justify-center");
+                }
             }
         }
 
         function toggleCamera() {
+            initScanner();
             if (isScanning) {
-                html5QrCode.stop().then(() => {
-                    isScanning = false;
-                    updateUI();
-                }).catch(err => {
-                    console.error("Failed to stop scanner", err);
-                });
+                if (html5QrCode) {
+                    html5QrCode.stop().then(() => {
+                        isScanning = false;
+                        updateUI();
+                    }).catch(err => {
+                        console.error("Failed to stop scanner", err);
+                    });
+                }
             } else {
                 startCamera();
             }
         }
 
         function switchCamera() {
-            currentFacingMode = (currentFacingMode === "environment") ? "user" : "environment";
-            if (isScanning) {
-                // Restart with new facing mode
-                html5QrCode.stop().then(() => {
-                    startCamera();
-                }).catch(err => {
-                    console.error("Failed to stop scanner for switching", err);
-                });
+            if (cameras.length > 1) {
+                currentCameraIndex = (currentCameraIndex + 1) % cameras.length;
+                if (isScanning) {
+                    initScanner();
+                    if (html5QrCode) {
+                        html5QrCode.stop().then(() => {
+                            startScannerWithCurrentCamera();
+                        }).catch(err => console.error("Failed to stop scanner for switching", err));
+                    }
+                }
+            } else {
+                alert("Hanya ada satu kamera yang terdeteksi di perangkat Anda.");
             }
         }
 
         function startCamera() {
+            // Cek apakah browser mendukung akses kamera (HTTPS / Localhost)
+            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                alert("Browser memblokir akses kamera! Pastikan Anda mengakses website melalui HTTPS atau Localhost.");
+                return;
+            }
+
+            initScanner();
+
+            if (cameras.length === 0) {
+                Html5Qrcode.getCameras().then(devices => {
+                    if (devices && devices.length) {
+                        cameras = devices;
+                        currentCameraIndex = 0;
+                        // Prioritaskan kamera belakang jika ada
+                        for (let i = 0; i < cameras.length; i++) {
+                            let label = cameras[i].label.toLowerCase();
+                            if (label.includes("back") || label.includes("belakang") || label.includes("environment")) {
+                                currentCameraIndex = i;
+                                break;
+                            }
+                        }
+                        startScannerWithCurrentCamera();
+                    } else {
+                        alert("Tidak ada kamera yang ditemukan pada perangkat Anda.");
+                    }
+                }).catch(err => {
+                    console.error("Error getting cameras", err);
+                    alert("Gagal mendapatkan izin akses kamera. Pastikan Anda telah memberikan izin kamera pada browser Anda.");
+                });
+            } else {
+                startScannerWithCurrentCamera();
+            }
+        }
+
+        function startScannerWithCurrentCamera() {
+            initScanner();
+            if (!html5QrCode) {
+                alert("Kamera gagal dimuat karena pemindai belum terinisialisasi.");
+                return;
+            }
+            let cameraId = cameras[currentCameraIndex].id;
+            
+            // Konfigurasi qrbox dinamis agar pas dengan ukuran layar (responsive)
+            const qrboxFunction = (viewfinderWidth, viewfinderHeight) => {
+                const minEdge = Math.min(viewfinderWidth, viewfinderHeight);
+                const size = Math.floor(minEdge * 0.7);
+                return {
+                    width: size < 200 ? Math.min(200, viewfinderWidth) : size,
+                    height: size < 200 ? Math.min(200, viewfinderHeight) : size
+                };
+            };
+
             html5QrCode.start(
-                { facingMode: currentFacingMode },
-                { fps: 10, qrbox: {width: 250, height: 250} },
+                cameraId,
+                { fps: 10, qrbox: qrboxFunction },
                 onScanSuccess
             ).then(() => {
                 isScanning = true;
                 updateUI();
             }).catch(err => {
-                console.error(err);
-                alert("Gagal mengakses kamera. Pastikan izin kamera telah diberikan.");
+                console.error("Camera start error:", err);
+                alert("Kamera gagal dimuat: " + err);
             });
         }
 
@@ -236,11 +344,20 @@ $active_menu = 'scan';
             if(isProcessing) return;
             isProcessing = true;
             
-            html5QrCode.pause();
+            try {
+                if (html5QrCode) {
+                    html5QrCode.pause();
+                }
+            } catch (e) {
+                console.warn("Gagal melakukan pause pada scanner:", e);
+            }
             
             const resultBox = document.getElementById('scan-result');
-            resultBox.className = 'mt-8 p-6 rounded-2xl text-center border-2 transition-all duration-300 transform scale-100 opacity-100 bg-indigo-50 border-indigo-200 block';
-            resultBox.innerHTML = '<div class="flex flex-col items-center justify-center gap-3"><svg class="animate-spin h-8 w-8 text-primary" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> <span class="font-bold text-primary">Memverifikasi tiket...</span></div>';
+            if (resultBox) {
+                resultBox.style.display = 'flex';
+                resultBox.className = 'fixed inset-0 z-[100] items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 transition-all duration-300 opacity-100';
+                resultBox.innerHTML = '<div class="w-full max-w-sm bg-white rounded-2xl shadow-2xl p-6 text-center transform scale-100 transition-all duration-300"><div class="flex flex-col items-center justify-center gap-3"><svg class="animate-spin h-8 w-8 text-primary" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> <span class="font-bold text-primary">Memverifikasi tiket...</span></div></div>';
+            }
 
             fetch('proses_scan.php', {
                 method: 'POST',
@@ -252,44 +369,128 @@ $active_menu = 'scan';
             .then(response => response.json())
             .then(data => {
                 if(data.status === 'success') {
-                    resultBox.className = 'mt-8 p-6 rounded-2xl text-center border-2 transition-all duration-300 transform scale-100 opacity-100 bg-emerald-50 border-emerald-200 block';
-                    resultBox.innerHTML = `
-                        <div class="w-12 h-12 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-3">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" /></svg>
-                        </div>
-                        <div class="font-extrabold text-xl mb-3 text-emerald-700">Akses Diberikan</div>
-                        <div class="bg-white rounded-xl p-4 border border-emerald-100 text-left shadow-sm">
-                            <p class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Nama Pemilik</p>
-                            <p class="font-bold text-slate-900 mb-3">${data.data.nama_pembeli}</p>
-                            <p class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Tiket Event</p>
-                            <p class="font-bold text-slate-900">${data.data.judul}</p>
-                        </div>
-                    `;
+                    // Tampilkan informasi pembeli dan pop-up centang secara instan
+                    if (resultBox) {
+                        resultBox.style.display = 'flex';
+                        resultBox.className = 'fixed inset-0 z-[100] items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 transition-all duration-300 opacity-100';
+                        resultBox.innerHTML = `
+                            <div class="w-full max-w-sm bg-white rounded-2xl shadow-2xl p-6 text-left transform scale-100 transition-all duration-300 relative border-t-4 border-emerald-500">
+                                <!-- Tombol Silang -->
+                                <button onclick="dismissResult()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 transition-colors p-1 rounded-lg hover:bg-slate-100">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                                    </svg>
+                                </button>
+                                
+                                <div class="w-12 h-12 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-3">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" /></svg>
+                                </div>
+                                <div class="font-extrabold text-lg mb-2 text-emerald-700 text-center">${data.data.nama_pembeli} - ${data.data.jenis_tiket} Berhasil Divalidasi</div>
+                                <div class="font-extrabold text-lg mb-4 text-slate-800 text-center border-b pb-3">Informasi Tiket</div>
+                                <div class="grid grid-cols-2 gap-y-3 gap-x-4">
+                                    <div>
+                                        <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">ID Pembeli</p>
+                                        <p class="font-bold text-slate-900 text-sm">${data.data.id_pembeli}</p>
+                                    </div>
+                                    <div>
+                                        <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">Nama Pembeli</p>
+                                        <p class="font-bold text-slate-900 text-sm">${data.data.nama_pembeli}</p>
+                                    </div>
+                                    <div>
+                                        <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">Jenis Tiket</p>
+                                        <p class="font-bold text-slate-900 text-sm">${data.data.jenis_tiket}</p>
+                                    </div>
+                                    <div>
+                                        <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">Nama Acara</p>
+                                        <p class="font-bold text-slate-900 text-sm">${data.data.judul}</p>
+                                    </div>
+                                    <div>
+                                        <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">Harga</p>
+                                        <p class="font-bold text-slate-900 text-sm">Rp ${parseInt(data.data.harga).toLocaleString('id-ID')}</p>
+                                    </div>
+                                    <div>
+                                        <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">Waktu Beli</p>
+                                        <p class="font-bold text-slate-900 text-sm">${data.data.tanggal_beli}</p>
+                                    </div>
+                                </div>
+                                
+                                <!-- Tombol OK -->
+                                <div class="mt-6 flex justify-center">
+                                    <button onclick="dismissResult()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 px-8 rounded-xl shadow-sm transition-all text-sm w-full">
+                                        Tutup Hasil (OK)
+                                    </button>
+                                </div>
+                            </div>
+                        `;
+                    }
+                    
+                    // Tampilkan selama 15 detik, lalu sembunyikan dan resume scan
+                    scanTimeout = setTimeout(dismissResult, 15000);
+
                 } else {
-                    resultBox.className = 'mt-8 p-6 rounded-2xl text-center border-2 transition-all duration-300 transform scale-100 opacity-100 bg-red-50 border-red-200 block';
-                    resultBox.innerHTML = `
-                        <div class="w-12 h-12 bg-red-100 text-red-600 rounded-full flex items-center justify-center mx-auto mb-3">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M6 18L18 6M6 6l12 12" /></svg>
-                        </div>
-                        <div class="font-extrabold text-xl mb-2 text-red-700">Akses Ditolak</div>
-                        <div class="text-sm font-medium text-red-600">${data.message}</div>
-                    `;
+                    let failMsg = data.message;
+                    if(data.data && data.data.nama_pembeli && data.data.jenis_tiket) {
+                        failMsg = `Mohon maaf gagal memvalidasi ${data.data.nama_pembeli} - ${data.data.jenis_tiket} silahkan ulangi ke validator`;
+                    } else {
+                        failMsg = `Mohon maaf gagal memvalidasi, silahkan ulangi ke validator (${data.message})`;
+                    }
+                    if (resultBox) {
+                        resultBox.style.display = 'flex';
+                        resultBox.className = 'fixed inset-0 z-[100] items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 transition-all duration-300 opacity-100';
+                        resultBox.innerHTML = `
+                            <div class="w-full max-w-sm bg-white rounded-2xl shadow-2xl p-6 text-center transform scale-100 transition-all duration-300 relative border-t-4 border-red-500">
+                                <!-- Tombol Silang -->
+                                <button onclick="dismissResult()" class="absolute top-4 right-4 text-red-400 hover:text-red-600 transition-colors p-1 rounded-lg hover:bg-red-100">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                                    </svg>
+                                </button>
+                                
+                                <div class="w-12 h-12 bg-red-100 text-red-600 rounded-full flex items-center justify-center mx-auto mb-3">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M6 18L18 6M6 6l12 12" /></svg>
+                                </div>
+                                <div class="font-extrabold text-lg mb-2 text-red-700">Akses Ditolak</div>
+                                <div class="text-sm font-medium text-red-600 mb-4">${failMsg}</div>
+                                
+                                <!-- Tombol OK -->
+                                <div class="mt-4 flex justify-center">
+                                    <button onclick="dismissResult()" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2.5 px-8 rounded-xl shadow-sm transition-all text-sm w-full">
+                                        Tutup Hasil (OK)
+                                    </button>
+                                </div>
+                            </div>
+                        `;
+                    }
+                    
+                    // Tampilkan pop up gagal selama 15 detik
+                    scanTimeout = setTimeout(dismissResult, 15000);
                 }
-                
-                setTimeout(() => {
-                    resultBox.className = 'mt-8 p-6 rounded-2xl text-center hidden border-2 transition-all duration-300 transform scale-95 opacity-0';
-                    isProcessing = false;
-                    html5QrCode.resume();
-                }, 3500);
             })
             .catch(error => {
-                resultBox.className = 'mt-8 p-6 rounded-2xl text-center border-2 transition-all duration-300 transform scale-100 opacity-100 bg-red-50 border-red-200 block';
-                resultBox.innerHTML = '<div class="font-bold text-red-600 mb-2">Terjadi Kesalahan Koneksi</div><p class="text-sm">Tidak dapat menghubungi server.</p>';
-                setTimeout(() => {
-                    resultBox.className = 'mt-8 p-6 rounded-2xl text-center hidden border-2 transition-all duration-300 transform scale-95 opacity-0';
-                    isProcessing = false;
-                    html5QrCode.resume();
-                }, 3500);
+                if (resultBox) {
+                    resultBox.style.display = 'flex';
+                    resultBox.className = 'fixed inset-0 z-[100] items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 transition-all duration-300 opacity-100';
+                    resultBox.innerHTML = `
+                        <div class="w-full max-w-sm bg-white rounded-2xl shadow-2xl p-6 text-center transform scale-100 transition-all duration-300 relative border-t-4 border-red-500">
+                            <!-- Tombol Silang -->
+                            <button onclick="dismissResult()" class="absolute top-4 right-4 text-red-400 hover:text-red-600 transition-colors p-1 rounded-lg hover:bg-red-100">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                            </button>
+                            <div class="font-bold text-red-600 mb-2 mt-4">Terjadi Kesalahan Koneksi</div>
+                            <p class="text-sm mb-4 text-slate-600">Tidak dapat menghubungi server.</p>
+                            
+                            <!-- Tombol OK -->
+                            <div class="mt-4 flex justify-center">
+                                <button onclick="dismissResult()" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2.5 px-8 rounded-xl shadow-sm transition-all text-sm w-full">
+                                    Tutup Hasil (OK)
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                }
+                scanTimeout = setTimeout(dismissResult, 3500);
             });
         }
     </script>

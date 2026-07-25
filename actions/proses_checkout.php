@@ -200,6 +200,13 @@ try {
         $conn->query("DELETE FROM tickets WHERE order_id = '$order_id'");
     }
     
-    returnError("Layanan pembayaran mengalami masalah: " . $e->getMessage(), defined('BASE_URL') ? BASE_URL . "checkout.php?id=" . $id_event : "../checkout.php?id=" . $id_event);
+    $rawMsg = $e->getMessage();
+    if (strpos($rawMsg, '401') !== false || strpos(strtolower($rawMsg), 'unauthorized') !== false || strpos(strtolower($rawMsg), 'access denied') !== false) {
+        $errorMsg = "Kunci Midtrans Server Key / Client Key atau Mode (Sandbox/Production) tidak valid atau ditolak oleh Midtrans (HTTP 401 Unauthorized). Silakan perbarui Server Key di Admin Panel > API Settings atau jalankan test_midtrans.php.";
+    } else {
+        $errorMsg = "Layanan pembayaran mengalami masalah: " . $rawMsg;
+    }
+
+    returnError($errorMsg, defined('BASE_URL') ? BASE_URL . "checkout.php?id=" . $id_event : "../checkout.php?id=" . $id_event);
 }
 ?>
