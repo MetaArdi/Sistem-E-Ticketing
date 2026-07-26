@@ -283,16 +283,6 @@ Admin → Tetapkan Kuota Validator (per Panitia)
 
 ---
 
-## 🔑 Akun Default
-
-| Role | Email | Password |
-|---|---|---|
-| **Admin** | `admin@halotiket.com` | `password` |
-| **Panitia** | `panitia@gmail.com` | `panitia123` |
-| **Validator** | `validator@gmail.com` | `validator123` |
-
-> ⚠️ **Penting:** Segera ganti password default akun-akun ini setelah instalasi pertama!
-
 Untuk membuat akun Panitia atau Validator lainnya, Admin dapat melakukannya melalui menu **Kelola Pengguna** di dashboard Admin.
 
 ---
