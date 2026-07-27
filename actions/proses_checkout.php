@@ -164,6 +164,11 @@ try {
                 'first_name' => $nama,
                 'email' => $email,
                 'phone' => $no_hp,
+            ],
+            'callbacks' => [
+                'finish' => (defined('BASE_URL') ? BASE_URL : '../') . 'pembayaran.php?order_id=' . urlencode($order_id),
+                'unfinish' => (defined('BASE_URL') ? BASE_URL : '../') . 'pembayaran.php?order_id=' . urlencode($order_id),
+                'error' => (defined('BASE_URL') ? BASE_URL : '../') . 'pembayaran.php?order_id=' . urlencode($order_id),
             ]
         ];
 
