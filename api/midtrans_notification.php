@@ -30,9 +30,9 @@ try {
                     $conn->query("UPDATE tickets SET status = 'pending' WHERE order_id = '$order_id'");
                 } else {
                     $conn->query("UPDATE tickets SET status = 'lunas' WHERE order_id = '$order_id'");
-                    // Panggil helper kirim email tiket jika status lunas
-                    if (file_exists('../actions/kirim_email_tiket.php')) {
-                        @include_once '../actions/kirim_email_tiket.php';
+                    // Kirim email e-ticket PDF resmi
+                    if (function_exists('sendTicketEmailDirect') && !empty($ticket['token_qr'])) {
+                        @sendTicketEmailDirect($conn, $ticket['token_qr']);
                     }
                     if (function_exists('notifyPaymentSuccessWA')) {
                         $stmtEv = $conn->query("SELECT e.judul, v.nama_varian FROM events e LEFT JOIN event_ticket_variants v ON v.id = " . (int)$ticket['id_ticket_variant'] . " WHERE e.id = " . (int)$ticket['id_event']);
@@ -43,9 +43,9 @@ try {
             }
         } else if ($transaction == 'settlement'){
             $conn->query("UPDATE tickets SET status = 'lunas' WHERE order_id = '$order_id'");
-            // Panggil helper kirim email tiket
-            if (file_exists('../actions/kirim_email_tiket.php')) {
-                @include_once '../actions/kirim_email_tiket.php';
+            // Kirim email e-ticket PDF resmi
+            if (function_exists('sendTicketEmailDirect') && !empty($ticket['token_qr'])) {
+                @sendTicketEmailDirect($conn, $ticket['token_qr']);
             }
             if (function_exists('notifyPaymentSuccessWA')) {
                 $stmtEv = $conn->query("SELECT e.judul, v.nama_varian FROM events e LEFT JOIN event_ticket_variants v ON v.id = " . (int)$ticket['id_ticket_variant'] . " WHERE e.id = " . (int)$ticket['id_event']);

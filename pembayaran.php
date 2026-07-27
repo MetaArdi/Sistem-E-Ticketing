@@ -64,8 +64,8 @@ if ($ticket['status'] == 'pending' && !empty($ticket['order_id'])) {
                     $ticket_id = (int)$ticket['id'];
                     $conn->query("UPDATE tickets SET status = 'lunas' WHERE id = $ticket_id");
                     $ticket['status'] = 'lunas';
-                    if (file_exists('actions/kirim_email_tiket.php')) {
-                        @include_once 'actions/kirim_email_tiket.php';
+                    if (function_exists('sendTicketEmailDirect') && !empty($ticket['token_qr'])) {
+                        @sendTicketEmailDirect($conn, $ticket['token_qr']);
                     }
                     if (function_exists('notifyPaymentSuccessWA')) {
                         @notifyPaymentSuccessWA($ticket, $ticket['judul'] ?? '', $ticket['nama_varian'] ?? '', $total_pembayaran);
