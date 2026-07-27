@@ -112,7 +112,7 @@ $events_query = $conn->query("SELECT id, judul FROM events ORDER BY judul ASC");
                     <div class="flex flex-col sm:flex-row items-center gap-3 w-full md:w-auto">
                         <button type="button" onclick="openCreateModal()" class="w-full sm:w-auto px-4 py-2.5 bg-primary hover:bg-teal-600 text-white font-extrabold text-xs rounded-xl shadow-md transition-all flex items-center justify-center gap-2 active:scale-95">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" /></svg>
-                            <span>+ Tambah Transaksi Manual</span>
+                            <span>Tambah Transaksi Manual</span>
                         </button>
                         
                         <form method="GET" action="manage_transactions.php" class="w-full sm:w-auto">
