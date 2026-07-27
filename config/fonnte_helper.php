@@ -9,7 +9,7 @@ if (!function_exists('sendFonnteWA')) {
     function sendFonnteWA($target, $message) {
         global $global_settings;
 
-        $token = trim($global_settings['fonnte_token'] ?? 'ep63gV3wUjrZ1RB4NXnW');
+        $token = !empty($global_settings['fonnte_token']) ? trim($global_settings['fonnte_token']) : 'ep63gV3wUjrZ1RB4NXnW';
         if (empty($token) || empty($target) || empty($message)) {
             return ['status' => false, 'reason' => 'Token Fonnte, target, atau pesan kosong'];
         }
@@ -24,11 +24,15 @@ if (!function_exists('sendFonnteWA')) {
         $overall_status = true;
 
         foreach ($targets as $singleTarget) {
+            if (empty($singleTarget)) continue;
+
             // Format nomor jika nomor HP pribadi (bukan Group ID)
             if (strpos($singleTarget, '@g.us') === false) {
                 $singleTarget = preg_replace('/[^0-9]/', '', $singleTarget);
-                if (str_starts_with($singleTarget, '08')) {
-                    $singleTarget = '628' . substr($singleTarget, 2);
+                if (str_starts_with($singleTarget, '0')) {
+                    $singleTarget = '62' . substr($singleTarget, 1);
+                } elseif (str_starts_with($singleTarget, '8')) {
+                    $singleTarget = '62' . $singleTarget;
                 }
             }
 
@@ -78,8 +82,8 @@ if (!function_exists('notifyNewOrderWA')) {
     function notifyNewOrderWA($ticket_data, $event_title = '', $variant_name = '', $total_amount = 0) {
         global $global_settings;
 
-        $enable_group = ($global_settings['fonnte_enable_group_notif'] ?? '1') === '1';
-        $enable_buyer = ($global_settings['fonnte_enable_buyer_notif'] ?? '1') === '1';
+        $enable_group = ($global_settings['fonnte_enable_group_notif'] ?? '1') !== '0';
+        $enable_buyer = ($global_settings['fonnte_enable_buyer_notif'] ?? '1') !== '0';
 
         $order_id = $ticket_data['order_id'] ?? '';
         $nama = $ticket_data['nama_pembeli'] ?? '';
@@ -91,7 +95,7 @@ if (!function_exists('notifyNewOrderWA')) {
 
         // Pesan untuk Group WA Admin
         if ($enable_group) {
-            $group_id = trim($global_settings['fonnte_wa_group'] ?? '120363412788674882@g.us');
+            $group_id = !empty($global_settings['fonnte_wa_group']) ? trim($global_settings['fonnte_wa_group']) : '120363427898241334@g.us';
             if (!empty($group_id)) {
                 $msgAdmin = "📢 *PESANAN TIKET BARU MASUK!*\n";
                 $msgAdmin .= "----------------------------------------\n";
@@ -136,8 +140,8 @@ if (!function_exists('notifyPaymentSuccessWA')) {
     function notifyPaymentSuccessWA($ticket_data, $event_title = '', $variant_name = '', $total_amount = 0) {
         global $global_settings;
 
-        $enable_group = ($global_settings['fonnte_enable_group_notif'] ?? '1') === '1';
-        $enable_buyer = ($global_settings['fonnte_enable_buyer_notif'] ?? '1') === '1';
+        $enable_group = ($global_settings['fonnte_enable_group_notif'] ?? '1') !== '0';
+        $enable_buyer = ($global_settings['fonnte_enable_buyer_notif'] ?? '1') !== '0';
 
         $order_id = $ticket_data['order_id'] ?? '';
         $nama = $ticket_data['nama_pembeli'] ?? '';
@@ -151,7 +155,7 @@ if (!function_exists('notifyPaymentSuccessWA')) {
 
         // Pesan untuk Group WA Admin
         if ($enable_group) {
-            $group_id = trim($global_settings['fonnte_wa_group'] ?? '120363412788674882@g.us');
+            $group_id = !empty($global_settings['fonnte_wa_group']) ? trim($global_settings['fonnte_wa_group']) : '120363427898241334@g.us';
             if (!empty($group_id)) {
                 $msgAdmin = "✅ *PEMBAYARAN TIKET LUNAS!*\n";
                 $msgAdmin .= "----------------------------------------\n";
