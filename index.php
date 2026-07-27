@@ -302,7 +302,7 @@ if (empty($hero_slides)) {
                     </button>
 
                     <?php if (isset($_SESSION['user_id'])): ?>
-                        <a href="<?= $_SESSION['role'] ?>/index.php"
+                        <a href="<?= BASE_URL ?><?= $_SESSION['role'] ?>/index.php"
                             class="bg-primary text-white hover:bg-blue-700 px-6 py-2.5 rounded-full text-sm font-semibold transition-all shadow-md hover:shadow-lg">Dashboard</a>
                     <?php endif; ?>
 
@@ -761,7 +761,7 @@ if (empty($hero_slides)) {
 
         <div class="flex flex-col p-4 gap-2 overflow-y-auto">
             <div class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 mt-2 px-2">Menu Utama</div>
-            <a href="index.php"
+            <a href="<?= BASE_URL ?>index.php"
                 class="flex items-center gap-3 px-4 py-3.5 rounded-xl bg-blue-50 text-primary font-bold transition-colors">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                     <path
@@ -769,7 +769,7 @@ if (empty($hero_slides)) {
                 </svg>
                 Home
             </a>
-            <a href="cek_tiket.php"
+            <a href="<?= BASE_URL ?>user/cek_tiket.php"
                 class="flex items-center gap-3 px-4 py-3.5 rounded-xl text-slate-600 hover:bg-slate-50 font-semibold transition-colors">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
                     stroke="currentColor" stroke-width="2">
@@ -800,17 +800,17 @@ if (empty($hero_slides)) {
 
         <div class="mt-auto p-5 border-t border-slate-100 bg-slate-50">
             <?php if (isset($_SESSION['user_id'])): ?>
-                <a href="<?= $_SESSION['role'] ?>/index.php"
+                <a href="<?= BASE_URL ?><?= $_SESSION['role'] ?>/index.php"
                     class="flex items-center justify-center w-full bg-primary text-white py-3.5 rounded-xl font-bold shadow-md hover:bg-blue-700 hover:shadow-lg transition-all">
                     Dashboard Panel
                 </a>
             <?php else: ?>
                 <div class="flex flex-col gap-3">
-                    <a href="auth/login.php"
+                    <a href="<?= BASE_URL ?>auth/login.php"
                         class="flex items-center justify-center w-full bg-slate-900 text-white py-3.5 rounded-xl font-bold shadow-md hover:bg-slate-800 hover:shadow-lg transition-all">
                         Masuk
                     </a>
-                    <a href="auth/register.php"
+                    <a href="<?= BASE_URL ?>auth/register.php"
                         class="flex items-center justify-center w-full bg-white text-slate-900 border border-slate-300 py-3.5 rounded-xl font-bold shadow-sm hover:bg-slate-50 hover:shadow transition-all">
                         Buat Akun
                     </a>

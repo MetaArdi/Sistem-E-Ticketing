@@ -103,7 +103,7 @@ $result = $stmt->get_result();
 
                 <!-- Centered Logo -->
                 <div class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
-                    <a href="../index.php" class="flex items-center gap-2 group">
+                    <a href="<?= BASE_URL ?>index.php" class="flex items-center gap-2 group">
                         <?php if (isset($global_site_logo) && $global_site_logo): ?>
                             <img src="<?= $global_site_logo ?>" alt="Logo" class="w-40 md:w-48 lg:w-56 h-auto object-contain group-hover:scale-105 transition-transform duration-300">
                         <?php else: ?>
@@ -118,7 +118,7 @@ $result = $stmt->get_result();
                 <!-- Desktop Actions -->
                 <div class="flex items-center shrink-0">
                     <?php if (isset($_SESSION['user_id'])): ?>
-                        <a href="<?= $_SESSION['role'] ?>/index.php"
+                        <a href="<?= BASE_URL ?><?= $_SESSION['role'] ?>/index.php"
                             class="bg-primary text-white hover:bg-blue-700 px-6 py-2.5 rounded-full text-sm font-semibold transition-all shadow-md hover:shadow-lg">Dashboard</a>
                     <?php endif; ?>
                 </div>
@@ -429,13 +429,13 @@ $result = $stmt->get_result();
         
         <div class="flex flex-col p-4 gap-2 overflow-y-auto">
             <div class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 mt-2 px-2">Menu Utama</div>
-            <a href="../index.php" class="flex items-center gap-3 px-4 py-3.5 rounded-xl text-slate-600 hover:bg-slate-50 font-semibold transition-colors">
+            <a href="<?= BASE_URL ?>index.php" class="flex items-center gap-3 px-4 py-3.5 rounded-xl text-slate-600 hover:bg-slate-50 font-semibold transition-colors">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                     <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z" />
                 </svg>
                 Home
             </a>
-            <a href="cek_tiket.php" class="flex items-center gap-3 px-4 py-3.5 rounded-xl bg-blue-50 text-primary font-bold transition-colors">
+            <a href="<?= BASE_URL ?>user/cek_tiket.php" class="flex items-center gap-3 px-4 py-3.5 rounded-xl bg-blue-50 text-primary font-bold transition-colors">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z" />
                 </svg>
@@ -453,15 +453,15 @@ $result = $stmt->get_result();
         
         <div class="mt-auto p-5 border-t border-slate-100 bg-slate-50">
             <?php if (isset($_SESSION['user_id'])): ?>
-                <a href="<?= $_SESSION['role'] ?>/index.php" class="flex items-center justify-center w-full bg-primary text-white py-3.5 rounded-xl font-bold shadow-md hover:bg-blue-700 hover:shadow-lg transition-all">
+                <a href="<?= BASE_URL ?><?= $_SESSION['role'] ?>/index.php" class="flex items-center justify-center w-full bg-primary text-white py-3.5 rounded-xl font-bold shadow-md hover:bg-blue-700 hover:shadow-lg transition-all">
                     Dashboard Panel
                 </a>
             <?php else: ?>
                 <div class="flex flex-col gap-3">
-                    <a href="auth/login.php" class="flex items-center justify-center w-full bg-slate-900 text-white py-3.5 rounded-xl font-bold shadow-md hover:bg-slate-800 hover:shadow-lg transition-all">
+                    <a href="<?= BASE_URL ?>auth/login.php" class="flex items-center justify-center w-full bg-slate-900 text-white py-3.5 rounded-xl font-bold shadow-md hover:bg-slate-800 hover:shadow-lg transition-all">
                         Login
                     </a>
-                    <a href="auth/register.php" class="flex items-center justify-center w-full bg-white text-slate-900 border border-slate-300 py-3.5 rounded-xl font-bold shadow-sm hover:bg-slate-50 hover:shadow transition-all">
+                    <a href="<?= BASE_URL ?>auth/register.php" class="flex items-center justify-center w-full bg-white text-slate-900 border border-slate-300 py-3.5 rounded-xl font-bold shadow-sm hover:bg-slate-50 hover:shadow transition-all">
                         Register
                     </a>
                 </div>

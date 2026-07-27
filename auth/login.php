@@ -65,7 +65,7 @@ $site_favicon = (isset($settings['site_favicon']) && $settings['site_favicon'] !
 
         <!-- Top Header Navigation Bar (Kembali) -->
         <div class="flex items-center justify-between mb-6 pb-4 border-b border-slate-100/80">
-            <a href="../index.php" class="inline-flex items-center gap-2 text-xs font-bold text-slate-500 hover:text-primary transition-all bg-slate-100/80 hover:bg-slate-100 px-3.5 py-1.5 rounded-full border border-slate-200/60 group">
+            <a href="<?= BASE_URL ?>index.php" class="inline-flex items-center gap-2 text-xs font-bold text-slate-500 hover:text-primary transition-all bg-slate-100/80 hover:bg-slate-100 px-3.5 py-1.5 rounded-full border border-slate-200/60 group">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5 group-hover:-translate-x-0.5 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
                 </svg>

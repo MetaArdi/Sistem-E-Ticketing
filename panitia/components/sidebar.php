@@ -2,16 +2,16 @@
     <aside id="sidebar" class="w-72 bg-slate-50 border-r border-slate-200 flex flex-col fixed inset-y-0 left-0 transform -translate-x-full md:relative md:translate-x-0 transition-all duration-300 ease-in-out z-50 shadow-lg md:shadow-none">
         
         <div class="h-20 flex items-center justify-between px-6 border-b border-slate-200 shrink-0">
-            <a href="../index.php" class="flex items-center gap-3 group">
+            <a href="index.php" class="flex items-center gap-3 group">
                 <?php if (isset($global_site_logo) && $global_site_logo): ?>
                 <img src="<?= $global_site_logo ?>" alt="Logo" class="w-40 md:w-48 h-auto object-contain">
                 <?php else: ?>
                 <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-secondary flex items-center justify-center text-white font-bold text-sm shadow-md">H</div>
-                <span class="text-xl font-extrabold text-white tracking-tight">Panitia Panel</span>
+                <span class="text-xl font-extrabold text-slate-800 tracking-tight">Panitia Panel</span>
                 <?php endif; ?>
             </a>
             <!-- Close Button (Mobile Only) -->
-            <button id="closeSidebar" class="md:hidden text-slate-400 hover:text-white p-2">
+            <button id="closeSidebar" class="md:hidden text-slate-400 hover:text-slate-600 p-2">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
             </button>
         </div>
@@ -54,11 +54,23 @@
                         Tarik Tunai & Bank
                     </a>
                 </li>
+                <li>
+                    <a href="profile.php" class="<?= $am == 'profile' ? $active_class : $inactive_class ?> flex items-center px-4 py-3 rounded-xl transition-all duration-300 text-sm gap-4">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
+                        Profil Panitia
+                    </a>
+                </li>
+                <li>
+                    <a href="<?= BASE_URL ?>index.php" target="_blank" class="<?= $inactive_class ?> flex items-center px-4 py-3 rounded-xl transition-all duration-300 text-sm gap-4">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
+                        Lihat Website Utama ↗
+                    </a>
+                </li>
             </ul>
         </nav>
         
         <div class="p-4 border-t border-slate-200 shrink-0">
-            <a href="../auth/logout.php" class="flex items-center justify-center w-full px-4 py-3 text-sm font-bold text-red-500 bg-red-50 hover:bg-red-100 rounded-xl transition-colors border border-red-100">
+            <a href="<?= BASE_URL ?>auth/logout.php" onclick="return confirm('Apakah Anda yakin ingin keluar dari Panitia Panel?')" class="flex items-center justify-center w-full px-4 py-3 text-sm font-bold text-red-500 bg-red-50 hover:bg-red-100 rounded-xl transition-colors border border-red-100">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
                 Logout
             </a>

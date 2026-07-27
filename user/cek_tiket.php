@@ -1,6 +1,6 @@
 <?php
 session_start();
-require_once __DIR__ . '/config/koneksi.php';
+require_once __DIR__ . '/../config/koneksi.php';
 
 ?>
 <!DOCTYPE html>
@@ -85,7 +85,7 @@ require_once __DIR__ . '/config/koneksi.php';
 
                 <div class="flex items-center shrink-0">
                     <?php if (isset($_SESSION['user_id'])): ?>
-                        <a href="<?= $_SESSION['role'] ?>/index.php" class="bg-primary text-white hover:bg-blue-700 px-6 py-2.5 rounded-full text-sm font-semibold transition-all shadow-md hover:shadow-lg">Dashboard</a>
+                        <a href="<?= BASE_URL ?><?= $_SESSION['role'] ?>/index.php" class="bg-primary text-white hover:bg-blue-700 px-6 py-2.5 rounded-full text-sm font-semibold transition-all shadow-md hover:shadow-lg">Dashboard</a>
                     <?php endif; ?>
                 </div>
             </div>
@@ -462,7 +462,7 @@ require_once __DIR__ . '/config/koneksi.php';
                 </svg>
                 Home
             </a>
-            <a href="cek_tiket.php"
+            <a href="<?= BASE_URL ?>user/cek_tiket.php"
                 class="flex items-center gap-3 px-4 py-3.5 rounded-xl bg-blue-50 text-primary font-bold transition-colors">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z" />
@@ -482,7 +482,7 @@ require_once __DIR__ . '/config/koneksi.php';
 
         <div class="mt-auto p-5 border-t border-slate-100 bg-slate-50">
             <?php if (isset($_SESSION['user_id'])): ?>
-                <a href="<?= $_SESSION['role'] ?>/index.php"
+                <a href="<?= BASE_URL ?><?= $_SESSION['role'] ?>/index.php"
                     class="flex items-center justify-center w-full bg-primary text-white py-3.5 rounded-xl font-bold shadow-md hover:bg-blue-700 hover:shadow-lg transition-all">
                     Dashboard Panel
                 </a>
