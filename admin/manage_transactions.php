@@ -219,75 +219,87 @@ $events_query = $conn->query("SELECT id, judul FROM events ORDER BY judul ASC");
 
 <!-- Modal Detail Transaksi -->
 <div id="detailModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
-    <div class="bg-white rounded-3xl shadow-xl w-full max-w-md overflow-hidden transform scale-95 opacity-0 transition-all duration-300" id="detailModalContent">
-        <div class="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
-            <h3 class="font-extrabold text-slate-900">Detail Transaksi</h3>
+    <div class="bg-white rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden transform scale-95 opacity-0 transition-all duration-300 flex flex-col max-h-[92vh]" id="detailModalContent">
+        
+        <!-- Header Modal (Fixed Top) -->
+        <div class="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50/80 shrink-0">
+            <div class="flex items-center gap-3">
+                <div class="w-9 h-9 rounded-xl bg-primary/10 text-primary flex items-center justify-center font-bold text-base">
+                    🎫
+                </div>
+                <div>
+                    <h3 class="font-extrabold text-slate-900 text-sm">Detail Pesanan Tiket</h3>
+                    <div class="text-[11px] font-mono font-bold text-primary" id="modalOrderId"></div>
+                </div>
+            </div>
             <button onclick="closeDetail()" class="text-slate-400 hover:text-slate-600 transition-colors p-2 bg-white rounded-full border border-slate-200 hover:bg-slate-100">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" /></svg>
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" /></svg>
             </button>
         </div>
-        <div class="p-6 space-y-4">
-            <div class="text-center pb-4 border-b border-slate-100">
-                <div class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Order ID</div>
-                <div class="text-xl font-extrabold text-primary" id="modalOrderId"></div>
-            </div>
-            
-            <div class="grid grid-cols-2 gap-4 text-sm">
+
+        <!-- Body Modal (Scrollable Content) -->
+        <div class="p-6 overflow-y-auto space-y-4 text-xs flex-1">
+            <!-- Informasi Pembeli & Event -->
+            <div class="bg-slate-50 p-4 rounded-2xl border border-slate-200 grid grid-cols-2 gap-3">
                 <div>
-                    <div class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Nama Pembeli</div>
-                    <div class="font-bold text-slate-900" id="modalNama"></div>
+                    <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Nama Pembeli</span>
+                    <span class="font-extrabold text-slate-900 block text-sm" id="modalNama"></span>
                 </div>
                 <div>
-                    <div class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">No. HP</div>
-                    <div class="font-medium text-slate-700" id="modalHp"></div>
+                    <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">No. WhatsApp</span>
+                    <span class="font-bold text-slate-800 block" id="modalHp"></span>
                 </div>
                 <div class="col-span-2">
-                    <div class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Email</div>
-                    <div class="font-medium text-slate-700" id="modalEmail"></div>
-                </div>
-                <div class="col-span-2 pt-2 border-t border-slate-100">
-                    <div class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Event</div>
-                    <div class="font-bold text-slate-900" id="modalEvent"></div>
-                    <div class="text-xs text-slate-500 mt-1" id="modalJadwal"></div>
-                </div>
-                <div class="pt-2 border-t border-slate-100">
-                    <div class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Status Pembayaran</div>
-                    <div id="modalStatus" class="inline-block mt-1"></div>
-                </div>
-                <div class="pt-2 border-t border-slate-100">
-                    <div class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Metode Pembayaran</div>
-                    <div id="modalMetode" class="inline-block mt-1 text-xs font-bold"></div>
-                </div>
-                <div class="col-span-2 pt-2 border-t border-slate-100">
-                    <div class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">QR Token</div>
-                    <div class="font-mono text-xs font-bold text-slate-700 bg-slate-100 border border-slate-200 px-2 py-1 rounded inline-block" id="modalToken"></div>
-                </div>
-                
-                <!-- Section Bukti Transfer -->
-                <div id="modalBuktiArea" class="col-span-2 pt-3 border-t border-slate-100 hidden">
-                    <div class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Bukti Pembayaran Manual</div>
-                    <div id="modalBuktiContent"></div>
+                    <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Email Pembeli</span>
+                    <span class="font-medium text-slate-700 block truncate" id="modalEmail"></span>
                 </div>
             </div>
 
-            <!-- Verification Form Action -->
-            <div id="modalVerifyAction" class="pt-4 border-t border-slate-100 hidden flex gap-2">
-                <form action="actions/verifikasi_pembayaran_manual.php" method="POST" class="w-1/2">
-                    <input type="hidden" name="ticket_id" id="verifyTicketIdApprove">
-                    <input type="hidden" name="action" value="approve">
-                    <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 px-3 rounded-xl text-xs transition-colors shadow-sm flex items-center justify-center gap-1" onclick="return confirm('Apakah Anda yakin ingin menyetujui pembayaran ini?')">
-                        ✓ Setujui (Lunas)
-                    </button>
-                </form>
-                <form action="actions/verifikasi_pembayaran_manual.php" method="POST" class="w-1/2">
-                    <input type="hidden" name="ticket_id" id="verifyTicketIdReject">
-                    <input type="hidden" name="action" value="reject">
-                    <button type="submit" class="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-2.5 px-3 rounded-xl text-xs transition-colors shadow-sm flex items-center justify-center gap-1" onclick="return confirm('Apakah Anda yakin ingin menolak transaksi ini?')">
-                        ✕ Tolak Pesanan
-                    </button>
-                </form>
+            <div class="bg-slate-50 p-4 rounded-2xl border border-slate-200 grid grid-cols-2 gap-3">
+                <div class="col-span-2">
+                    <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Event & Jadwal</span>
+                    <span class="font-extrabold text-slate-900 block text-sm mt-0.5" id="modalEvent"></span>
+                    <span class="text-[11px] font-medium text-slate-500 block mt-0.5" id="modalJadwal"></span>
+                </div>
+                <div>
+                    <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Status Transaksi</span>
+                    <div id="modalStatus" class="mt-1"></div>
+                </div>
+                <div>
+                    <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Metode Pembayaran</span>
+                    <div id="modalMetode" class="mt-1"></div>
+                </div>
+                <div class="col-span-2 pt-2 border-t border-slate-200/60 flex items-center justify-between">
+                    <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Token QR Code</span>
+                    <span class="font-mono text-[11px] font-bold text-slate-700 bg-white border border-slate-200 px-2 py-0.5 rounded-md" id="modalToken"></span>
+                </div>
+            </div>
+
+            <!-- Section Bukti Transfer Preview -->
+            <div id="modalBuktiArea" class="hidden space-y-2">
+                <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Bukti Pembayaran Manual Uploaded</span>
+                <div id="modalBuktiContent"></div>
             </div>
         </div>
+
+        <!-- Footer Action Modal (Fixed Bottom - Always Visible) -->
+        <div id="modalVerifyAction" class="p-4 border-t border-slate-100 bg-slate-50/90 shrink-0 hidden flex gap-3">
+            <form action="actions/verifikasi_pembayaran_manual.php" method="POST" class="w-1/2">
+                <input type="hidden" name="ticket_id" id="verifyTicketIdApprove">
+                <input type="hidden" name="action" value="approve">
+                <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 px-3 rounded-xl text-xs transition-all shadow-md active:scale-95 flex items-center justify-center gap-1.5" onclick="return confirm('Apakah Anda yakin ingin menyetujui pembayaran ini?')">
+                    <span>✓ Setujui (Lunas)</span>
+                </button>
+            </form>
+            <form action="actions/verifikasi_pembayaran_manual.php" method="POST" class="w-1/2">
+                <input type="hidden" name="ticket_id" id="verifyTicketIdReject">
+                <input type="hidden" name="action" value="reject">
+                <button type="submit" class="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-2.5 px-3 rounded-xl text-xs transition-all shadow-md active:scale-95 flex items-center justify-center gap-1.5" onclick="return confirm('Apakah Anda yakin ingin menolak transaksi ini?')">
+                    <span>✕ Tolak Pesanan</span>
+                </button>
+            </form>
+        </div>
+
     </div>
 </div>
 
@@ -314,17 +326,17 @@ $events_query = $conn->query("SELECT id, judul FROM events ORDER BY judul ASC");
         document.getElementById('modalToken').textContent = data.token_qr;
         
         let statusHtml = '';
-        if(data.status === 'lunas') statusHtml = '<span class="bg-emerald-100 text-emerald-700 border border-emerald-200 px-2.5 py-1 rounded-md text-[11px] font-bold uppercase tracking-wider">LUNAS</span>';
-        else if(data.status === 'pending') statusHtml = '<span class="bg-yellow-100 text-yellow-700 border border-yellow-200 px-2.5 py-1 rounded-md text-[11px] font-bold uppercase tracking-wider">PENDING</span>';
-        else if(data.status === 'scanned') statusHtml = '<span class="bg-blue-100 text-blue-700 border border-blue-200 px-2.5 py-1 rounded-md text-[11px] font-bold uppercase tracking-wider">SCANNED</span>';
-        else if(data.status === 'batal') statusHtml = '<span class="bg-red-100 text-red-700 border border-red-200 px-2.5 py-1 rounded-md text-[11px] font-bold uppercase tracking-wider">BATAL</span>';
+        if(data.status === 'lunas') statusHtml = '<span class="bg-emerald-100 text-emerald-700 border border-emerald-200 px-2.5 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider">LUNAS</span>';
+        else if(data.status === 'pending') statusHtml = '<span class="bg-yellow-100 text-yellow-700 border border-yellow-200 px-2.5 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider">PENDING</span>';
+        else if(data.status === 'scanned') statusHtml = '<span class="bg-blue-100 text-blue-700 border border-blue-200 px-2.5 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider">SCANNED</span>';
+        else if(data.status === 'batal') statusHtml = '<span class="bg-red-100 text-red-700 border border-red-200 px-2.5 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider">BATAL</span>';
         
         document.getElementById('modalStatus').innerHTML = statusHtml;
 
         const isManual = (data.payment_method || 'midtrans') === 'manual';
         document.getElementById('modalMetode').innerHTML = isManual ? 
-            '<span class="text-blue-700 font-bold">Transfer / QRIS Manual</span>' : 
-            '<span class="text-emerald-700 font-bold">Midtrans Gateway</span>';
+            '<span class="text-blue-700 font-bold text-xs">Transfer / QRIS Manual</span>' : 
+            '<span class="text-emerald-700 font-bold text-xs">Midtrans Gateway</span>';
 
         const buktiArea = document.getElementById('modalBuktiArea');
         const buktiContent = document.getElementById('modalBuktiContent');
@@ -335,7 +347,7 @@ $events_query = $conn->query("SELECT id, judul FROM events ORDER BY judul ASC");
             const ext = data.bukti_pembayaran.split('.').pop().toLowerCase();
             
             if (['jpg', 'jpeg', 'png', 'webp'].includes(ext)) {
-                buktiContent.innerHTML = '<a href="' + fileUrl + '" target="_blank" class="block border rounded-xl overflow-hidden shadow-sm hover:opacity-90 transition-opacity bg-slate-50"><img src="' + fileUrl + '" class="w-full h-40 object-cover"><div class="p-2 text-center text-xs text-primary font-bold">Klik untuk memperbesar</div></a>';
+                buktiContent.innerHTML = '<div class="bg-slate-50 border border-slate-200 p-2.5 rounded-2xl flex items-center justify-between gap-3"><div class="flex items-center gap-3"><img src="' + fileUrl + '" class="w-14 h-14 object-cover rounded-xl border border-slate-200 shrink-0"><div class="text-xs font-bold text-slate-800">Bukti Transfer Gambar<span class="block text-[10px] text-slate-400 font-normal">Klik tombol di kanan untuk memperbesar</span></div></div><a href="' + fileUrl + '" target="_blank" class="px-3 py-2 bg-primary/10 hover:bg-primary/20 text-primary font-bold text-xs rounded-xl transition-colors shrink-0">🔍 Perbesar</a></div>';
             } else {
                 buktiContent.innerHTML = '<a href="' + fileUrl + '" target="_blank" class="inline-flex items-center gap-2 bg-blue-50 text-blue-700 border border-blue-200 font-bold px-3 py-2 rounded-xl text-xs hover:bg-blue-100 transition-colors">📄 Lihat Dokumen Bukti Transfer (PDF) &rarr;</a>';
             }
