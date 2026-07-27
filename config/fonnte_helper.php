@@ -143,9 +143,11 @@ if (!function_exists('notifyPaymentSuccessWA')) {
         $nama = $ticket_data['nama_pembeli'] ?? '';
         $no_hp = $ticket_data['no_hp'] ?? '';
         $email = $ticket_data['email_pembeli'] ?? '';
-        $total_formatted = 'Rp ' . number_format($total_amount, 0, ',', '.');
+        $token_qr = $ticket_data['token_qr'] ?? '';
+        $total_formatted = $total_amount > 0 ? ('Rp ' . number_format($total_amount, 0, ',', '.')) : '-';
         $site_url = defined('BASE_URL') ? BASE_URL : 'http://localhost/';
-        $linkTiket = $site_url . 'user/riwayat_pembelian.php?order_id=' . urlencode($order_id);
+        
+        $linkPdf = !empty($token_qr) ? ($site_url . 'user/download_tiket.php?token=' . urlencode($token_qr)) : ($site_url . 'user/riwayat_pembelian.php?order_id=' . urlencode($order_id));
 
         // Pesan untuk Group WA Admin
         if ($enable_group) {
@@ -169,12 +171,14 @@ if (!function_exists('notifyPaymentSuccessWA')) {
         if ($enable_buyer && !empty($no_hp)) {
             $msgBuyer = "🎉 *PEMBAYARAN DITERIMA & E-TICKET TERBIT!*\n\n";
             $msgBuyer .= "Halo *" . $nama . "*,\n";
-            $msgBuyer .= "Pembayaran untuk pesanan *" . $order_id . "* telah terverifikasi LUNAS!\n\n";
+            $msgBuyer .= "Pembayaran Anda untuk pesanan *" . $order_id . "* telah terverifikasi *LUNAS*! ✅\n\n";
             $msgBuyer .= "🎫 *Event:* " . $event_title . "\n";
-            $msgBuyer .= "🎟️ *Varian:* " . $variant_name . "\n\n";
-            $msgBuyer .= "Anda dapat melihat dan mengunduh E-Ticket / QR Code resmi Anda di sini:\n";
-            $msgBuyer .= "👉 " . $linkTiket . "\n\n";
-            $msgBuyer .= "Tunjukkan QR Code E-Ticket pada saat penukaran/masuk ke venue event. Sampai jumpa di lokasi! 🚀";
+            if (!empty($variant_name)) {
+                $msgBuyer .= "🎟️ *Varian:* " . $variant_name . "\n";
+            }
+            $msgBuyer .= "\n📥 *Unduh E-Ticket (PDF) Resmi Anda:*\n";
+            $msgBuyer .= "👉 " . $linkPdf . "\n\n";
+            $msgBuyer .= "Harap simpan file PDF / QR Code ini dan tunjukkan kepada petugas di lokasi acara saat check-in. Sampai jumpa di lokasi! 🚀";
 
             sendFonnteWA($no_hp, $msgBuyer);
         }

@@ -84,25 +84,31 @@ if ($action === 'create') {
     if ($stmt->execute()) {
         logActivity($conn, $_SESSION['user_id'], 'Tambah Transaksi Manual', "Admin menambahkan transaksi manual Order ID #$order_id ($nama_pembeli)");
         
-        // Kirim email e-ticket jika status lunas
-        if ($status === 'lunas' && !empty($email_pembeli) && !empty($token_qr)) {
-            $pdf_url = BASE_URL . "user/download_tiket.php?token=" . urlencode($token_qr);
-            $event_judul = 'Event';
-            $resEv = $conn->query("SELECT judul FROM events WHERE id = $id_event");
-            if ($resEv && $rEv = $resEv->fetch_assoc()) {
-                $event_judul = $rEv['judul'];
+        // Kirim email e-ticket & WA jika status lunas
+        if ($status === 'lunas' && !empty($token_qr)) {
+            if (function_exists('sendTicketEmailDirect')) {
+                @sendTicketEmailDirect($conn, $token_qr);
             }
-            $to = $email_pembeli;
-            $subject = "E-Ticket Resmi: " . $event_judul . " - HaloTiket";
-            $message = "<!DOCTYPE html><html lang='id'><head><meta charset='UTF-8'></head><body style='font-family: Arial, sans-serif; background-color: #f8fafc; padding: 30px; margin: 0; color: #1e293b;'><div style='max-width: 520px; margin: 0 auto; background: #ffffff; border-radius: 20px; border: 1px solid #e2e8f0; overflow: hidden;'><div style='background: #0f1c3f; color: #ffffff; padding: 25px; text-align: center;'><h1 style='margin: 0; font-size: 24px; color: #00c2cb;'>HaloTiket</h1><p style='margin: 5px 0 0 0; font-size: 12px; color: #94a3b8;'>E-Ticket Resmi Pembelian Event</p></div><div style='padding: 30px;'><h2 style='margin-top: 0; color: #0f172a; font-size: 18px;'>Halo, " . htmlspecialchars($nama_pembeli) . "! 👋</h2><p style='font-size: 14px; color: #475569; line-height: 1.6;'>Terima kasih telah melakukan pemesanan tiket <strong>" . htmlspecialchars($event_judul) . "</strong> di HaloTiket.</p><p style='font-size: 14px; color: #475569; line-height: 1.6;'>Status transaksi Anda telah dinyatakan <strong>LUNAS</strong>. Silakan unduh E-Ticket PDF melalui tombol di bawah ini:</p><div style='text-align: center; margin: 30px 0;'><a href='$pdf_url' style='background-color: #00c2cb; color: #ffffff; padding: 14px 28px; text-decoration: none; border-radius: 12px; font-weight: bold; font-size: 14px; display: inline-block;'>Unduh E-Ticket (PDF)</a></div></div><div style='background: #f8fafc; padding: 15px; text-align: center; font-size: 11px; color: #94a3b8;'>&copy; " . date('Y') . " HaloTiket. All rights reserved.</div></div></body></html>";
-            $headers = "MIME-Version: 1.0\r\nContent-Type: text/html; charset=UTF-8\r\nFrom: HaloTiket <no-reply@halotiket.com>\r\nReply-To: no-reply@halotiket.com\r\nX-Mailer: PHP/" . phpversion() . "\r\n";
-            $m_ok = @mail($to, $subject, $message, $headers, "-f no-reply@halotiket.com");
-            if (!$m_ok) {
-                @mail($to, $subject, $message, $headers);
+            if (function_exists('notifyPaymentSuccessWA')) {
+                $evTitle = '';
+                $varTitle = '';
+                $resEv = $conn->query("SELECT e.judul, v.nama_varian, v.harga FROM events e LEFT JOIN event_ticket_variants v ON v.id = $id_ticket_variant WHERE e.id = $id_event");
+                if ($resEv && $rEv = $resEv->fetch_assoc()) {
+                    $evTitle = $rEv['judul'] ?? '';
+                    $varTitle = $rEv['nama_varian'] ?? '';
+                }
+                $ticket_info = [
+                    'order_id' => $order_id,
+                    'nama_pembeli' => $nama_pembeli,
+                    'no_hp' => $no_hp,
+                    'email_pembeli' => $email_pembeli,
+                    'token_qr' => $token_qr
+                ];
+                @notifyPaymentSuccessWA($ticket_info, $evTitle, $varTitle);
             }
         }
 
-        returnResponse('success', "Transaksi baru Order ID #$order_id berhasil ditambahkan dan email E-Ticket telah dikirim ke $email_pembeli.");
+        returnResponse('success', "Transaksi baru Order ID #$order_id berhasil ditambahkan. Email & WhatsApp E-Ticket telah dikirim ke $nama_pembeli.");
     } else {
         returnResponse('error', 'Gagal menyimpan transaksi: ' . $stmt->error);
     }
@@ -169,21 +175,28 @@ elseif ($action === 'update') {
     if ($stmtUpd->execute()) {
         logActivity($conn, $_SESSION['user_id'], 'Update Transaksi', "Admin memperbarui data transaksi Order ID #" . $oldTicket['order_id']);
         
-        // Kirim email tiket jika status berubah dari non-lunas menjadi lunas
-        if ($old_status !== 'lunas' && $status === 'lunas' && !empty($email_pembeli) && !empty($oldTicket['token_qr'])) {
-            $pdf_url = BASE_URL . "user/download_tiket.php?token=" . urlencode($oldTicket['token_qr']);
-            $event_judul = 'Event';
-            $resEv = $conn->query("SELECT judul FROM events WHERE id = $id_event");
-            if ($resEv && $rEv = $resEv->fetch_assoc()) {
-                $event_judul = $rEv['judul'];
+        // Kirim email e-ticket & WA jika status berubah menjadi lunas
+        if ($old_status !== 'lunas' && $status === 'lunas' && !empty($oldTicket['token_qr'])) {
+            if (function_exists('sendTicketEmailDirect')) {
+                @sendTicketEmailDirect($conn, $oldTicket['token_qr']);
             }
-            $to = $email_pembeli;
-            $subject = "E-Ticket Resmi: " . $event_judul . " - HaloTiket";
-            $message = "<!DOCTYPE html><html lang='id'><head><meta charset='UTF-8'></head><body style='font-family: Arial, sans-serif; background-color: #f8fafc; padding: 30px; margin: 0; color: #1e293b;'><div style='max-width: 520px; margin: 0 auto; background: #ffffff; border-radius: 20px; border: 1px solid #e2e8f0; overflow: hidden;'><div style='background: #0f1c3f; color: #ffffff; padding: 25px; text-align: center;'><h1 style='margin: 0; font-size: 24px; color: #00c2cb;'>HaloTiket</h1><p style='margin: 5px 0 0 0; font-size: 12px; color: #94a3b8;'>E-Ticket Resmi Pembelian Event</p></div><div style='padding: 30px;'><h2 style='margin-top: 0; color: #0f172a; font-size: 18px;'>Halo, " . htmlspecialchars($nama_pembeli) . "! 👋</h2><p style='font-size: 14px; color: #475569; line-height: 1.6;'>Status transaksi tiket <strong>" . htmlspecialchars($event_judul) . "</strong> Anda telah diperbarui menjadi <strong>LUNAS</strong>.</p><div style='text-align: center; margin: 30px 0;'><a href='$pdf_url' style='background-color: #00c2cb; color: #ffffff; padding: 14px 28px; text-decoration: none; border-radius: 12px; font-weight: bold; font-size: 14px; display: inline-block;'>Unduh E-Ticket (PDF)</a></div></div><div style='background: #f8fafc; padding: 15px; text-align: center; font-size: 11px; color: #94a3b8;'>&copy; " . date('Y') . " HaloTiket. All rights reserved.</div></div></body></html>";
-            $headers = "MIME-Version: 1.0\r\nContent-Type: text/html; charset=UTF-8\r\nFrom: HaloTiket <no-reply@halotiket.com>\r\nReply-To: no-reply@halotiket.com\r\nX-Mailer: PHP/" . phpversion() . "\r\n";
-            $m_ok = @mail($to, $subject, $message, $headers, "-f no-reply@halotiket.com");
-            if (!$m_ok) {
-                @mail($to, $subject, $message, $headers);
+            if (function_exists('notifyPaymentSuccessWA')) {
+                $evTitle = '';
+                $varTitle = '';
+                $target_var = $id_ticket_variant > 0 ? $id_ticket_variant : $old_variant;
+                $resEv = $conn->query("SELECT e.judul, v.nama_varian, v.harga FROM events e LEFT JOIN event_ticket_variants v ON v.id = $target_var WHERE e.id = $id_event");
+                if ($resEv && $rEv = $resEv->fetch_assoc()) {
+                    $evTitle = $rEv['judul'] ?? '';
+                    $varTitle = $rEv['nama_varian'] ?? '';
+                }
+                $ticket_info = [
+                    'order_id' => $oldTicket['order_id'],
+                    'nama_pembeli' => $nama_pembeli,
+                    'no_hp' => $no_hp,
+                    'email_pembeli' => $email_pembeli,
+                    'token_qr' => $oldTicket['token_qr']
+                ];
+                @notifyPaymentSuccessWA($ticket_info, $evTitle, $varTitle);
             }
         }
 
