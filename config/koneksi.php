@@ -13,7 +13,7 @@ if ($conn->connect_error) {
     die("Koneksi Database Gagal: " . $conn->connect_error . "<br><br><small>Silakan periksa hak akses user di cPanel <b>MySQL Databases</b>.</small>");
 }
 
-// Auto Migration: Pastikan kolom snap_token & snap_redirect_url ada di tabel tickets
+// Auto Migration: Pastikan kolom snap_token, snap_redirect_url, payment_method, bukti_pembayaran, & tanggal_upload_bukti ada di tabel tickets
 $checkCol1 = $conn->query("SHOW COLUMNS FROM tickets LIKE 'snap_token'");
 if ($checkCol1 && $checkCol1->num_rows === 0) {
     @$conn->query("ALTER TABLE tickets ADD COLUMN snap_token VARCHAR(255) NULL AFTER order_id");
@@ -21,6 +21,26 @@ if ($checkCol1 && $checkCol1->num_rows === 0) {
 $checkCol2 = $conn->query("SHOW COLUMNS FROM tickets LIKE 'snap_redirect_url'");
 if ($checkCol2 && $checkCol2->num_rows === 0) {
     @$conn->query("ALTER TABLE tickets ADD COLUMN snap_redirect_url TEXT NULL AFTER snap_token");
+}
+$checkCol3 = $conn->query("SHOW COLUMNS FROM tickets LIKE 'payment_method'");
+if ($checkCol3 && $checkCol3->num_rows === 0) {
+    @$conn->query("ALTER TABLE tickets ADD COLUMN payment_method VARCHAR(50) DEFAULT 'midtrans' AFTER snap_redirect_url");
+}
+$checkCol4 = $conn->query("SHOW COLUMNS FROM tickets LIKE 'bukti_pembayaran'");
+if ($checkCol4 && $checkCol4->num_rows === 0) {
+    @$conn->query("ALTER TABLE tickets ADD COLUMN bukti_pembayaran VARCHAR(255) NULL AFTER payment_method");
+}
+$checkCol5 = $conn->query("SHOW COLUMNS FROM tickets LIKE 'tanggal_upload_bukti'");
+if ($checkCol5 && $checkCol5->num_rows === 0) {
+    @$conn->query("ALTER TABLE tickets ADD COLUMN tanggal_upload_bukti DATETIME NULL AFTER bukti_pembayaran");
+}
+$checkCol6 = $conn->query("SHOW COLUMNS FROM tickets LIKE 'reminder_payment_sent'");
+if ($checkCol6 && $checkCol6->num_rows === 0) {
+    @$conn->query("ALTER TABLE tickets ADD COLUMN reminder_payment_sent TINYINT(1) DEFAULT 0 AFTER tanggal_upload_bukti");
+}
+$checkCol7 = $conn->query("SHOW COLUMNS FROM tickets LIKE 'reminder_h1_sent'");
+if ($checkCol7 && $checkCol7->num_rows === 0) {
+    @$conn->query("ALTER TABLE tickets ADD COLUMN reminder_h1_sent TINYINT(1) DEFAULT 0 AFTER reminder_payment_sent");
 }
 
 // Global Settings Configuration (Dynamic BASE_URL dengan support HTTPS)
@@ -75,6 +95,31 @@ if ($settings_query) {
     define('MIDTRANS_CLIENT_KEY', $m_client_key);
     define('MIDTRANS_IS_PRODUCTION', $m_is_production);
     define('MIDTRANS_SNAP_URL', MIDTRANS_IS_PRODUCTION ? 'https://app.midtrans.com/snap/snap.js' : 'https://app.sandbox.midtrans.com/snap/snap.js');
+
+    // Payment Options Configuration (Midtrans, Manual, Both)
+    $global_payment_active_method = $global_settings['payment_active_method'] ?? 'both'; // 'midtrans', 'manual', 'both'
+    $global_bank_nama = $global_settings['bank_nama'] ?? 'Bank BCA';
+    $global_bank_norek = $global_settings['bank_norek'] ?? '1234567890';
+    $global_bank_atas_nama = $global_settings['bank_atas_nama'] ?? 'HaloTiket Admin';
+    $global_qris_image = !empty($global_settings['qris_image']) ? $global_settings['qris_image'] : 'assets/images/QRIS/QRIS.jpeg';
+
+    // Fonnte WhatsApp API Configuration
+    $global_fonnte_token = $global_settings['fonnte_token'] ?? 'ep63gV3wUjrZ1RB4NXnW';
+    $global_fonnte_wa_group = $global_settings['fonnte_wa_group'] ?? '120363427898241334@g.us';
+    $global_fonnte_enable_group_notif = ($global_settings['fonnte_enable_group_notif'] ?? '1') === '1';
+    $global_fonnte_enable_buyer_notif = ($global_settings['fonnte_enable_buyer_notif'] ?? '1') === '1';
+
+    // Cron Job System Configuration
+    $global_cron_secret_key = $global_settings['cron_secret_key'] ?? 'HTK_CRON_SECRET_KEY_2026';
+    $global_cron_expiry_hours = (int)($global_settings['cron_expiry_hours'] ?? 24);
+    $global_cron_enable_auto_cancel = ($global_settings['cron_enable_auto_cancel'] ?? '1') === '1';
+    $global_cron_enable_reminder_payment = ($global_settings['cron_enable_reminder_payment'] ?? '1') === '1';
+    $global_cron_enable_reminder_event = ($global_settings['cron_enable_reminder_event'] ?? '1') === '1';
+
+    // Require Fonnte Helper Functions
+    if (file_exists(__DIR__ . '/fonnte_helper.php')) {
+        require_once __DIR__ . '/fonnte_helper.php';
+    }
     
     // Maintenance Mode Check
     $is_maintenance = (isset($global_settings['maintenance_mode']) && $global_settings['maintenance_mode'] == '1');

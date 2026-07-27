@@ -35,9 +35,10 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 
 $id_event = (int)($_POST['id_event'] ?? 0);
 $id_ticket_variant = (int)($_POST['id_ticket_variant'] ?? 0);
-$nama = trim($_POST['nama'] ?? '');
-$email = trim($_POST['email'] ?? '');
-$no_hp = trim($_POST['no_hp'] ?? '');
+$payment_method = trim($_POST['payment_method'] ?? 'midtrans');
+if (!in_array($payment_method, ['midtrans', 'manual'])) {
+    $payment_method = 'midtrans';
+}
 
 if ($id_event <= 0 || $id_ticket_variant <= 0 || empty($nama) || empty($email)) {
     returnError("Data pesanan tidak lengkap. Silakan periksa kembali formulir Anda.", defined('BASE_URL') ? BASE_URL . "detail_event.php?id=" . $id_event : "../detail_event.php?id=" . $id_event);
@@ -76,18 +77,6 @@ try {
         returnError("Satu akun/email hanya diizinkan membeli 1 tiket per event.", defined('BASE_URL') ? BASE_URL . "detail_event.php?id=" . $id_event : "../detail_event.php?id=" . $id_event);
     }
 
-    // Cek Kunci Midtrans
-    $serverKey = defined('MIDTRANS_SERVER_KEY') ? trim(MIDTRANS_SERVER_KEY) : '';
-    if (empty($serverKey)) {
-        throw new Exception("Kunci Midtrans Server Key belum diisi di Pengaturan Sistem Admin.");
-    }
-
-    // Konfigurasi Midtrans dari koneksi.php
-    \Midtrans\Config::$serverKey = $serverKey;
-    \Midtrans\Config::$isProduction = defined('MIDTRANS_IS_PRODUCTION') ? MIDTRANS_IS_PRODUCTION : false;
-    \Midtrans\Config::$isSanitized = true;
-    \Midtrans\Config::$is3ds = true;
-
     $order_id = 'HTK-' . time() . '-' . rand(100, 999);
     $token_qr = bin2hex(random_bytes(16));
 
@@ -106,14 +95,14 @@ try {
     $conn->query("UPDATE events SET stok = stok - 1 WHERE id = $id_event AND stok > 0");
 
     // Simpan transaksi pending ke database
-    $stmt = $conn->prepare("INSERT INTO tickets (id_event, id_ticket_variant, nama_pembeli, email_pembeli, no_hp, status, token_qr, order_id) VALUES (?, ?, ?, ?, ?, 'pending', ?, ?)");
+    $stmt = $conn->prepare("INSERT INTO tickets (id_event, id_ticket_variant, nama_pembeli, email_pembeli, no_hp, status, token_qr, order_id, payment_method) VALUES (?, ?, ?, ?, ?, 'pending', ?, ?, ?)");
     if (!$stmt) {
         // Revert stok jika gagal prepare
         $conn->query("UPDATE event_ticket_variants SET sisa_stok = sisa_stok + 1 WHERE id = $id_ticket_variant");
         $conn->query("UPDATE events SET stok = stok + 1 WHERE id = $id_event");
         throw new Exception("Gagal menyiapkan simpan tiket: " . $conn->error);
     }
-    $stmt->bind_param("iisssss", $id_event, $id_ticket_variant, $nama, $email, $no_hp, $token_qr, $order_id);
+    $stmt->bind_param("iissssss", $id_event, $id_ticket_variant, $nama, $email, $no_hp, $token_qr, $order_id, $payment_method);
     if (!$stmt->execute()) {
         // Revert stok jika gagal
         $conn->query("UPDATE event_ticket_variants SET sisa_stok = sisa_stok + 1 WHERE id = $id_ticket_variant");
@@ -132,42 +121,70 @@ try {
 
     $gross_amount = (int)$variant['harga'] + (int)$biaya_admin;
 
-    // Parameter Midtrans
-    $params = [
-        'transaction_details' => [
-            'order_id' => $order_id,
-            'gross_amount' => $gross_amount,
-        ],
-        'item_details' => [
-            [
-                'id' => 'TIKET-' . $id_event . '-' . $id_ticket_variant,
-                'price' => (int)$variant['harga'],
-                'quantity' => 1,
-                'name' => substr($variant['nama_varian'], 0, 50)
+    $snapToken = '';
+    $paymentUrl = '';
+
+    // Hanya jika payment_method == 'midtrans', panggil API Midtrans Snap
+    if ($payment_method === 'midtrans') {
+        $serverKey = defined('MIDTRANS_SERVER_KEY') ? trim(MIDTRANS_SERVER_KEY) : '';
+        if (empty($serverKey)) {
+            throw new Exception("Kunci Midtrans Server Key belum diisi di Pengaturan Sistem Admin.");
+        }
+
+        // Konfigurasi Midtrans dari koneksi.php
+        \Midtrans\Config::$serverKey = $serverKey;
+        \Midtrans\Config::$isProduction = defined('MIDTRANS_IS_PRODUCTION') ? MIDTRANS_IS_PRODUCTION : false;
+        \Midtrans\Config::$isSanitized = true;
+        \Midtrans\Config::$is3ds = true;
+
+        $params = [
+            'transaction_details' => [
+                'order_id' => $order_id,
+                'gross_amount' => $gross_amount,
             ],
-            [
-                'id' => 'ADMIN-FEE',
-                'price' => (int)$biaya_admin,
-                'quantity' => 1,
-                'name' => 'Biaya Layanan Platform'
+            'item_details' => [
+                [
+                    'id' => 'TIKET-' . $id_event . '-' . $id_ticket_variant,
+                    'price' => (int)$variant['harga'],
+                    'quantity' => 1,
+                    'name' => substr($variant['nama_varian'], 0, 50)
+                ],
+                [
+                    'id' => 'ADMIN-FEE',
+                    'price' => (int)$biaya_admin,
+                    'quantity' => 1,
+                    'name' => 'Biaya Layanan Platform'
+                ]
+            ],
+            'customer_details' => [
+                'first_name' => $nama,
+                'email' => $email,
+                'phone' => $no_hp,
             ]
-        ],
-        'customer_details' => [
-            'first_name' => $nama,
-            'email' => $email,
-            'phone' => $no_hp,
-        ]
-    ];
+        ];
 
-    $snapRes = \Midtrans\Snap::createTransaction($params);
-    $snapToken = $snapRes->token ?? '';
-    $paymentUrl = $snapRes->redirect_url ?? '';
+        $snapRes = \Midtrans\Snap::createTransaction($params);
+        $snapToken = $snapRes->token ?? '';
+        $paymentUrl = $snapRes->redirect_url ?? '';
 
-    // Update snap token & url ke database
-    $stmtUpd = $conn->prepare("UPDATE tickets SET snap_token = ?, snap_redirect_url = ? WHERE order_id = ?");
-    if ($stmtUpd) {
-        $stmtUpd->bind_param("sss", $snapToken, $paymentUrl, $order_id);
-        $stmtUpd->execute();
+        // Update snap token & url ke database
+        $stmtUpd = $conn->prepare("UPDATE tickets SET snap_token = ?, snap_redirect_url = ? WHERE order_id = ?");
+        if ($stmtUpd) {
+            $stmtUpd->bind_param("sss", $snapToken, $paymentUrl, $order_id);
+            $stmtUpd->execute();
+        }
+    }
+
+    // Kirim Notifikasi WA Fonnte (Pesanan Baru)
+    if (function_exists('notifyNewOrderWA')) {
+        $ticket_info = [
+            'order_id' => $order_id,
+            'nama_pembeli' => $nama,
+            'no_hp' => $no_hp,
+            'email_pembeli' => $email,
+            'payment_method' => $payment_method
+        ];
+        @notifyNewOrderWA($ticket_info, $event['judul'] ?? '', $variant['nama_varian'] ?? '', $gross_amount);
     }
 
     $_SESSION['last_order_id'] = $order_id;

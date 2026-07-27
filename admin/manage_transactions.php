@@ -106,6 +106,20 @@ $events_query = $conn->query("SELECT id, judul FROM events ORDER BY judul ASC");
                     </form>
                 </div>
 
+                <?php if (isset($_SESSION['success'])): ?>
+                <div class="mb-6 bg-emerald-50 text-emerald-700 px-5 py-4 rounded-xl text-sm font-bold flex items-center gap-3 border border-emerald-200">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
+                    <?= htmlspecialchars($_SESSION['success']) ?>
+                </div>
+                <?php unset($_SESSION['success']); endif; ?>
+
+                <?php if (isset($_SESSION['error'])): ?>
+                <div class="mb-6 bg-red-50 text-red-700 px-5 py-4 rounded-xl text-sm font-bold flex items-center gap-3 border border-red-200">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+                    <?= htmlspecialchars($_SESSION['error']) ?>
+                </div>
+                <?php unset($_SESSION['error']); endif; ?>
+
                 <div class="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden">
                     <div class="px-6 py-4 border-b border-slate-100 bg-slate-50/50 flex justify-between items-center">
                         <h3 class="font-extrabold text-slate-900 text-sm">Riwayat Pembelian</h3>
@@ -118,6 +132,7 @@ $events_query = $conn->query("SELECT id, judul FROM events ORDER BY judul ASC");
                                     <th class="px-6 py-3 text-left text-[11px] font-bold text-slate-400 uppercase tracking-wider">Order ID & Waktu</th>
                                     <th class="px-6 py-3 text-left text-[11px] font-bold text-slate-400 uppercase tracking-wider">Pembeli</th>
                                     <th class="px-6 py-3 text-left text-[11px] font-bold text-slate-400 uppercase tracking-wider">Event</th>
+                                    <th class="px-6 py-3 text-left text-[11px] font-bold text-slate-400 uppercase tracking-wider">Metode</th>
                                     <th class="px-6 py-3 text-left text-[11px] font-bold text-slate-400 uppercase tracking-wider">Status</th>
                                     <th class="px-6 py-3 text-right text-[11px] font-bold text-slate-400 uppercase tracking-wider">Aksi</th>
                                 </tr>
@@ -139,15 +154,32 @@ $events_query = $conn->query("SELECT id, judul FROM events ORDER BY judul ASC");
                                             <div class="text-sm font-bold text-slate-700 truncate max-w-[200px]" title="<?= htmlspecialchars($row['judul']) ?>"><?= htmlspecialchars($row['judul']) ?></div>
                                         </td>
                                         <td class="px-6 py-4 whitespace-nowrap">
+                                            <?php if(($row['payment_method'] ?? 'midtrans') == 'manual'): ?>
+                                                <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-blue-100 text-blue-800 border border-blue-200">
+                                                    Manual Transfer
+                                                </span>
+                                            <?php else: ?>
+                                                <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
+                                                    Midtrans Gateway
+                                                </span>
+                                            <?php endif; ?>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap">
                                             <?php 
                                             $status_class = 'bg-slate-100 text-slate-600';
                                             if($row['status'] == 'lunas') $status_class = 'bg-emerald-100 text-emerald-700';
                                             if($row['status'] == 'pending') $status_class = 'bg-yellow-100 text-yellow-700';
                                             if($row['status'] == 'scanned') $status_class = 'bg-blue-100 text-blue-700';
+                                            if($row['status'] == 'batal') $status_class = 'bg-red-100 text-red-700';
                                             ?>
                                             <span class="px-2.5 py-1 rounded-md text-[11px] font-bold uppercase tracking-wider <?= $status_class ?>">
                                                 <?= htmlspecialchars($row['status']) ?>
                                             </span>
+                                            <?php if(!empty($row['bukti_pembayaran']) && $row['status'] == 'pending'): ?>
+                                                <span class="block text-[9px] font-bold text-amber-600 mt-1">
+                                                    📷 Perlu Verifikasi
+                                                </span>
+                                            <?php endif; ?>
                                         </td>
                                         <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                             <button onclick="showDetail(<?= htmlspecialchars(json_encode($row)) ?>)" class="text-primary hover:text-primary/80 bg-primary/10 hover:bg-primary/20 px-3 py-1.5 rounded-lg transition-colors font-bold text-xs border border-primary/20">
@@ -158,7 +190,7 @@ $events_query = $conn->query("SELECT id, judul FROM events ORDER BY judul ASC");
                                     <?php endwhile; ?>
                                 <?php else: ?>
                                     <tr>
-                                        <td colspan="5" class="px-6 py-12 text-center text-slate-500 font-medium">
+                                        <td colspan="6" class="px-6 py-12 text-center text-slate-500 font-medium">
                                             <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 mx-auto text-slate-300 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
                                             Belum ada data transaksi untuk event ini.
                                         </td>
@@ -223,9 +255,37 @@ $events_query = $conn->query("SELECT id, judul FROM events ORDER BY judul ASC");
                     <div id="modalStatus" class="inline-block mt-1"></div>
                 </div>
                 <div class="pt-2 border-t border-slate-100">
+                    <div class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Metode Pembayaran</div>
+                    <div id="modalMetode" class="inline-block mt-1 text-xs font-bold"></div>
+                </div>
+                <div class="col-span-2 pt-2 border-t border-slate-100">
                     <div class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">QR Token</div>
                     <div class="font-mono text-xs font-bold text-slate-700 bg-slate-100 border border-slate-200 px-2 py-1 rounded inline-block" id="modalToken"></div>
                 </div>
+                
+                <!-- Section Bukti Transfer -->
+                <div id="modalBuktiArea" class="col-span-2 pt-3 border-t border-slate-100 hidden">
+                    <div class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Bukti Pembayaran Manual</div>
+                    <div id="modalBuktiContent"></div>
+                </div>
+            </div>
+
+            <!-- Verification Form Action -->
+            <div id="modalVerifyAction" class="pt-4 border-t border-slate-100 hidden flex gap-2">
+                <form action="actions/verifikasi_pembayaran_manual.php" method="POST" class="w-1/2">
+                    <input type="hidden" name="ticket_id" id="verifyTicketIdApprove">
+                    <input type="hidden" name="action" value="approve">
+                    <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 px-3 rounded-xl text-xs transition-colors shadow-sm flex items-center justify-center gap-1" onclick="return confirm('Apakah Anda yakin ingin menyetujui pembayaran ini?')">
+                        ✓ Setujui (Lunas)
+                    </button>
+                </form>
+                <form action="actions/verifikasi_pembayaran_manual.php" method="POST" class="w-1/2">
+                    <input type="hidden" name="ticket_id" id="verifyTicketIdReject">
+                    <input type="hidden" name="action" value="reject">
+                    <button type="submit" class="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-2.5 px-3 rounded-xl text-xs transition-colors shadow-sm flex items-center justify-center gap-1" onclick="return confirm('Apakah Anda yakin ingin menolak transaksi ini?')">
+                        ✕ Tolak Pesanan
+                    </button>
+                </form>
             </div>
         </div>
     </div>
@@ -242,7 +302,6 @@ $events_query = $conn->query("SELECT id, judul FROM events ORDER BY judul ASC");
         document.getElementById('modalEmail').textContent = data.email_pembeli;
         document.getElementById('modalEvent').textContent = data.judul;
         
-        // Format date and time (fallback if browser doesn't support toLocaleDateString well)
         let formattedDate = data.tanggal;
         try {
             const dateObj = new Date(data.tanggal);
@@ -252,15 +311,46 @@ $events_query = $conn->query("SELECT id, judul FROM events ORDER BY judul ASC");
         } catch(e) {}
         
         document.getElementById('modalJadwal').textContent = formattedDate + ' • ' + (data.waktu ? data.waktu.substring(0,5) : '');
-        
         document.getElementById('modalToken').textContent = data.token_qr;
         
         let statusHtml = '';
         if(data.status === 'lunas') statusHtml = '<span class="bg-emerald-100 text-emerald-700 border border-emerald-200 px-2.5 py-1 rounded-md text-[11px] font-bold uppercase tracking-wider">LUNAS</span>';
         else if(data.status === 'pending') statusHtml = '<span class="bg-yellow-100 text-yellow-700 border border-yellow-200 px-2.5 py-1 rounded-md text-[11px] font-bold uppercase tracking-wider">PENDING</span>';
-        else if(data.status === 'scanned') statusHtml = '<span class="bg-blue-100 text-blue-700 border border-blue-200 px-2.5 py-1 rounded-md text-[11px] font-bold uppercase tracking-wider">SCANNED (Telah Digunakan)</span>';
+        else if(data.status === 'scanned') statusHtml = '<span class="bg-blue-100 text-blue-700 border border-blue-200 px-2.5 py-1 rounded-md text-[11px] font-bold uppercase tracking-wider">SCANNED</span>';
+        else if(data.status === 'batal') statusHtml = '<span class="bg-red-100 text-red-700 border border-red-200 px-2.5 py-1 rounded-md text-[11px] font-bold uppercase tracking-wider">BATAL</span>';
         
         document.getElementById('modalStatus').innerHTML = statusHtml;
+
+        const isManual = (data.payment_method || 'midtrans') === 'manual';
+        document.getElementById('modalMetode').innerHTML = isManual ? 
+            '<span class="text-blue-700 font-bold">Transfer / QRIS Manual</span>' : 
+            '<span class="text-emerald-700 font-bold">Midtrans Gateway</span>';
+
+        const buktiArea = document.getElementById('modalBuktiArea');
+        const buktiContent = document.getElementById('modalBuktiContent');
+        const verifyAction = document.getElementById('modalVerifyAction');
+
+        if (data.bukti_pembayaran) {
+            const fileUrl = '<?= BASE_URL ?>uploads/bukti_pembayaran/' + data.bukti_pembayaran;
+            const ext = data.bukti_pembayaran.split('.').pop().toLowerCase();
+            
+            if (['jpg', 'jpeg', 'png', 'webp'].includes(ext)) {
+                buktiContent.innerHTML = '<a href="' + fileUrl + '" target="_blank" class="block border rounded-xl overflow-hidden shadow-sm hover:opacity-90 transition-opacity bg-slate-50"><img src="' + fileUrl + '" class="w-full h-40 object-cover"><div class="p-2 text-center text-xs text-primary font-bold">Klik untuk memperbesar</div></a>';
+            } else {
+                buktiContent.innerHTML = '<a href="' + fileUrl + '" target="_blank" class="inline-flex items-center gap-2 bg-blue-50 text-blue-700 border border-blue-200 font-bold px-3 py-2 rounded-xl text-xs hover:bg-blue-100 transition-colors">📄 Lihat Dokumen Bukti Transfer (PDF) &rarr;</a>';
+            }
+            buktiArea.classList.remove('hidden');
+        } else {
+            buktiArea.classList.add('hidden');
+        }
+
+        if (data.status === 'pending') {
+            document.getElementById('verifyTicketIdApprove').value = data.id;
+            document.getElementById('verifyTicketIdReject').value = data.id;
+            verifyAction.classList.remove('hidden');
+        } else {
+            verifyAction.classList.add('hidden');
+        }
         
         modal.classList.remove('hidden');
         setTimeout(() => {

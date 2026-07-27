@@ -8,10 +8,94 @@ require_once '../config/koneksi.php';
 
 $success_msg = '';
 
+// Handle AJAX Test WhatsApp Fonnte
+if (isset($_GET['action']) && $_GET['action'] === 'test_fonnte') {
+    header('Content-Type: application/json');
+    $token = trim($_POST['test_token'] ?? $global_settings['fonnte_token'] ?? 'ep63gV3wUjrZ1RB4NXnW');
+    $group = trim($_POST['test_group'] ?? $global_settings['fonnte_wa_group'] ?? '120363412788674882@g.us');
+
+    if (empty($token) || empty($group)) {
+        echo json_encode(['status' => 'error', 'message' => 'Token Fonnte dan ID Group WA tidak boleh kosong.']);
+        exit;
+    }
+
+    $msg = "🤖 *TES NOTIFIKASI WHATSAPP HALOTIKET*\n";
+    $msg .= "----------------------------------------\n";
+    $msg .= "Koneksi Fonnte WhatsApp API berhasil terhubung!\n";
+    $msg .= "Group ID: " . $group . "\n";
+    $msg .= "Waktu Tes: " . date('d/m/Y H:i:s') . " WIB\n";
+    $msg .= "----------------------------------------\n";
+    $msg .= "HaloTiket System Ready 🚀";
+
+    // Panggil fungsi kirim
+    $result = sendFonnteWA($group, $msg);
+
+    if ($result['status']) {
+        echo json_encode(['status' => 'success', 'message' => 'Pesan tes berhasil dikirim ke Group WA! Silakan periksa WhatsApp Anda.']);
+    } else {
+        $reason = $result['reason'] ?? 'Unknown error';
+        if (is_array($result['details'] ?? null)) {
+            foreach ($result['details'] as $det) {
+                if (isset($det['response']['reason'])) {
+                    $reason = $det['response']['reason'];
+                    break;
+                }
+            }
+        }
+        if (str_contains($reason, 'disconnected device')) {
+            $reason = "Perangkat WhatsApp Fonnte Anda sedang Terputus (Disconnected). Silakan login ke fonnte.com -> Menu Device -> Scan QR Code terlebih dahulu.";
+        }
+        echo json_encode(['status' => 'error', 'message' => 'Gagal mengirim pesan WA: ' . $reason]);
+    }
+    exit;
+}
+
+// Handle Manual Trigger Cron Job via AJAX
+if (isset($_GET['action']) && $_GET['action'] === 'run_cron') {
+    header('Content-Type: application/json');
+    $_GET['json'] = 1;
+    require_once '../cron/run_cron.php';
+    exit;
+}
+
 // Handle form submission
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     
+    $qris_filename = trim($_POST['qris_image_current'] ?? 'assets/images/QRIS/QRIS.jpeg');
+
+    // Handle Upload QRIS Baru jika ada
+    if (isset($_FILES['qris_image']) && $_FILES['qris_image']['error'] === UPLOAD_ERR_OK) {
+        $fileTmp = $_FILES['qris_image']['tmp_name'];
+        $fileName = $_FILES['qris_image']['name'];
+        $ext = strtolower(pathinfo($fileName, PATHINFO_EXTENSION));
+        $allowed = ['jpg', 'jpeg', 'png', 'webp'];
+        if (in_array($ext, $allowed)) {
+            $targetDir = '../assets/images/QRIS/';
+            if (!is_dir($targetDir)) {
+                mkdir($targetDir, 0777, true);
+            }
+            $newFileName = 'QRIS_' . time() . '.' . $ext;
+            if (move_uploaded_file($fileTmp, $targetDir . $newFileName)) {
+                $qris_filename = 'assets/images/QRIS/' . $newFileName;
+            }
+        }
+    }
+
     $settings_to_update = [
+        'payment_active_method' => trim($_POST['payment_active_method'] ?? 'both'),
+        'bank_nama' => trim($_POST['bank_nama'] ?? 'Bank BCA'),
+        'bank_norek' => trim($_POST['bank_norek'] ?? '1234567890'),
+        'bank_atas_nama' => trim($_POST['bank_atas_nama'] ?? 'HaloTiket Admin'),
+        'qris_image' => $qris_filename,
+        'fonnte_token' => trim($_POST['fonnte_token'] ?? 'ep63gV3wUjrZ1RB4NXnW'),
+        'fonnte_wa_group' => trim($_POST['fonnte_wa_group'] ?? '120363427898241334@g.us'),
+        'fonnte_enable_group_notif' => isset($_POST['fonnte_enable_group_notif']) ? '1' : '0',
+        'fonnte_enable_buyer_notif' => isset($_POST['fonnte_enable_buyer_notif']) ? '1' : '0',
+        'cron_secret_key' => trim($_POST['cron_secret_key'] ?? 'HTK_CRON_SECRET_KEY_2026'),
+        'cron_expiry_hours' => (int)($_POST['cron_expiry_hours'] ?? 24),
+        'cron_enable_auto_cancel' => isset($_POST['cron_enable_auto_cancel']) ? '1' : '0',
+        'cron_enable_reminder_payment' => isset($_POST['cron_enable_reminder_payment']) ? '1' : '0',
+        'cron_enable_reminder_event' => isset($_POST['cron_enable_reminder_event']) ? '1' : '0',
         'google_client_id' => trim($_POST['google_client_id'] ?? ''),
         'google_client_secret' => trim($_POST['google_client_secret'] ?? ''),
         'google_redirect_uri' => trim($_POST['google_redirect_uri'] ?? ''),
@@ -28,13 +112,19 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     }
     $stmt->close();
 
-    logActivity($conn, $_SESSION['user_id'], 'Update API Config', 'Admin mengubah konfigurasi API Google OAuth & Midtrans Payment Gateway.');
+    logActivity($conn, $_SESSION['user_id'], 'Update API Config', 'Admin mengubah konfigurasi Metode Pembayaran, Fonnte WhatsApp API, & Google OAuth.');
 
-    $success_msg = "Konfigurasi API berhasil disimpan.";
+    $success_msg = "Konfigurasi Metode Pembayaran, WhatsApp Fonnte, & API berhasil disimpan.";
 }
 
 // Ambil nilai saat ini
-$api_keys = ['google_client_id', 'google_client_secret', 'google_redirect_uri', 'midtrans_merchant_id', 'midtrans_server_key', 'midtrans_client_key', 'midtrans_is_production'];
+$api_keys = [
+    'payment_active_method', 'bank_nama', 'bank_norek', 'bank_atas_nama', 'qris_image',
+    'fonnte_token', 'fonnte_wa_group', 'fonnte_enable_group_notif', 'fonnte_enable_buyer_notif',
+    'cron_secret_key', 'cron_expiry_hours', 'cron_enable_auto_cancel', 'cron_enable_reminder_payment', 'cron_enable_reminder_event',
+    'google_client_id', 'google_client_secret', 'google_redirect_uri', 
+    'midtrans_merchant_id', 'midtrans_server_key', 'midtrans_client_key', 'midtrans_is_production'
+];
 $current_api = [];
 
 $query = "SELECT setting_key, setting_value FROM settings WHERE setting_key IN ('" . implode("','", $api_keys) . "')";
@@ -46,8 +136,34 @@ if ($result) {
 }
 
 // Fallbacks if not set
-foreach($api_keys as $key) {
-    if(!isset($current_api[$key])) $current_api[$key] = '';
+$defaults = [
+    'payment_active_method' => 'both',
+    'bank_nama' => 'Bank BCA',
+    'bank_norek' => '1234567890',
+    'bank_atas_nama' => 'HaloTiket Admin',
+    'qris_image' => 'assets/images/QRIS/QRIS.jpeg',
+    'fonnte_token' => 'ep63gV3wUjrZ1RB4NXnW',
+    'fonnte_wa_group' => '120363427898241334@g.us',
+    'fonnte_enable_group_notif' => '1',
+    'fonnte_enable_buyer_notif' => '1',
+    'cron_secret_key' => 'HTK_CRON_SECRET_KEY_2026',
+    'cron_expiry_hours' => '24',
+    'cron_enable_auto_cancel' => '1',
+    'cron_enable_reminder_payment' => '1',
+    'cron_enable_reminder_event' => '1',
+    'google_client_id' => '',
+    'google_client_secret' => '',
+    'google_redirect_uri' => '',
+    'midtrans_merchant_id' => '',
+    'midtrans_server_key' => '',
+    'midtrans_client_key' => '',
+    'midtrans_is_production' => '0'
+];
+
+foreach($defaults as $key => $default_val) {
+    if(!isset($current_api[$key]) || $current_api[$key] === '') {
+        $current_api[$key] = $default_val;
+    }
 }
 
 $default_redirect_uri = defined('BASE_URL') ? BASE_URL . 'auth/google_callback.php' : 'http://localhost/Halo_Tiket/auth/google_callback.php';
@@ -117,8 +233,209 @@ $redirect_uri_val = !empty($current_api['google_redirect_uri']) ? $current_api['
                 </div>
                 <?php endif; ?>
 
-                <form method="POST" action="" class="space-y-8">
+                <form method="POST" action="" enctype="multipart/form-data" class="space-y-8">
                     
+                    <!-- Mode Pembayaran Aktif System -->
+                    <div class="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden relative group hover:shadow-md transition-all duration-300">
+                        <div class="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-emerald-500 to-teal-500"></div>
+                        <div class="px-6 py-4 border-b border-slate-100 bg-slate-50/50 flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-xl bg-white border border-slate-200 flex items-center justify-center text-slate-700 shadow-sm">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
+                                </svg>
+                            </div>
+                            <div>
+                                <h3 class="font-extrabold text-slate-900 text-sm">Metode Pembayaran Aktif Sistem</h3>
+                                <p class="text-xs text-slate-500 font-medium mt-0.5">Pilih metode pembayaran yang diizinkan untuk digunakan pembeli saat checkout.</p>
+                            </div>
+                        </div>
+                        <div class="p-6 space-y-6">
+                            <div>
+                                <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Mode Opsi Pembayaran Pembeli</label>
+                                <select name="payment_active_method" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-sm font-bold outline-none text-slate-700">
+                                    <option value="both" <?= $current_api['payment_active_method'] == 'both' ? 'selected' : '' ?>>Keduanya (Midtrans & Transfer Bank / QRIS Manual)</option>
+                                    <option value="midtrans" <?= $current_api['payment_active_method'] == 'midtrans' ? 'selected' : '' ?>>Hanya Midtrans Payment Gateway (Otomatis)</option>
+                                    <option value="manual" <?= $current_api['payment_active_method'] == 'manual' ? 'selected' : '' ?>>Hanya Transfer Bank & QRIS Manual (Unggah Bukti Bayar)</option>
+                                </select>
+                                <p class="text-[11px] text-slate-500 mt-1.5">
+                                    💡 <b>Petunjuk:</b> Jika akun Midtrans Production Anda masih status <i>Under Review</i>, Anda bisa memilih opsi <b>"Keduanya"</b> atau <b>"Hanya Transfer Bank & QRIS Manual"</b> agar transaksi pembeli tetap berjalan.
+                                </p>
+                            </div>
+
+                            <!-- Form Detail Bank & QRIS -->
+                            <div class="pt-4 border-t border-slate-100">
+                                <h4 class="font-bold text-slate-800 text-xs uppercase tracking-wider mb-4">Informasi Rekening Bank & QRIS Manual</h4>
+                                
+                                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+                                    <div>
+                                        <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Nama Bank / E-Wallet</label>
+                                        <input type="text" name="bank_nama" value="<?= htmlspecialchars($current_api['bank_nama']) ?>" placeholder="Contoh: Bank BCA" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 text-slate-800 text-sm rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary block transition-colors font-medium">
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Nomor Rekening</label>
+                                        <input type="text" name="bank_norek" value="<?= htmlspecialchars($current_api['bank_norek']) ?>" placeholder="Contoh: 1234567890" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 text-slate-800 text-sm rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary block transition-colors font-medium">
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Atas Nama (Owner)</label>
+                                        <input type="text" name="bank_atas_nama" value="<?= htmlspecialchars($current_api['bank_atas_nama']) ?>" placeholder="Contoh: PT Halo Tiket Indonesia" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 text-slate-800 text-sm rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary block transition-colors font-medium">
+                                    </div>
+                                </div>
+
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
+                                    <div>
+                                        <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Gambar QRIS (File Gambar)</label>
+                                        <input type="hidden" name="qris_image_current" value="<?= htmlspecialchars($current_api['qris_image']) ?>">
+                                        <input type="file" name="qris_image" accept="image/*" class="w-full text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-slate-100 file:text-slate-700 hover:file:bg-slate-200 transition-all cursor-pointer">
+                                        <p class="text-[10px] text-slate-400 mt-1">Default file: <code><?= htmlspecialchars($current_api['qris_image']) ?></code></p>
+                                    </div>
+                                    <div class="flex items-center gap-4 bg-slate-50 p-4 rounded-2xl border border-slate-200">
+                                        <?php 
+                                        $qris_preview_url = BASE_URL . (str_starts_with($current_api['qris_image'], 'assets/') ? $current_api['qris_image'] : 'assets/images/QRIS/QRIS.jpeg');
+                                        ?>
+                                        <img src="<?= $qris_preview_url ?>" alt="QRIS Preview" class="w-20 h-20 object-contain rounded-lg border border-slate-200 shadow-sm bg-white p-1">
+                                        <div class="text-xs">
+                                            <span class="font-bold text-slate-800 block">Preview QRIS Aktif</span>
+                                            <span class="text-slate-500 text-[11px] block mt-0.5">Gambar ini yang akan ditampilkan ke pembeli saat memilih pembayaran QRIS Manual.</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                    <!-- Fonnte WhatsApp API Config -->
+                    <div class="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden relative group hover:shadow-md transition-all duration-300">
+                        <div class="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-emerald-600 to-green-500"></div>
+                        <div class="px-6 py-4 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between">
+                            <div class="flex items-center gap-3">
+                                <div class="w-10 h-10 rounded-xl bg-emerald-50 border border-emerald-200 flex items-center justify-center text-emerald-600 shadow-sm font-bold text-lg">
+                                    💬
+                                </div>
+                                <div>
+                                    <h3 class="font-extrabold text-slate-900 text-sm">Pengaturan Notifikasi WhatsApp (Fonnte API)</h3>
+                                    <p class="text-xs text-slate-500 font-medium mt-0.5">Kirim pesan WhatsApp otomatis ke Group WA Admin & Nomor HP Pembeli.</p>
+                                </div>
+                            </div>
+                            <button type="button" onclick="testFonnteWA()" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-md transition-all flex items-center gap-1.5 active:scale-95">
+                                <span>📲 Tes Kirim Pesan WA</span>
+                            </button>
+                        </div>
+                        <div class="p-6 space-y-6">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div>
+                                    <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Fonnte API Token</label>
+                                    <input type="text" id="fonnte_token_input" name="fonnte_token" value="<?= htmlspecialchars($current_api['fonnte_token']) ?>" placeholder="Token Fonnte Anda" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 text-slate-800 text-sm rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary block transition-colors font-mono font-bold">
+                                    <p class="text-[10px] text-slate-400 mt-1">Token default: <code>ep63gV3wUjrZ1RB4NXnW</code></p>
+                                </div>
+
+                                <div>
+                                    <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Target ID Group WA Admin</label>
+                                    <input type="text" id="fonnte_wa_group_input" name="fonnte_wa_group" value="<?= htmlspecialchars($current_api['fonnte_wa_group']) ?>" placeholder="Contoh: 120363412788674882@g.us" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 text-slate-800 text-sm rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary block transition-colors font-mono font-bold">
+                                    <p class="text-[10px] text-slate-400 mt-1">Group ID: <code>120363412788674882@g.us</code></p>
+                                </div>
+                            </div>
+
+                            <div class="pt-4 border-t border-slate-100 grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <label class="flex items-center gap-3 p-3.5 bg-slate-50 rounded-2xl border border-slate-200 cursor-pointer hover:bg-slate-100 transition-colors">
+                                    <input type="checkbox" name="fonnte_enable_group_notif" value="1" <?= $current_api['fonnte_enable_group_notif'] == '1' ? 'checked' : '' ?> class="w-4 h-4 text-emerald-600 rounded focus:ring-emerald-500 accent-emerald-600">
+                                    <div class="text-xs">
+                                        <span class="font-bold text-slate-800 block">Kirim Notifikasi ke Group WA Admin</span>
+                                        <span class="text-slate-500 text-[11px]">Kirim pesan setiap ada pesanan baru & pembayaran lunas ke Group WA.</span>
+                                    </div>
+                                </label>
+
+                                <label class="flex items-center gap-3 p-3.5 bg-slate-50 rounded-2xl border border-slate-200 cursor-pointer hover:bg-slate-100 transition-colors">
+                                    <input type="checkbox" name="fonnte_enable_buyer_notif" value="1" <?= $current_api['fonnte_enable_buyer_notif'] == '1' ? 'checked' : '' ?> class="w-4 h-4 text-emerald-600 rounded focus:ring-emerald-500 accent-emerald-600">
+                                    <div class="text-xs">
+                                        <span class="font-bold text-slate-800 block">Kirim Notifikasi Langsung ke WA Pembeli</span>
+                                        <span class="text-slate-500 text-[11px]">Kirim link bayar & E-Ticket langsung ke nomor WhatsApp pembeli.</span>
+                                    </div>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Cron Job System Automation Config -->
+                    <div class="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden relative group hover:shadow-md transition-all duration-300">
+                        <div class="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-amber-500 to-orange-500"></div>
+                        <div class="px-6 py-4 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between">
+                            <div class="flex items-center gap-3">
+                                <div class="w-10 h-10 rounded-xl bg-amber-50 border border-amber-200 flex items-center justify-center text-amber-600 shadow-sm font-bold text-lg">
+                                    ⚙️
+                                </div>
+                                <div>
+                                    <h3 class="font-extrabold text-slate-900 text-sm">Pengaturan Cron Job & Otomatisasi Sistem</h3>
+                                    <p class="text-xs text-slate-500 font-medium mt-0.5">Auto-cancel tiket kadaluarsa, pengingat pembayaran, & pengingat H-1 event.</p>
+                                </div>
+                            </div>
+                            <button type="button" onclick="runCronJobNow()" class="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs rounded-xl shadow-md transition-all flex items-center gap-1.5 active:scale-95">
+                                <span>⚡ Jalankan Cron Sekarang</span>
+                            </button>
+                        </div>
+                        <div class="p-6 space-y-6">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div>
+                                    <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Batas Waktu Kadaluarsa Pembayaran (Jam)</label>
+                                    <input type="number" min="1" max="168" name="cron_expiry_hours" value="<?= htmlspecialchars($current_api['cron_expiry_hours']) ?>" placeholder="24" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 text-slate-800 text-sm rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary block transition-colors font-bold">
+                                    <p class="text-[10px] text-slate-400 mt-1">Tiket pending yang berumur lebih dari jumlah jam ini akan dibatalkan otomatis.</p>
+                                </div>
+
+                                <div>
+                                    <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Cron Secret Key (Keamanan Cron)</label>
+                                    <input type="text" name="cron_secret_key" value="<?= htmlspecialchars($current_api['cron_secret_key']) ?>" placeholder="Kunci Rahasia Cron" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 text-slate-800 text-sm rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary block transition-colors font-mono font-bold">
+                                    <p class="text-[10px] text-slate-400 mt-1">Digunakan untuk otentikasi eksekusi cron dari luar server.</p>
+                                </div>
+                            </div>
+
+                            <div class="pt-4 border-t border-slate-100 grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <label class="flex items-center gap-3 p-3 bg-slate-50 rounded-2xl border border-slate-200 cursor-pointer hover:bg-slate-100 transition-colors">
+                                    <input type="checkbox" name="cron_enable_auto_cancel" value="1" <?= $current_api['cron_enable_auto_cancel'] == '1' ? 'checked' : '' ?> class="w-4 h-4 text-amber-600 rounded focus:ring-amber-500 accent-amber-600">
+                                    <div class="text-xs">
+                                        <span class="font-bold text-slate-800 block">Auto-Cancel Kadaluarsa</span>
+                                        <span class="text-slate-500 text-[11px]">Batalkan & kembalikan stok tiket pending kadaluarsa.</span>
+                                    </div>
+                                </label>
+
+                                <label class="flex items-center gap-3 p-3 bg-slate-50 rounded-2xl border border-slate-200 cursor-pointer hover:bg-slate-100 transition-colors">
+                                    <input type="checkbox" name="cron_enable_reminder_payment" value="1" <?= $current_api['cron_enable_reminder_payment'] == '1' ? 'checked' : '' ?> class="w-4 h-4 text-amber-600 rounded focus:ring-amber-500 accent-amber-600">
+                                    <div class="text-xs">
+                                        <span class="font-bold text-slate-800 block">WA Pengingat Pembayaran</span>
+                                        <span class="text-slate-500 text-[11px]">Kirim WA pengingat 1 jam setelah checkout.</span>
+                                    </div>
+                                </label>
+
+                                <label class="flex items-center gap-3 p-3 bg-slate-50 rounded-2xl border border-slate-200 cursor-pointer hover:bg-slate-100 transition-colors">
+                                    <input type="checkbox" name="cron_enable_reminder_event" value="1" <?= $current_api['cron_enable_reminder_event'] == '1' ? 'checked' : '' ?> class="w-4 h-4 text-amber-600 rounded focus:ring-amber-500 accent-amber-600">
+                                    <div class="text-xs">
+                                        <span class="font-bold text-slate-800 block">WA Pengingat H-1 Event</span>
+                                        <span class="text-slate-500 text-[11px]">Kirim WA pengingat H-1 ke peserta terdaftar.</span>
+                                    </div>
+                                </label>
+                            </div>
+
+                            <!-- Petunjuk Pemasangan Cron Job cPanel -->
+                            <div class="pt-4 border-t border-slate-100">
+                                <details class="group">
+                                    <summary class="flex items-center justify-between cursor-pointer font-bold text-xs text-amber-800 hover:text-amber-900 transition-colors">
+                                        <span class="flex items-center gap-1.5">
+                                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                                            📋 Panduan Perintah Pemasangan Cron Job di cPanel
+                                        </span>
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 group-open:rotate-180 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
+                                    </summary>
+                                    <div class="mt-3 text-xs text-slate-600 space-y-3 bg-amber-50/50 p-4 rounded-2xl border border-amber-200">
+                                        <div>
+                                            <p class="font-bold text-slate-800 mb-1">1. Opsi Command Line (CLI Command - Disarankan):</p>
+                                            <code class="block bg-slate-900 text-emerald-400 p-2.5 rounded-xl font-mono text-[11px] select-all">php <?= str_replace('\\', '/', dirname(__DIR__)) ?>/cron/run_cron.php</code>
+                                        </div>
+                                        <div>
+                                            <p class="font-bold text-slate-800 mb-1">2. Opsi URL Web Cron (wget / curl):</p>
+                                            <code class="block bg-slate-900 text-amber-300 p-2.5 rounded-xl font-mono text-[11px] select-all">wget -O /dev/null "<?= BASE_URL ?>cron/run_cron.php?key=<?= htmlspecialchars($current_api['cron_secret_key']) ?>"</code>
+                                        </div>
+                                        <p class="text-[11px] text-slate-500">Setting interval rekomendasi cPanel: <b>Every 15 Minutes</b> (<code>*/15 * * * *</code>).</p>
+                                    </div>
+                                </details>
+                            </div>
+                        </div>
+                    </div>
+
                     <!-- Midtrans API Config -->
                     <div class="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden relative group hover:shadow-md transition-all duration-300">
                         <div class="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-blue-500 to-indigo-500"></div>
@@ -325,6 +642,51 @@ $redirect_uri_val = !empty($current_api['google_redirect_uri']) ? $current_api['
             });
         }, 5000);
     });
+
+    function testFonnteWA() {
+        const token = document.getElementById('fonnte_token_input').value;
+        const group = document.getElementById('fonnte_wa_group_input').value;
+
+        if (!token || !group) {
+            alert('Harap isi Fonnte API Token dan Target ID Group WA terlebih dahulu.');
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append('test_token', token);
+        formData.append('test_group', group);
+
+        fetch('api_settings.php?action=test_fonnte', {
+            method: 'POST',
+            body: formData
+        })
+        .then(res => res.json())
+        .then(data => {
+            alert(data.message);
+        })
+        .catch(err => {
+            alert('Gagal mengirim pesan tes WA: ' + err.message);
+        });
+    }
+
+    function runCronJobNow() {
+        if (!confirm('Apakah Anda yakin ingin memicu eksekusi Cron Job sekarang?')) {
+            return;
+        }
+
+        fetch('api_settings.php?action=run_cron')
+        .then(res => res.json())
+        .then(data => {
+            if (data.status === 'success') {
+                alert('⚡ ' + data.message);
+            } else {
+                alert('Gagal menjalankan Cron Job: ' + (data.message || 'Terjadi kesalahan'));
+            }
+        })
+        .catch(err => {
+            alert('Terjadi kesalahan saat memicu Cron Job: ' + err.message);
+        });
+    }
 </script>
 </body>
 </html>

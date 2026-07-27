@@ -34,6 +34,11 @@ try {
                     if (file_exists('../actions/kirim_email_tiket.php')) {
                         @include_once '../actions/kirim_email_tiket.php';
                     }
+                    if (function_exists('notifyPaymentSuccessWA')) {
+                        $stmtEv = $conn->query("SELECT e.judul, v.nama_varian FROM events e LEFT JOIN event_ticket_variants v ON v.id = " . (int)$ticket['id_ticket_variant'] . " WHERE e.id = " . (int)$ticket['id_event']);
+                        $evRow = $stmtEv ? $stmtEv->fetch_assoc() : [];
+                        @notifyPaymentSuccessWA($ticket, $evRow['judul'] ?? '', $evRow['nama_varian'] ?? '');
+                    }
                 }
             }
         } else if ($transaction == 'settlement'){
@@ -41,6 +46,11 @@ try {
             // Panggil helper kirim email tiket
             if (file_exists('../actions/kirim_email_tiket.php')) {
                 @include_once '../actions/kirim_email_tiket.php';
+            }
+            if (function_exists('notifyPaymentSuccessWA')) {
+                $stmtEv = $conn->query("SELECT e.judul, v.nama_varian FROM events e LEFT JOIN event_ticket_variants v ON v.id = " . (int)$ticket['id_ticket_variant'] . " WHERE e.id = " . (int)$ticket['id_event']);
+                $evRow = $stmtEv ? $stmtEv->fetch_assoc() : [];
+                @notifyPaymentSuccessWA($ticket, $evRow['judul'] ?? '', $evRow['nama_varian'] ?? '');
             }
         } else if ($transaction == 'pending'){
             $conn->query("UPDATE tickets SET status = 'pending' WHERE order_id = '$order_id'");

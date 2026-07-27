@@ -148,7 +148,63 @@ if (!$event || !$variant || (int)$variant['sisa_stok'] <= 0 || (int)($event['sto
                         <input type="text" name="no_hp" required placeholder="081234567890" class="w-full px-5 py-3.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary focus:bg-white transition-all text-sm">
                     </div>
                     
-                    <input type="hidden" name="payment_method" value="midtrans">
+                    <!-- Opsi Metode Pembayaran Dinamis -->
+                    <div class="space-y-3 pt-2">
+                        <label class="text-sm font-bold text-slate-700 block">Metode Pembayaran</label>
+                        <?php if ($global_payment_active_method == 'both'): ?>
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                <label class="relative flex flex-col p-4 bg-slate-50 border-2 border-primary rounded-2xl cursor-pointer hover:bg-slate-100 transition-all shadow-sm has-[:checked]:border-primary has-[:checked]:bg-primary/5">
+                                    <div class="flex items-center justify-between mb-1">
+                                        <div class="flex items-center gap-2">
+                                            <input type="radio" name="payment_method" value="midtrans" checked class="w-4 h-4 text-primary accent-primary focus:ring-primary">
+                                            <span class="font-extrabold text-sm text-slate-900">Midtrans Gateway</span>
+                                        </div>
+                                        <span class="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded bg-emerald-100 text-emerald-700">Otomatis</span>
+                                    </div>
+                                    <p class="text-xs text-slate-500 pl-6">Virtual Account, QRIS Otomatis, Kartu Kredit, GoPay, ShopeePay.</p>
+                                </label>
+
+                                <label class="relative flex flex-col p-4 bg-slate-50 border-2 border-slate-200 rounded-2xl cursor-pointer hover:bg-slate-100 transition-all shadow-sm has-[:checked]:border-primary has-[:checked]:bg-primary/5">
+                                    <div class="flex items-center justify-between mb-1">
+                                        <div class="flex items-center gap-2">
+                                            <input type="radio" name="payment_method" value="manual" class="w-4 h-4 text-primary accent-primary focus:ring-primary">
+                                            <span class="font-extrabold text-sm text-slate-900">Transfer / QRIS Manual</span>
+                                        </div>
+                                        <span class="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded bg-blue-100 text-blue-700">Verifikasi</span>
+                                    </div>
+                                    <p class="text-xs text-slate-500 pl-6">Transfer Bank / QRIS Statis Panitia & Unggah Bukti Bayar.</p>
+                                </label>
+                            </div>
+                        <?php elseif ($global_payment_active_method == 'manual'): ?>
+                            <input type="hidden" name="payment_method" value="manual">
+                            <div class="p-4 bg-blue-50/80 border border-blue-200 rounded-2xl flex items-center justify-between">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-9 h-9 rounded-xl bg-blue-600 text-white flex items-center justify-center font-bold text-sm">
+                                        💳
+                                    </div>
+                                    <div>
+                                        <span class="text-xs font-bold text-slate-900 block">Transfer Bank & QRIS Manual</span>
+                                        <span class="text-[11px] text-slate-500 block">Bayar via transfer rekening / scan QRIS lalu unggah bukti transfer.</span>
+                                    </div>
+                                </div>
+                                <span class="text-[10px] font-bold bg-blue-100 text-blue-800 px-2.5 py-1 rounded-full uppercase">Manual</span>
+                            </div>
+                        <?php else: ?>
+                            <input type="hidden" name="payment_method" value="midtrans">
+                            <div class="p-4 bg-slate-50 border border-slate-200 rounded-2xl flex items-center justify-between">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-9 h-9 rounded-xl bg-slate-900 text-white flex items-center justify-center font-bold text-sm">
+                                        ⚡
+                                    </div>
+                                    <div>
+                                        <span class="text-xs font-bold text-slate-900 block">Midtrans Payment Gateway</span>
+                                        <span class="text-[11px] text-slate-500 block">Pembayaran serba otomatis & instant verification.</span>
+                                    </div>
+                                </div>
+                                <span class="text-[10px] font-bold bg-emerald-100 text-emerald-800 px-2.5 py-1 rounded-full uppercase">Otomatis</span>
+                            </div>
+                        <?php endif; ?>
+                    </div>
 
                     <div class="pt-6 mt-6 border-t border-slate-100 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-6">
                         <div class="w-full sm:w-1/2">

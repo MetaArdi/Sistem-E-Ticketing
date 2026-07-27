@@ -67,6 +67,9 @@ if ($ticket['status'] == 'pending' && !empty($ticket['order_id'])) {
                     if (file_exists('actions/kirim_email_tiket.php')) {
                         @include_once 'actions/kirim_email_tiket.php';
                     }
+                    if (function_exists('notifyPaymentSuccessWA')) {
+                        @notifyPaymentSuccessWA($ticket, $ticket['judul'] ?? '', $ticket['nama_varian'] ?? '', $total_pembayaran);
+                    }
                 }
             }
         }
@@ -150,6 +153,20 @@ if ($ticket['status'] == 'pending' && !empty($ticket['order_id'])) {
             <h1 class="text-3xl font-extrabold text-slate-900 tracking-tight">Halaman Pembayaran</h1>
             <p class="text-slate-500 text-sm font-medium mt-1">Order ID: <strong class="text-slate-800 font-mono"><?= htmlspecialchars($ticket['order_id']) ?></strong></p>
         </div>
+
+        <?php if (isset($_SESSION['success'])): ?>
+            <div class="mb-6 bg-emerald-50 text-emerald-800 p-4 rounded-2xl border border-emerald-200 text-sm font-bold flex items-center gap-3">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-emerald-600 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
+                <?= htmlspecialchars($_SESSION['success']) ?>
+            </div>
+        <?php unset($_SESSION['success']); endif; ?>
+
+        <?php if (isset($_SESSION['error'])): ?>
+            <div class="mb-6 bg-red-50 text-red-800 p-4 rounded-2xl border border-red-200 text-sm font-bold flex items-center gap-3">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-red-600 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+                <?= htmlspecialchars($_SESSION['error']) ?>
+            </div>
+        <?php unset($_SESSION['error']); endif; ?>
 
         <?php if ($ticket['status'] == 'lunas' || $ticket['status'] == 'scanned'): ?>
             <!-- Success Box -->
@@ -236,22 +253,101 @@ if ($ticket['status'] == 'pending' && !empty($ticket['order_id'])) {
                         </div>
                     </div>
 
-                    <!-- Action Button -->
-                    <div class="pt-2 flex flex-col sm:flex-row gap-3">
-                        <button type="button" id="btnPayNow" onclick="processPaymentGateway()" class="w-full sm:flex-1 bg-slate-900 hover:bg-primary text-white font-extrabold py-4 px-6 rounded-2xl transition-all shadow-xl hover:shadow-indigo-500/30 text-center text-base sm:text-lg flex items-center justify-center gap-2 group">
-                            <span>Bayar Sekarang</span>
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
-                        </button>
-                    </div>
+                    <!-- Action & Payment Instructions -->
+                    <?php if (($ticket['payment_method'] ?? 'midtrans') === 'manual'): ?>
+                        <div class="space-y-6 pt-4 border-t border-slate-100">
+                            <div class="bg-gradient-to-br from-slate-900 to-indigo-950 text-white rounded-3xl p-6 shadow-lg border border-slate-800">
+                                <div class="flex items-center justify-between mb-4 pb-3 border-b border-slate-800">
+                                    <span class="text-xs font-extrabold uppercase tracking-wider text-primary">Instruksi Transfer Bank</span>
+                                    <span class="text-[10px] font-bold bg-primary/20 text-primary px-2.5 py-1 rounded-full">Manual Payment</span>
+                                </div>
+                                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
+                                    <div>
+                                        <span class="text-slate-400 block font-medium">Bank / E-Wallet</span>
+                                        <span class="text-white font-extrabold text-base block mt-0.5"><?= htmlspecialchars($global_bank_nama) ?></span>
+                                    </div>
+                                    <div>
+                                        <span class="text-slate-400 block font-medium">Nomor Rekening</span>
+                                        <div class="flex items-center gap-2 mt-0.5">
+                                            <span class="text-primary font-mono font-extrabold text-lg" id="norekText"><?= htmlspecialchars($global_bank_norek) ?></span>
+                                            <button onclick="navigator.clipboard.writeText('<?= htmlspecialchars($global_bank_norek) ?>'); alert('Nomor Rekening berhasil disalin!');" class="bg-white/10 hover:bg-white/20 p-1.5 rounded-lg text-[10px] text-slate-200 transition-colors">Salin</button>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <span class="text-slate-400 block font-medium">Atas Nama</span>
+                                        <span class="text-white font-bold text-sm block mt-0.5"><?= htmlspecialchars($global_bank_atas_nama) ?></span>
+                                    </div>
+                                </div>
+                            </div>
 
-                    <?php if (defined('MIDTRANS_IS_PRODUCTION') && !MIDTRANS_IS_PRODUCTION): ?>
-                        <div class="bg-blue-50 border border-blue-200 rounded-2xl p-4 text-center text-xs text-blue-800 space-y-2">
-                            <p class="font-bold">💡 Mode Sandbox Midtrans Aktif</p>
-                            <p>Gunakan Simulator Midtrans untuk mencoba pembayaran uji coba:</p>
-                            <a href="https://simulator.sandbox.midtrans.com/" target="_blank" class="inline-flex items-center gap-1 font-bold text-primary hover:underline">
-                                Midtrans Payment Simulator &rarr;
-                            </a>
+                            <!-- Gambar QRIS Manual -->
+                            <div class="bg-slate-50 border border-slate-200 rounded-3xl p-6 text-center">
+                                <span class="text-xs font-extrabold uppercase tracking-wider text-slate-500 mb-3 block">Atau Scan QRIS Manual</span>
+                                <?php 
+                                $qris_full_url = BASE_URL . (str_starts_with($global_qris_image, 'assets/') ? $global_qris_image : 'assets/images/QRIS/QRIS.jpeg');
+                                ?>
+                                <div class="bg-white p-3 inline-block rounded-2xl shadow-md border border-slate-100 max-w-[240px]">
+                                    <img src="<?= $qris_full_url ?>" alt="QRIS HaloTiket" class="w-full h-auto object-contain rounded-xl">
+                                </div>
+                                <p class="text-xs text-slate-500 font-medium mt-3">Scan menggunakan Mobile Banking, GoPay, OVO, DANA, ShopeePay, atau LinkAja.</p>
+                            </div>
+
+                            <!-- Upload Bukti Pembayaran -->
+                            <div class="bg-white border-2 border-dashed border-primary/40 rounded-3xl p-6">
+                                <h4 class="font-extrabold text-slate-900 text-sm mb-1">Unggah Bukti Transfer / Pembayaran</h4>
+                                <p class="text-xs text-slate-500 mb-4">Pastikan nominal transfer sesuai tagihan (<strong>Rp <?= number_format($total_pembayaran, 0, ',', '.') ?></strong>).</p>
+
+                                <?php if (!empty($ticket['bukti_pembayaran'])): ?>
+                                    <div class="bg-emerald-50 border border-emerald-200 rounded-2xl p-4 flex items-center justify-between gap-4">
+                                        <div class="flex items-center gap-3">
+                                            <div class="w-10 h-10 rounded-xl bg-emerald-600 text-white flex items-center justify-center font-bold">✓</div>
+                                            <div>
+                                                <span class="text-xs font-bold text-emerald-900 block">Bukti Transfer Berhasil Diunggah</span>
+                                                <span class="text-[11px] text-emerald-700 block">Waktu Unggah: <?= date('d M Y, H:i', strtotime($ticket['tanggal_upload_bukti'])) ?></span>
+                                            </div>
+                                        </div>
+                                        <a href="<?= BASE_URL ?>uploads/bukti_pembayaran/<?= htmlspecialchars($ticket['bukti_pembayaran']) ?>" target="_blank" class="px-3 py-1.5 bg-emerald-600 text-white text-xs font-bold rounded-xl hover:bg-emerald-700 transition-colors shrink-0">
+                                            Lihat File
+                                        </a>
+                                    </div>
+                                    <p class="text-xs text-amber-700 font-bold text-center mt-3 bg-amber-50 p-3 rounded-xl border border-amber-200">
+                                        ⏳ Pesanan Anda sedang ditinjau dan diverifikasi oleh Admin/Panitia.
+                                    </p>
+                                <?php else: ?>
+                                    <form action="actions/proses_upload_bukti.php" method="POST" enctype="multipart/form-data" class="space-y-4">
+                                        <input type="hidden" name="order_id" value="<?= htmlspecialchars($ticket['order_id']) ?>">
+                                        
+                                        <div>
+                                            <input type="file" name="bukti_pembayaran" required accept="image/*,.pdf" class="w-full text-xs text-slate-600 file:mr-4 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-primary file:text-white hover:file:bg-primary/90 transition-all cursor-pointer">
+                                            <p class="text-[10px] text-slate-400 mt-1">Format: JPG, PNG, WEBP, PDF (Maksimal 5 MB)</p>
+                                        </div>
+
+                                        <button type="submit" class="w-full bg-slate-900 hover:bg-primary text-white font-extrabold py-3.5 px-6 rounded-xl transition-all shadow-lg text-sm flex items-center justify-center gap-2">
+                                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>
+                                            <span>Kirim Bukti Pembayaran</span>
+                                        </button>
+                                    </form>
+                                <?php endif; ?>
+                            </div>
                         </div>
+                    <?php else: ?>
+                        <!-- Action Button Midtrans -->
+                        <div class="pt-2 flex flex-col sm:flex-row gap-3">
+                            <button type="button" id="btnPayNow" onclick="processPaymentGateway()" class="w-full sm:flex-1 bg-slate-900 hover:bg-primary text-white font-extrabold py-4 px-6 rounded-2xl transition-all shadow-xl hover:shadow-indigo-500/30 text-center text-base sm:text-lg flex items-center justify-center gap-2 group">
+                                <span>Bayar Sekarang (Midtrans)</span>
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
+                            </button>
+                        </div>
+
+                        <?php if (defined('MIDTRANS_IS_PRODUCTION') && !MIDTRANS_IS_PRODUCTION): ?>
+                            <div class="bg-blue-50 border border-blue-200 rounded-2xl p-4 text-center text-xs text-blue-800 space-y-2">
+                                <p class="font-bold">💡 Mode Sandbox Midtrans Aktif</p>
+                                <p>Gunakan Simulator Midtrans untuk mencoba pembayaran uji coba:</p>
+                                <a href="https://simulator.sandbox.midtrans.com/" target="_blank" class="inline-flex items-center gap-1 font-bold text-primary hover:underline">
+                                    Midtrans Payment Simulator &rarr;
+                                </a>
+                            </div>
+                        <?php endif; ?>
                     <?php endif; ?>
 
                 </div>
