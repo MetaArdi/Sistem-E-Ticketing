@@ -5,7 +5,7 @@ if (!isset($_SESSION['user_id']) || $_SESSION['role'] != 'admin') {
     exit;
 }
 
-require_once '../../config/koneksi.php';
+require_once __DIR__ . '/../../config/koneksi.php';
 
 $is_ajax = (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest');
 
@@ -57,9 +57,14 @@ if ($action === 'approve') {
         $stmtUpd->execute();
     }
 
-    // Kirim email tiket jika file tersedia
-    if (file_exists(__DIR__ . '/../../actions/kirim_email_tiket.php')) {
-        @include_once __DIR__ . '/../../actions/kirim_email_tiket.php';
+    // Kirim email tiket secara aman
+    if (!empty($ticket['email_pembeli']) && !empty($ticket['token_qr'])) {
+        $pdf_url = (defined('BASE_URL') ? BASE_URL : 'http://localhost/') . "user/download_tiket.php?token=" . urlencode($ticket['token_qr']);
+        $to = $ticket['email_pembeli'];
+        $subject = "E-Ticket Anda: " . ($ticket['judul'] ?? 'HaloTiket');
+        $message = "<html><body style='font-family: Arial, sans-serif;'><h2 style='color: #00c2cb;'>Halo, " . htmlspecialchars($ticket['nama_pembeli'] ?? 'Pembeli') . "!</h2><p>Pembayaran Anda untuk event <strong>" . htmlspecialchars($ticket['judul'] ?? '') . "</strong> telah berhasil diverifikasi LUNAS.</p><p><a href='$pdf_url' style='background-color: #00c2cb; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; font-weight: bold;'>Unduh E-Ticket (PDF)</a></p></body></html>";
+        $headers = "MIME-Version: 1.0\r\nContent-type:text/html;charset=UTF-8\r\nFrom: no-reply@halotiket.com\r\n";
+        @mail($to, $subject, $message, $headers);
     }
 
     // Kirim Notifikasi WA Pembayaran Lunas
