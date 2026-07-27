@@ -107,23 +107,59 @@ $qrCodeUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=' . 
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
+        @page {
+            size: A4 portrait;
+            margin: 6mm;
+        }
         body {
             font-family: 'Outfit', sans-serif;
             background-color: #f1f5f9;
         }
         @media print {
+            html, body {
+                background-color: #ffffff !important;
+                padding: 0 !important;
+                margin: 0 !important;
+                height: 100% !important;
+                overflow: hidden !important;
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
             .no-print {
                 display: none !important;
             }
-            body {
-                background-color: #ffffff !important;
-                padding: 0 !important;
-            }
             .ticket-card {
                 box-shadow: none !important;
-                border: 1px solid #cbd5e1 !important;
+                border: 2px solid #003846 !important;
                 margin: 0 auto !important;
                 max-width: 100% !important;
+                width: 100% !important;
+                border-radius: 16px !important;
+                page-break-inside: avoid !important;
+                break-inside: avoid !important;
+                page-break-before: avoid !important;
+                page-break-after: avoid !important;
+            }
+            .banner-box {
+                height: 180px !important;
+            }
+            .ticket-body-content {
+                padding: 20px 24px !important;
+            }
+            .qr-box-wrapper {
+                padding: 12px !important;
+            }
+            .qr-code-image {
+                width: 160px !important;
+                height: 160px !important;
+            }
+            .ticket-title-heading {
+                font-size: 24px !important;
+                margin-bottom: 6px !important;
+            }
+            .dashed-line-sep {
+                margin-top: 12px !important;
+                margin-bottom: 12px !important;
             }
         }
     </style>
@@ -161,15 +197,15 @@ $qrCodeUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=' . 
         </div>
 
         <!-- Banner Event Image (Diambil dari gambar event yang dipilih) -->
-        <div class="w-full h-64 sm:h-80 bg-slate-900 relative overflow-hidden">
+        <div class="banner-box w-full h-64 sm:h-80 bg-slate-900 relative overflow-hidden">
             <img src="<?= $eventBannerUrl ?>" alt="Event Banner" class="w-full h-full object-cover">
         </div>
 
         <!-- Ticket Body Content -->
-        <div class="p-6 sm:p-10">
+        <div class="ticket-body-content p-6 sm:p-10">
             <!-- Title & Variant Badge -->
             <div class="mb-6">
-                <h1 class="text-2xl sm:text-4xl font-extrabold text-slate-900 tracking-tight mb-3">
+                <h1 class="ticket-title-heading text-2xl sm:text-4xl font-extrabold text-slate-900 tracking-tight mb-3">
                     <?= htmlspecialchars($tiket['judul']) ?>
                 </h1>
                 <div class="inline-block px-4 py-1.5 rounded-xl border-2 border-[#00c2cb] text-[#00c2cb] font-extrabold text-xs sm:text-sm tracking-wider uppercase">
@@ -178,15 +214,15 @@ $qrCodeUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=' . 
             </div>
 
             <!-- Dotted Line Divider -->
-            <div class="border-b-2 border-dashed border-slate-200 w-full my-6"></div>
+            <div class="dashed-line-sep border-b-2 border-dashed border-slate-200 w-full my-6"></div>
 
             <!-- Grid QR Code & Ticket Info -->
             <div class="grid grid-cols-1 md:grid-cols-12 gap-8 items-center">
                 
                 <!-- Left: QR Code Section -->
                 <div class="md:col-span-5 flex flex-col items-center justify-center">
-                    <div class="bg-white border-2 border-slate-200 rounded-3xl p-5 shadow-sm flex flex-col items-center justify-center">
-                        <img src="<?= $qrCodeUrl ?>" alt="QR Code Tiket" class="w-52 h-52 sm:w-60 sm:h-60 object-contain rounded-xl">
+                    <div class="qr-box-wrapper bg-white border-2 border-slate-200 rounded-3xl p-5 shadow-sm flex flex-col items-center justify-center">
+                        <img src="<?= $qrCodeUrl ?>" alt="QR Code Tiket" class="qr-code-image w-52 h-52 sm:w-60 sm:h-60 object-contain rounded-xl">
                         <p class="text-xs font-bold text-slate-400 mt-4 text-center">
                             Pindai kode QR ini di pintu masuk venue
                         </p>
