@@ -147,94 +147,102 @@ $events_query = $conn->query("SELECT id, judul FROM events ORDER BY judul ASC");
                         <h3 class="font-extrabold text-slate-900 text-sm">Riwayat Pembelian</h3>
                         <span class="bg-primary/10 text-primary text-xs font-bold px-3 py-1 rounded-full">Total: <?= $total_records ?> Data</span>
                     </div>
-                    <div class="overflow-x-auto">
-                        <table class="min-w-full divide-y divide-slate-100">
-                            <thead class="bg-white">
+                    <div class="overflow-hidden">
+                        <table class="w-full text-left border-collapse">
+                            <thead class="bg-white border-b border-slate-200">
                                 <tr>
-                                    <th class="px-6 py-3 text-left text-[11px] font-bold text-slate-400 uppercase tracking-wider">Order ID & Waktu</th>
-                                    <th class="px-6 py-3 text-left text-[11px] font-bold text-slate-400 uppercase tracking-wider">Pembeli</th>
-                                    <th class="px-6 py-3 text-left text-[11px] font-bold text-slate-400 uppercase tracking-wider">Event</th>
-                                    <th class="px-6 py-3 text-left text-[11px] font-bold text-slate-400 uppercase tracking-wider">Metode</th>
-                                    <th class="px-6 py-3 text-left text-[11px] font-bold text-slate-400 uppercase tracking-wider">Status</th>
-                                    <th class="px-6 py-3 text-right text-[11px] font-bold text-slate-400 uppercase tracking-wider">Aksi</th>
+                                    <th class="px-4 py-3 text-[11px] font-bold text-slate-400 uppercase tracking-wider w-[18%]">Order ID & Waktu</th>
+                                    <th class="px-4 py-3 text-[11px] font-bold text-slate-400 uppercase tracking-wider w-[26%]">Pembeli & Kontak</th>
+                                    <th class="px-4 py-3 text-[11px] font-bold text-slate-400 uppercase tracking-wider w-[22%]">Event & Metode</th>
+                                    <th class="px-4 py-3 text-[11px] font-bold text-slate-400 uppercase tracking-wider w-[14%]">Status</th>
+                                    <th class="px-4 py-3 text-right text-[11px] font-bold text-slate-400 uppercase tracking-wider w-[20%]">Aksi</th>
                                 </tr>
                             </thead>
-                            <tbody class="bg-white divide-y divide-slate-50">
+                            <tbody class="bg-white divide-y divide-slate-100 text-xs">
                                 <?php if($transactions->num_rows > 0): ?>
                                     <?php while($row = $transactions->fetch_assoc()): ?>
                                     <tr class="hover:bg-slate-50/80 transition-colors group">
-                                        <td class="px-6 py-4 whitespace-nowrap">
-                                            <div class="text-xs font-bold text-slate-900">#<?= htmlspecialchars($row['order_id']) ?></div>
-                                            <div class="text-[11px] font-medium text-slate-500 mt-1"><?= date('d M Y, H:i', strtotime($row['created_at'])) ?></div>
+                                        <!-- Order ID & Waktu -->
+                                        <td class="px-4 py-3.5 align-middle">
+                                            <div class="font-mono font-extrabold text-slate-900 text-xs">#<?= htmlspecialchars($row['order_id']) ?></div>
+                                            <div class="text-[10px] font-medium text-slate-500 mt-0.5"><?= date('d M Y, H:i', strtotime($row['created_at'])) ?></div>
                                         </td>
-                                        <td class="px-6 py-4 whitespace-nowrap">
-                                            <div class="text-sm font-bold text-slate-900"><?= htmlspecialchars($row['nama_pembeli']) ?></div>
-                                            <div class="text-[11px] font-medium text-slate-500"><?= htmlspecialchars($row['email_pembeli']) ?></div>
-                                            <div class="text-[11px] text-slate-400"><?= htmlspecialchars($row['no_hp']) ?></div>
+
+                                        <!-- Pembeli & Kontak -->
+                                        <td class="px-4 py-3.5 align-middle">
+                                            <div class="font-bold text-slate-900 line-clamp-1"><?= htmlspecialchars($row['nama_pembeli']) ?></div>
+                                            <div class="text-[11px] text-slate-500 truncate" title="<?= htmlspecialchars($row['email_pembeli']) ?>"><?= htmlspecialchars($row['email_pembeli']) ?></div>
+                                            <div class="text-[10px] text-slate-400 font-mono"><?= htmlspecialchars($row['no_hp']) ?></div>
                                         </td>
-                                        <td class="px-6 py-4 whitespace-nowrap">
-                                            <div class="text-sm font-bold text-slate-700 truncate max-w-[200px]" title="<?= htmlspecialchars($row['judul']) ?>"><?= htmlspecialchars($row['judul']) ?></div>
-                                        </td>
-                                        <td class="px-6 py-4 whitespace-nowrap">
+
+                                        <!-- Event & Metode -->
+                                        <td class="px-4 py-3.5 align-middle">
+                                            <div class="font-bold text-slate-800 line-clamp-1" title="<?= htmlspecialchars($row['judul']) ?>"><?= htmlspecialchars($row['judul']) ?></div>
                                             <?php if(($row['payment_method'] ?? 'midtrans') == 'manual'): ?>
-                                                <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-blue-100 text-blue-800 border border-blue-200">
+                                                <span class="inline-block mt-1 px-2 py-0.5 rounded text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-200">
                                                     Manual Transfer
                                                 </span>
                                             <?php else: ?>
-                                                <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
+                                                <span class="inline-block mt-1 px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
                                                     Midtrans Gateway
                                                 </span>
                                             <?php endif; ?>
                                         </td>
-                                        <td class="px-6 py-4 whitespace-nowrap">
+
+                                        <!-- Status -->
+                                        <td class="px-4 py-3.5 align-middle">
                                             <?php 
-                                            $status_class = 'bg-slate-100 text-slate-600';
-                                            if($row['status'] == 'lunas') $status_class = 'bg-emerald-100 text-emerald-700';
-                                            if($row['status'] == 'pending') $status_class = 'bg-yellow-100 text-yellow-700';
-                                            if($row['status'] == 'scanned') $status_class = 'bg-blue-100 text-blue-700';
-                                            if($row['status'] == 'batal') $status_class = 'bg-red-100 text-red-700';
+                                            $status_class = 'bg-slate-100 text-slate-600 border-slate-200';
+                                            if($row['status'] == 'lunas') $status_class = 'bg-emerald-50 text-emerald-700 border-emerald-200';
+                                            if($row['status'] == 'pending') $status_class = 'bg-amber-50 text-amber-700 border-amber-200';
+                                            if($row['status'] == 'scanned') $status_class = 'bg-blue-50 text-blue-700 border-blue-200';
+                                            if($row['status'] == 'batal') $status_class = 'bg-red-50 text-red-700 border-red-200';
                                             ?>
-                                            <span class="px-2.5 py-1 rounded-md text-[11px] font-bold uppercase tracking-wider <?= $status_class ?>">
+                                            <span class="px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider border inline-block <?= $status_class ?>">
                                                 <?= htmlspecialchars($row['status']) ?>
                                             </span>
                                             <?php if(!empty($row['bukti_pembayaran']) && $row['status'] == 'pending'): ?>
-                                                <span class="block text-[9px] font-bold text-amber-600 mt-1">
+                                                <span class="block text-[9px] font-bold text-amber-600 mt-0.5">
                                                     📷 Perlu Verifikasi
                                                 </span>
                                             <?php endif; ?>
                                         </td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-right text-xs font-medium space-x-1">
-                                            <!-- Detail Button -->
-                                            <button onclick="showDetail(<?= htmlspecialchars(json_encode($row)) ?>)" title="Lihat Detail Transaksi" class="text-slate-700 bg-slate-100 hover:bg-slate-200 px-2.5 py-1.5 rounded-lg transition-colors font-bold text-xs border border-slate-200">
-                                                🔍 Detail
-                                            </button>
-                                            
-                                            <!-- Cetak PDF Button (Jika status Lunas / Scanned) -->
-                                            <?php if (in_array($row['status'], ['lunas', 'scanned']) && !empty($row['token_qr'])): ?>
-                                                <a href="<?= BASE_URL ?>user/download_tiket.php?token=<?= urlencode($row['token_qr']) ?>" target="_blank" title="Cetak PDF Tiket Pembeli" class="text-teal-700 bg-teal-50 hover:bg-teal-100 px-2.5 py-1.5 rounded-lg transition-colors font-bold text-xs border border-teal-200 inline-flex items-center gap-1">
-                                                    📄 Cetak PDF
-                                                </a>
-                                            <?php endif; ?>
 
-                                            <!-- Edit Button -->
-                                            <button onclick="openEditModal(<?= htmlspecialchars(json_encode($row)) ?>)" title="Edit Data Transaksi" class="text-blue-700 bg-blue-50 hover:bg-blue-100 px-2.5 py-1.5 rounded-lg transition-colors font-bold text-xs border border-blue-200">
-                                                ✏️ Edit
-                                            </button>
-
-                                            <!-- Delete Button -->
-                                            <form action="actions/crud_transaksi.php" method="POST" class="inline-block" onsubmit="return confirm('Apakah Anda yakin ingin menghapus transaksi Order ID #<?= htmlspecialchars($row['order_id']) ?>? Stok tiket akan dikembalikan.')">
-                                                <input type="hidden" name="action" value="delete">
-                                                <input type="hidden" name="ticket_id" value="<?= $row['id'] ?>">
-                                                <button type="submit" title="Hapus Transaksi" class="text-red-700 bg-red-50 hover:bg-red-100 px-2 py-1.5 rounded-lg transition-colors font-bold text-xs border border-red-200">
-                                                    🗑️
+                                        <!-- Aksi Icon Buttons -->
+                                        <td class="px-4 py-3.5 align-middle text-right">
+                                            <div class="flex items-center justify-end gap-1.5">
+                                                <!-- Detail Button -->
+                                                <button onclick="showDetail(<?= htmlspecialchars(json_encode($row)) ?>)" title="Lihat Detail Transaksi" class="w-8 h-8 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 flex items-center justify-center transition-colors border border-slate-200 shadow-sm active:scale-95">
+                                                    🔍
                                                 </button>
-                                            </form>
+                                                
+                                                <!-- Cetak PDF Button (Jika status Lunas / Scanned) -->
+                                                <?php if (in_array($row['status'], ['lunas', 'scanned']) && !empty($row['token_qr'])): ?>
+                                                    <a href="<?= BASE_URL ?>user/download_tiket.php?token=<?= urlencode($row['token_qr']) ?>" target="_blank" title="Cetak PDF Tiket Pembeli" class="w-8 h-8 rounded-lg bg-teal-50 hover:bg-teal-100 text-teal-700 flex items-center justify-center transition-colors border border-teal-200 shadow-sm active:scale-95">
+                                                        📄
+                                                    </a>
+                                                <?php endif; ?>
+
+                                                <!-- Edit Button -->
+                                                <button onclick="openEditModal(<?= htmlspecialchars(json_encode($row)) ?>)" title="Edit Data Transaksi" class="w-8 h-8 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-700 flex items-center justify-center transition-colors border border-blue-200 shadow-sm active:scale-95">
+                                                    ✏️
+                                                </button>
+
+                                                <!-- Delete Button -->
+                                                <form action="actions/crud_transaksi.php" method="POST" class="inline-block" onsubmit="return confirm('Apakah Anda yakin ingin menghapus transaksi Order ID #<?= htmlspecialchars($row['order_id']) ?>? Stok tiket akan dikembalikan.')">
+                                                    <input type="hidden" name="action" value="delete">
+                                                    <input type="hidden" name="ticket_id" value="<?= $row['id'] ?>">
+                                                    <button type="submit" title="Hapus Transaksi" class="w-8 h-8 rounded-lg bg-red-50 hover:bg-red-100 text-red-700 flex items-center justify-center transition-colors border border-red-200 shadow-sm active:scale-95">
+                                                        🗑️
+                                                    </button>
+                                                </form>
+                                            </div>
                                         </td>
                                     </tr>
                                     <?php endwhile; ?>
                                 <?php else: ?>
                                     <tr>
-                                        <td colspan="6" class="px-6 py-12 text-center text-slate-500 font-medium">
+                                        <td colspan="5" class="px-6 py-12 text-center text-slate-500 font-medium">
                                             <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 mx-auto text-slate-300 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
                                             Belum ada data transaksi untuk event ini.
                                         </td>
