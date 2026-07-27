@@ -83,7 +83,23 @@ if ($action === 'create') {
     
     if ($stmt->execute()) {
         logActivity($conn, $_SESSION['user_id'], 'Tambah Transaksi Manual', "Admin menambahkan transaksi manual Order ID #$order_id ($nama_pembeli)");
-        returnResponse('success', "Transaksi baru Order ID #$order_id berhasil ditambahkan.");
+        
+        // Kirim email e-ticket jika status lunas
+        if ($status === 'lunas' && !empty($email_pembeli) && !empty($token_qr)) {
+            $pdf_url = BASE_URL . "user/download_tiket.php?token=" . urlencode($token_qr);
+            $event_judul = 'Event';
+            $resEv = $conn->query("SELECT judul FROM events WHERE id = $id_event");
+            if ($resEv && $rEv = $resEv->fetch_assoc()) {
+                $event_judul = $rEv['judul'];
+            }
+            $to = $email_pembeli;
+            $subject = "E-Ticket Anda: " . $event_judul;
+            $message = "<html><body style='font-family: Arial, sans-serif;'><h2 style='color: #00c2cb;'>Halo, " . htmlspecialchars($nama_pembeli) . "!</h2><p>Terima kasih telah melakukan pemesanan tiket <strong>" . htmlspecialchars($event_judul) . "</strong> di HaloTiket.</p><p>Status transaksi Anda telah dinyatakan <strong>LUNAS</strong>. Anda dapat mengunduh E-Ticket PDF melalui tombol di bawah ini:</p><p><a href='$pdf_url' style='background-color: #00c2cb; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; font-weight: bold;'>Unduh E-Ticket (PDF)</a></p><br><p>Salam hangat,<br><strong>Tim HaloTiket</strong></p></body></html>";
+            $headers = "MIME-Version: 1.0\r\nContent-type:text/html;charset=UTF-8\r\nFrom: no-reply@halotiket.com\r\n";
+            @mail($to, $subject, $message, $headers);
+        }
+
+        returnResponse('success', "Transaksi baru Order ID #$order_id berhasil ditambahkan dan email E-Ticket telah dikirim ke $email_pembeli.");
     } else {
         returnResponse('error', 'Gagal menyimpan transaksi: ' . $stmt->error);
     }
@@ -149,6 +165,22 @@ elseif ($action === 'update') {
 
     if ($stmtUpd->execute()) {
         logActivity($conn, $_SESSION['user_id'], 'Update Transaksi', "Admin memperbarui data transaksi Order ID #" . $oldTicket['order_id']);
+        
+        // Kirim email tiket jika status berubah dari non-lunas menjadi lunas
+        if ($old_status !== 'lunas' && $status === 'lunas' && !empty($email_pembeli) && !empty($oldTicket['token_qr'])) {
+            $pdf_url = BASE_URL . "user/download_tiket.php?token=" . urlencode($oldTicket['token_qr']);
+            $event_judul = 'Event';
+            $resEv = $conn->query("SELECT judul FROM events WHERE id = $id_event");
+            if ($resEv && $rEv = $resEv->fetch_assoc()) {
+                $event_judul = $rEv['judul'];
+            }
+            $to = $email_pembeli;
+            $subject = "E-Ticket Anda: " . $event_judul;
+            $message = "<html><body style='font-family: Arial, sans-serif;'><h2 style='color: #00c2cb;'>Halo, " . htmlspecialchars($nama_pembeli) . "!</h2><p>Status transaksi tiket <strong>" . htmlspecialchars($event_judul) . "</strong> Anda telah diperbarui menjadi <strong>LUNAS</strong>.</p><p><a href='$pdf_url' style='background-color: #00c2cb; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; font-weight: bold;'>Unduh E-Ticket (PDF)</a></p><br><p>Salam hangat,<br><strong>Tim HaloTiket</strong></p></body></html>";
+            $headers = "MIME-Version: 1.0\r\nContent-type:text/html;charset=UTF-8\r\nFrom: no-reply@halotiket.com\r\n";
+            @mail($to, $subject, $message, $headers);
+        }
+
         returnResponse('success', "Data transaksi Order ID #" . $oldTicket['order_id'] . " berhasil diperbarui.");
     } else {
         returnResponse('error', 'Gagal memperbarui transaksi: ' . $stmtUpd->error);
