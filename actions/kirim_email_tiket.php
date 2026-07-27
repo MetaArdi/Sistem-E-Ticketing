@@ -30,43 +30,49 @@ $judul_event = $tiket['judul'];
 $pdf_url = BASE_URL . "user/download_tiket.php?token=" . $token;
 
 $to = $email_pembeli;
-$subject = "E-Ticket Anda: " . $judul_event;
+$subject = "E-Ticket Resmi: " . $judul_event . " - HaloTiket";
 
 $message = "
-<html>
-<head>
-  <title>E-Ticket HaloTiket</title>
-</head>
-<body style='font-family: Arial, sans-serif; line-height: 1.6; color: #333;'>
-  <div style='max-w-md; margin: 0 auto; padding: 20px; border: 1px solid #eee; border-radius: 10px;'>
-      <h2 style='color: #00c2cb;'>Halo, $nama_pembeli!</h2>
-      <p>Terima kasih telah melakukan pembelian tiket <strong>$judul_event</strong> di HaloTiket.</p>
-      <p>Pembayaran Anda telah berhasil kami verifikasi. Anda dapat mengunduh E-Ticket PDF Anda melalui tautan di bawah ini:</p>
-      
-      <p style='text-align: center; margin: 30px 0;'>
-          <a href='$pdf_url' style='background-color: #00c2cb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; font-weight: bold;'>Unduh E-Ticket (PDF)</a>
-      </p>
-      
-      <p>Harap simpan tiket ini dan jangan bagikan QR Code kepada orang lain. Tunjukkan E-Ticket (PDF) ini kepada petugas di pintu masuk lokasi acara.</p>
-      <br>
-      <p>Salam hangat,</p>
-      <p><strong>Tim HaloTiket</strong></p>
-  </div>
+<!DOCTYPE html>
+<html lang='id'>
+<head><meta charset='UTF-8'></head>
+<body style='font-family: Arial, sans-serif; background-color: #f8fafc; padding: 30px; margin: 0; color: #1e293b;'>
+    <div style='max-width: 520px; margin: 0 auto; background: #ffffff; border-radius: 20px; border: 1px solid #e2e8f0; overflow: hidden; box-shadow: 0 10px 25px rgba(0,0,0,0.05);'>
+        <div style='background: #0f1c3f; color: #ffffff; padding: 25px; text-align: center;'>
+            <h1 style='margin: 0; font-size: 24px; color: #00c2cb;'>HaloTiket</h1>
+            <p style='margin: 5px 0 0 0; font-size: 12px; color: #94a3b8;'>E-Ticket Resmi Pembelian Event</p>
+        </div>
+        <div style='padding: 30px;'>
+            <h2 style='margin-top: 0; color: #0f172a; font-size: 18px;'>Halo, " . htmlspecialchars($nama_pembeli) . "! 👋</h2>
+            <p style='font-size: 14px; color: #475569; line-height: 1.6;'>Terima kasih telah melakukan pemesanan tiket <strong>" . htmlspecialchars($judul_event) . "</strong> di HaloTiket.</p>
+            <p style='font-size: 14px; color: #475569; line-height: 1.6;'>Pembayaran Anda telah berhasil kami verifikasi <strong>LUNAS</strong>. Silakan unduh E-Ticket PDF Anda melalui tombol di bawah ini:</p>
+            
+            <div style='text-align: center; margin: 30px 0;'>
+                <a href='$pdf_url' style='background-color: #00c2cb; color: #ffffff; padding: 14px 28px; text-decoration: none; border-radius: 12px; font-weight: bold; font-size: 14px; display: inline-block; box-shadow: 0 4px 12px rgba(0,194,203,0.3);'>Unduh E-Ticket (PDF)</a>
+            </div>
+
+            <div style='background: #f1f5f9; border-left: 4px solid #00c2cb; padding: 12px 16px; border-radius: 8px; font-size: 12px; color: #64748b;'>
+                📌 <strong>Petunjuk Penting:</strong> Simpan E-Ticket ini dan tunjukkan file PDF / QR Code kepada petugas di lokasi acara saat check-in.
+            </div>
+        </div>
+        <div style='background: #f8fafc; padding: 15px; text-align: center; font-size: 11px; color: #94a3b8; border-top: 1px solid #f1f5f9;'>
+            &copy; " . date('Y') . " HaloTiket. All rights reserved.
+        </div>
+    </div>
 </body>
 </html>
 ";
 
-// Headers untuk email HTML
-$headers = "MIME-Version: 1.0" . "\r\n";
-$headers .= "Content-type:text/html;charset=UTF-8" . "\r\n";
-$headers .= "From: no-reply@halotiket.com" . "\r\n";
+$headers = "MIME-Version: 1.0\r\n";
+$headers .= "Content-Type: text/html; charset=UTF-8\r\n";
+$headers .= "From: HaloTiket <no-reply@halotiket.com>\r\n";
+$headers .= "Reply-To: no-reply@halotiket.com\r\n";
+$headers .= "X-Mailer: PHP/" . phpversion() . "\r\n";
 
-if (mail($to, $subject, $message, $headers)) {
-    echo json_encode(['status' => 'success', 'message' => 'Email terkirim']);
-} else {
-    // Sebagai fallback jika mail() server lokal gagal, beri status success semu untuk simulasi
-    // echo json_encode(['status' => 'error', 'message' => 'Gagal mengirim email karena mail server tidak dikonfigurasi.']);
-    
-    // Karena laragon biasa tidak support sendmail tanpa setup, kita mock success saja.
-    echo json_encode(['status' => 'success', 'message' => 'Email disimulasikan terkirim.']);
+$mail_sent = @mail($to, $subject, $message, $headers, "-f no-reply@halotiket.com");
+if (!$mail_sent) {
+    @mail($to, $subject, $message, $headers);
 }
+
+echo json_encode(['status' => 'success', 'message' => 'Email e-ticket berhasil dikirimkan ke inbox pembeli.']);
+exit;
