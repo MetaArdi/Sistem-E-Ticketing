@@ -35,11 +35,14 @@ $stmt_var->bind_param("i", $id);
 $stmt_var->execute();
 $variants = $stmt_var->get_result();
 $variants_data = [];
+$total_sisa_kuota = 0;
 while ($v = $variants->fetch_assoc()) {
     $variants_data[] = $v;
+    $total_sisa_kuota += (int)$v['sisa_stok'];
 }
 
 // Cek apakah ada flash message
+$error = isset($_SESSION['error']) ? $_SESSION['error'] : null;
 $error = isset($_SESSION['error']) ? $_SESSION['error'] : null;
 unset($_SESSION['error']);
 ?>
@@ -236,8 +239,8 @@ unset($_SESSION['error']);
                             <div class="text-right">
                                 <p class="text-sm font-medium text-slate-500 mb-1">Sisa Kuota</p>
                                 <div
-                                    class="text-xl font-bold <?= $event['stok'] > 10 ? 'text-emerald-500' : 'text-orange-500' ?>">
-                                    <?= $event['stok'] ?> <span class="text-sm font-normal text-slate-400">tiket</span>
+                                    class="text-xl font-bold <?= $total_sisa_kuota > 10 ? 'text-emerald-500' : 'text-orange-500' ?>">
+                                    <?= $total_sisa_kuota ?> <span class="text-sm font-normal text-slate-400">tiket</span>
                                 </div>
                             </div>
                         </div>
