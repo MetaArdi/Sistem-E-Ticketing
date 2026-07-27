@@ -40,6 +40,10 @@ if (!in_array($payment_method, ['midtrans', 'manual'])) {
     $payment_method = 'midtrans';
 }
 
+$nama = trim($_POST['nama'] ?? $_SESSION['name'] ?? '');
+$email = trim($_POST['email'] ?? $_SESSION['email'] ?? '');
+$no_hp = trim($_POST['no_hp'] ?? $_SESSION['no_hp'] ?? '');
+
 if ($id_event <= 0 || $id_ticket_variant <= 0 || empty($nama) || empty($email)) {
     returnError("Data pesanan tidak lengkap. Silakan periksa kembali formulir Anda.", defined('BASE_URL') ? BASE_URL . "detail_event.php?id=" . $id_event : "../detail_event.php?id=" . $id_event);
 }
